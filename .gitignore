@@ -22,7 +22,9 @@ _minted-neptune/
 **/include
 **/bin
 **/output/**
-work-*/
+**/work-*
 neptune-sa
 openmp-test-sa
-validation/
+**/validation
+**/OPI
+**/libslam
