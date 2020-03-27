@@ -1,0 +1,269 @@
+#-----<IRAS/NEPTUNE>-----------------------------------------------------------
+#
+#   NEPTUNE -- Input File
+#   [v1.0.0-release]
+#
+#------------------------------------------------------------------------------
+#
+#   Overview
+#
+#   1)  General configuration
+#   2)  Input
+#   3)  Output
+#   4)  File paths
+#   5)  Numerical integration parameters
+#
+#==============================================================================
+#
+#   1) General configuration
+#
+#------------------------------------------------------------------------------
+#
+#   Run ID (max. 50 characters, no blanks)
+#
+    neptune
+#
+#   Switch for progress writing (1 or 0) - and file where it goes to
+#
+    1
+    neptune.tmp
+#
+#==============================================================================
+#
+#   2) Input
+#
+#------------------------------------------------------------------------------
+#
+#   Input type (state vector)
+#
+#   1 = cartesian state vector      (GCRF)
+#   2 = osculating kepler elements  (GCRF)
+#   3 = cartesian state vector      (TEME)
+#
+  1
+#
+#   Input type (covariance matrix)
+#
+#   1 = GCRF
+#   2 = UVW frame
+#
+  2
+#
+#------------------------------------------------------------------------------
+#
+#   Propagation time span
+#     - gregorian date: YYYY MM DD HH MM SS.SSS... (separated by blanks)
+#     - julian day:     XXXXXXX.XX...              (no blanks)
+#
+  2016 07 20 00 31 50.00   2440980.0    Begin date
+  2016 07 25 00 31 50.00   2441345.0    End date
+#
+#------------------------------------------------------------------------------
+#
+#   Cartesian state vector (if input type == 1)
+#
+     615.119526d0               radius   x-component (km)
+   -7095.644839d0               radius   y-component (km)
+    -678.668352d0               radius   z-component (km)
+     0.390367d0                 velocity x-component (km/s)
+     0.741902d0                 velocity y-component (km/s)
+    -7.396980d0                 velocity z-component (km/s)
+#
+#   Osculating kepler elements (if input type == 2)
+#
+   7150.59176    semi-major axis (km)
+   0.0012347     eccentricity
+   98.4076293    inclination (deg)
+   30.3309997    right ascension of ascending node (deg)
+   68.5606724    argument of perigee (deg)
+   291.5725696   true anomaly (deg)
+#
+#   Covariance matrix
+#
+  10.d0       variance position x/u (m**2)
+  100.d0      variance position y/v (m**2)
+  30.d0       variance position z/w (m**2)
+  2.d-4       variance velocity x/u (m**2/s**2)
+  1.d-4       variance velocity y/v (m**2/s**2)
+  1.d-4       variance velocity z/w (m**2/s**2)
+#
+  0.d0                      covariance matrix 2nd row (units see above..)
+  0.d0 0.d0                 covariance matrix 3rd row
+  0.d0 0.d0 0.d0            covariance matrix 4th row
+  0.d0 0.d0 0.d0 0.d0       covariance matrix 5th row
+  0.d0 0.d0 0.d0 0.d0 0.d0  covariance matrix 6th row
+#
+#------------------------------------------------------------------------------
+#
+#   Perturbations to be considered
+#
+#     1 = on
+#     0 = off (special case Gravity potential:  0  = central body force
+#                                              >0  = degree of gravity potential
+#
+  6   Geopotential
+  1   Atmospheric drag    ! (0 = off, 1 = on, 2 = on+wind (HMW07))
+  1   Sun gravity
+  1   Moon gravity
+  1   Solar radiation pressure
+  1   Earth albedo
+  1   Solid Earth tides
+  0   Ocean tides
+  0   Orbital maneuvers   ! specification to be provided in file as given below in section 'File paths'
+#
+#   Geopotential model to be used (if geopotential perturbation /= 0):
+#     1 = EGM96
+#     2 = EGM2008
+#     3 = EIGEN-GL04C
+#
+  3
+#
+#   Atmosphere model to be used
+#     1 = Exponential
+#     2 = NRLMSISE-00
+#
+  2
+#
+#   Use only a subset of spherical harmonics of the geopotential
+#     - First set switch to '1', then provide harmonics in the
+#       subsequent line
+#     - Blank separated codes for harmonics, e.g.: '20 30 22' translates to: '20' -> J2; '30' -> J3; '22' -> J22; etc.
+#     - NOTE: only 255 characters in total can be used to define spherical harmonics
+#
+  0   ! on/off switch
+  20 30
+#
+#   Shadow model options
+#
+  1   ! Shadow model switch (0 = no shadow, 1 = conical)
+  0   ! Shadow boundary correction (Lundberg algorithm, 1 = on, 0 = off)
+#
+#   Covariance matrix propagation
+#
+  1     Propagation switch (1=on, 0=off)
+  2     Degree of geopotential (0=two-body only, n=degree of geopotential, but smaller than or equal to degree in state vector propagation!)
+  1     Atmospheric drag (variational equations)
+  0     Sun  (variational equations)
+  0     Moon (variational equations)
+  0     Solar radiation pressure (variational equations)
+#
+#   Noise matrix computation
+#
+#     1 = on (only considered if covariance matrix propagation is on)
+#     0 = off
+#
+  0
+#
+#------------------------------------------------------------------------------
+#
+#   Further options
+#
+#   a.1) Earth orientation parameters
+#           1 = on
+#           0 = off
+  1
+#
+#   a.2) Precession-Nutation theory lookup tables
+#           1 = on
+#           0 = off
+  1
+#
+#   b) Satellite characteristics settings
+#       1 = constant (cannon-ball model), from this input file (see c))
+#       2 = read from tabular data file
+  1
+#
+#   c) Satellite characteristics
+#
+  1.3d0         Mass (kg)
+  0.01d0        Cross-section (m**2)
+  2.2d0         Drag coefficient
+  1.3d0         Reflectivity coefficient
+#
+#   d) Solar and geomagnetic activity long-term forecast (used if no data is available)
+#
+  15            Geomagnetic activity Ap
+  150.0         Solar activity (sfu)
+#
+#   e) Re-entry stop condition (min. altitude, km)
+#
+  50
+#
+#==============================================================================
+#
+#   3) Output
+#
+#------------------------------------------------------------------------------
+#
+#   Output time step (in seconds)
+#
+  60
+#
+#   Time step for ephemerides in internal array (available via 'getNeptuneData' API)
+#   (in seconds - IF not '0' then output time step (above) will be overwritten by this
+#   value!)
+#
+  0
+#
+#   Desired output (1 = on, 0 = off)
+#
+  1           cartesian state vector             vs. time
+  1           osculating kepler elements         vs. time
+  0           geodetic lat., lon. and altitude   vs. time
+  0           total atmospheric density          vs. time
+#
+  0           variances (ECI, diagonal elements) vs. time
+  1           variances (UVW, diagonal elements) vs. time
+  0           covariances (ECI, non-diagonal)    vs. time
+  1           covariances (UVW, non-diagonal)    vs. time
+#
+  1           total accelerations                vs. time
+  0           acceleration due to geopotential   vs. time
+  0           acceleration due to drag           vs. time
+  0           acceleration due to Sun            vs. time
+  0           acceleration due to Moon           vs. time
+  0           acceleration due to SRP            vs. time
+  0           acceleration due to Earth albedo   vs. time
+  0           acceleration due to solid tides    vs. time
+  0           acceleration due to ocean tides    vs. time
+  0           acceleration due to orb. maneuvers vs. time
+#
+#==============================================================================
+#
+#   4) File paths
+#
+#------------------------------------------------------------------------------
+#
+  data              Data path (files which are not edited)
+  input             Input path (files which are edited)
+  output            Output path
+#
+  neptune.mnv       Orbital maneuvers input file
+  neptune.srf       Oriented surfaces definition file
+#
+  fap_day.dat       Data file for daily solar and geomagnetic activity
+  fap_mon.dat       Data file for monthly solar and geomagnetic activity (only used if ESA daily data file used)
+  apexgrid.dat      Pre-computed interpolation grid for quasi-dipole coordinates (needed for HWM07)
+  dwm07b_104i.dat   Disturbance winds data file (needed for HWM07)
+  hwm071308e.dat    Horizontal Wind Model (HWM07) data file
+  eop19620101.txt   Earth Orientation Parameters data file
+#
+#==============================================================================
+#
+#   5)  Numerical integration parameters
+#
+  1          Integrator to be used (1 = Variable-step Störmer-Cowell, 2 = Fixed-step Gauss-Jackson)
+#
+  1.d-10     Störmer-Cowell relative tolerance
+  1.d-11     Störmer-Cowell absolute tolerance
+#
+  60.d0      Covariance matrix integration step size (sec) [multiple of output step, should not be greater than output step!!]
+  2          Covariance matrix integration method: 1=taylor expansion, 2=RK4
+#
+#   Integration logfile (stepsize, local error)
+#     1 = on
+#     0 = off
+#
+  0
+#
+#------------------------------------------------------------------------------

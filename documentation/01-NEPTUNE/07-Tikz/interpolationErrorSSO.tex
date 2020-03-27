@@ -1,0 +1,17 @@
+\begin{tikzpicture}
+
+    \begin{semilogyaxis}[
+       xlabel = Minutes after $t_0$,
+       ylabel = Interpolation error / km,
+       ylabel near ticks,
+       legend entries={$n=15$, $n=20$, $n=25$},
+       legend style={at={(1.05,1.0)}, anchor=north west},
+       legend cell align = left
+    ]
+    
+      \addplot[red,        mark=x] table {07-Tikz/data/int_15.out};
+      \addplot[ilr-blue,   mark=o] table {07-Tikz/data/int_20.out};
+      \addplot[dark-green, mark=+] table {07-Tikz/data/int_25.out};
+  
+    \end{semilogyaxis}
+\end{tikzpicture}

@@ -1,0 +1,26 @@
+\begin{tikzpicture}
+
+    \begin{axis}[
+       width=0.8\textwidth,
+       align=center,
+       %title={Position error after 24~h / km \\ (\textbf{Negative} for \alert{failed} bin)},
+       xlabel = Semi-major axis / km,
+       ylabel = RAAN / deg,
+       scaled ticks=false,
+       colorbar,
+       ymin=0,
+       ymax=360,
+       ytick={60,120,...,360},
+       xmin=25000, xmax=30000,
+       %xtick={2000,3000,...,6000},
+      view={0}{90}      
+      ]
+      
+      \addplot3[surf, mesh/ordering=y varies] table {07-Tikz/data/act_example_meo_alt-raan.tmp};
+      \addplot3[draw=black, thick] coordinates {(29600,0,0) (29600,360,0)} node[pos=0.52, left] {Galileo};
+      \addplot3[draw=black, thick] coordinates {(26600,0,0) (26600,360,0)} node[pos=0.52, left] {GPS};
+      \addplot3[draw=black, thick] coordinates {(25478,0,0) (25478,360,0)} node[pos=0.15, right] {GLONASS};
+      \addplot3[draw=black, thick] coordinates {(27528,0,0) (27528,360,0)} node[pos=0.15, right] {Beidou};
+      %\addplot3[draw=white, thick] coordinates {(41428,88,0) (43328,88,0)} node[pos=0.75, above] {\color{white}$\lambda = 0^\circ$};
+    \end{axis}
+\end{tikzpicture}

@@ -1,0 +1,14 @@
+\begin{tikzpicture}[transform shape, scale=0.85]
+  \node[information text] (txt) at (0,0) {
+    \begin{tabular}{lr}
+      \multicolumn{2}{c}{\textbf{Jason-1 properties}$^1$} \\
+      Altitude & \SI{1336}{\kilo\metre} \\
+      Inclination & \ang{66;;} \\
+      \acrshort{acr:bol} mass & \SI{500}{\kilogram} \\
+      Dimensions & \SI{2.2}{\metre}$\times$\SI{0.9}{\metre}$\times$\SI{0.9}{\metre} \\
+      Solar panels area & \SI{9.6}{\metre\squared} \\
+    \end{tabular}
+  };
+  \node[below=0.2cm of txt.south west, anchor=north west] (cite) {$^1$\citepalias{nasaJason2001}};
+  \node[minimum height=0.4cm, below=0.4cm of cite] {}; % some spacing...
+\end{tikzpicture}

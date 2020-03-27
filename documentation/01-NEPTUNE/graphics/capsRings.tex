@@ -1,0 +1,10 @@
+\begin{tikzpicture}[scale=0.5]
+  % clip to add some white space..
+ \clip (-6.09,-6.09) rectangle (6.09,6.09);
+ 
+ \foreach \z / \a in {0/30,30/60,60/90,90/120,120/150,150/180,180/210,210/240,240/270,270/300,300/330,330/360}
+    \draw[tubsBlueDark100, very thick, fill=tubsBlueDark20] (0,0) -- ++(\z:4.35cm) arc (\z:\a:4.35cm) -- (0,0);
+ \foreach \z / \a in {0/60,60/120,120/180,180/240,240/300,300/360}
+    \draw[tubsBlueDark100, very thick, fill=tubsBlueDark20] (0,0) -- ++(\z:2.64cm) arc (\z:\a:2.64cm) -- (0,0);
+ \draw[tubsBlueDark100, very thick, fill=tubsBlueDark20, radius=1cm] (0,0) circle;
+\end{tikzpicture}

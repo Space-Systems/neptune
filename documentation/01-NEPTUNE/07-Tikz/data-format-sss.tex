@@ -1,0 +1,42 @@
+\begin{tikzpicture}[scale=0.7, transform shape]
+
+\node (sensor) [redbox] {Sensor};
+\node (meas)   [speicher, below=of sensor] {Measurements};
+\node (proc1)  [bluebox,  below=of meas]   {Post-processing}; 
+
+\node (pass)  [speicher, below=2cm of proc1] {Track \# $\ldots$};
+\node (pass2) [speicher, above=-8pt of pass] {Track \# 2};
+\node (pass1) [speicher, above=-8pt of pass2] {Track \# 1};
+
+\node (corr)   [bluebox, below=of pass] {Correlation};
+
+\node (passsv1)  [speicher, below=of corr] {CT $+$ SV};
+\node (pass3)	 [speicher, left=of corr] {UCT};
+\node (iod)      [bluebox, below left=of pass3] {Initial orbit determination};
+\node (od)       [bluebox, below=of passsv1] {Statistical orbit determination};
+\node (passsv2)  [speicher, left=of od] {Track $+$ initial SV};
+
+\node (ctemp1)  [speicher, below right=1.2cm and 1.7cm of corr] {};
+\node (catalog) [speicher, above=-8pt of ctemp1] {Object catalog};
+\node (ctemp2)    [speicher, above=-8pt of catalog] {};
+
+\node (datacenter) [redbox, text width=40mm, minimum width=20mm, above=2cm of ctemp2.north east] {Data center};
+\node (data)       [textfeld, right=of datacenter] {Providing data to users};
+
+\draw[->] (sensor)     to (meas);
+\draw[->] (meas)       to (proc1);
+\draw[->] (proc1)      to (pass1.top);
+\draw[->] (pass)       to (corr);
+\draw[->] (corr)       to (pass3);
+\draw[->] (passsv2)    to (od);
+\draw[->] (od)         -| (ctemp1);
+\draw[->] (ctemp2.top) |- (corr);
+\draw[->] (corr)       to (passsv1);
+\draw[->] (passsv1)    to (od);
+\draw[->] (pass3.west) -| (iod.north);
+\draw[->] (iod.south)  |- (passsv2.west);
+
+\draw[->] (ctemp2.north east) to (datacenter);
+\draw[->] (datacenter.north) |- node[near start, right]{Tasking} (sensor.east);
+\draw[->] (datacenter) to (data);
+\end{tikzpicture}

@@ -1,0 +1,35 @@
+\begin{tikzpicture}[scale=1]
+
+  \begin{axis}[
+      height=0.5\textwidth,
+      width=0.8\textwidth,
+      xlabel = {Time},
+      ylabel = {\gls{acr:srp} acceleration},
+      /pgf/number format/precision=10,
+      xmin   = 0,
+      xmax   = 50,
+      clip=false,
+      %restrict x to domain=23:25,
+      %x coord trafo/.code={\pgfmathparse{#1-5.0}\pgfmathresult} % x-offset MJD
+      %ymin   = 0,
+      %ymax   = 0.01,
+      %xtick  = {250,300,...,600},
+      %ytick  = {0,2,...,10},
+      %minor x tick num={1},
+      %minor y tick num={3},
+      scaled ticks = true,
+      ymajorgrids,
+      yminorgrids,
+      xmajorgrids,
+      xminorgrids,
+      %legend entries={MC (10k objects), NEPTUNE} ,
+      %legend style={at={(0.02,0.98)}, anchor=north west},
+      %legend cell align = left
+  ]
+    %\addplot[blue, thick]          table {07-Tikz/data/h_t.out};
+    \addplot[blue, thick]          table {07-Tikz/data/discont.dat};
+    \node (c1) at (axis cs:2,0.655) {$\cdot 10^{-10}$};
+    
+  \end{axis}
+  
+\end{tikzpicture}

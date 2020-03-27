@@ -1,0 +1,54 @@
+  \begin{tikzpicture}[>=latex, every node/.style={inner sep=0.3cm}, node distance=0.5cm]
+   
+   \node (p00) {$\gls{sym:legendre}_{0,0}$};
+   \node[below=of p00] (p10) {$\gls{sym:legendre}_{1,0}$};
+   \node[below=of p10] (p20) {$\gls{sym:legendre}_{2,0}$};
+   \node[below=of p20] (pd0) {$\vdots$};
+   \node[below=of pd0] (pn0) {$\gls{sym:legendre}_{n,0}$};
+   
+   \draw[->] (p00) -- (p10);
+   \draw[->] (p10) -- (p20);
+   \draw[->] (p20) -- (pd0);
+   \draw[->] (pd0) -- (pn0);
+   
+   \node[right=of p10] (p11) {$\gls{sym:legendre}_{1,1}$};
+   \node[below=of p11] (p21) {$\gls{sym:legendre}_{2,1}$};
+   \node[below=of p21] (pd1) {$\vdots$};
+   \node[below=of pd1] (pn1) {$\gls{sym:legendre}_{n,1}$};
+   
+   \draw[->] (p00) -- (p11);
+   \draw[->] (p11) -- (p21);
+   \draw[->] (p21) -- (pd1);
+   \draw[->] (pd1) -- (pn1);
+   
+   \node[right=of p21] (p22) {$\gls{sym:legendre}_{2,2}$};
+   \node[below=of p22] (pd2) {$\vdots$};
+   \node[below=of pd2] (pn2) {$\gls{sym:legendre}_{n,2}$};
+   
+   \draw[->] (p11) -- (p22);
+   \draw[->] (p22) -- (pd2);
+   \draw[->] (pd2) -- (pn2);
+   
+   \node[right=of pd2] (pd3) {$\ddots$};
+   \node[below=of pd3] (pd4) {$\ldots$};
+   
+   \draw[->] (p22) -- (pd3);
+   \draw[->] (pd3) -- (pd4);
+      
+   \node[right=of pd4] (pnn) {$\gls{sym:legendre}_{n,n}$};
+   
+   \draw[->] (pd3) -- (pnn);
+   \draw[->] (pd4) -- (pnn);
+   
+   \matrix[right=3cm of p11](Mat){ 
+			     \node (t1) {}; & \node {\eq{eq:recurrence-legendre-1}}; \\
+			     \node (t2) {}; & \node (t4) {\eq{eq:recurrence-legendre-2}, \eq{eq:recurrence-legendre-3}};  \\ };
+			   
+   \draw[->] (t1.north west) -- (t1.south east);
+   \draw[->] (t2.north) -- (t2.south);
+   
+   \begin{pgfonlayer}{background}
+   \node[information text, fit= (t1) (t4)] {};
+  \end{pgfonlayer}
+   
+\end{tikzpicture}

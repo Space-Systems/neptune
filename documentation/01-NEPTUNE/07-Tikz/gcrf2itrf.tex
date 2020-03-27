@@ -1,0 +1,90 @@
+\def\lenleft{6mm}
+\def\lenup{8mm}
+
+\begin{tikzpicture}[%
+    bluebox-mod/.style={%
+	bluebox, 
+	drop shadow,
+	text width=60mm
+	},
+    greenbox-mod/.style={%
+	greenbox, 
+	drop shadow,
+	minimum width=20mm,
+	minimum height=12mm, 
+	text width=60mm
+	},
+    node distance=\lenup and \lenleft,
+    >= latex, transform shape, scale=0.8
+]
+  
+   \coordinate (a1) at (0,0);
+   
+   \node[text=dark-green, right=of a1] (gcrf) {Geocentric Celestial Reference Frame (GCRF)};
+   \coordinate (c1) at ($ (gcrf.west) + (16cm,0) $);
+   \coordinate (ctemp) at ($ (gcrf.south) + (2cm,0mm) $);
+   
+   \node[greenbox-mod, below=of ctemp] (series) {Compute series for X, Y, s};
+   \node[greenbox-mod, right=of series] (table) {Get X, Y, s from lookup table};
+   
+   \coordinate (c2) at ($ 0.5*(series.south) + 0.5*(table.south) $);
+   
+   \node[greenbox-mod, below=of c2] (bpn) {Precession-nutation matrix $\mathbf{Q}\left(t\right)$};
+   
+   \node[below=of bpn] (c3) {};
+   \node[] at (a1 |- c3) (a2) {};
+   \node[text=dark-green, right=of a2] (cirf) {Celestial Intermediate Reference Frame (CIRF)};
+   \coordinate (c4) at ($ (cirf.west) + (16cm,0) $);
+   
+   \node[bluebox-mod, below=of c3] (era) {Earth rotation angle matrix $\mathbf{R}\left(t\right)$};
+   
+   \node[below=of era] (c5) {};
+   \node[] at (a1 |- c5) (a3) {};
+   \node[text=dark-blue, right=of a3] (tirf) {Terrestrial Intermediate Reference Frame (TIRF)};
+   \coordinate (c6) at ($ (tirf.west) + (16cm,0) $);
+   
+   \node[bluebox-mod, below=of c5] (pom) {Polar motion matrix $\mathbf{W}\left(t\right)$};
+   
+   \node[below=of pom] (c7) {};
+   \node[] at (a1 |- c7) (a4) {};
+   \node[text=dark-blue, right=of a4] (itrf) {International Terrestrial Reference Frame (ITRF)};
+   \coordinate (c8) at ($ (itrf.west) + (16cm,0) $);
+
+   \node[] at (gcrf.south -| series.north) (b2) {};
+   \draw[->] (b2) -- (series);
+
+   \node[] at (gcrf.south -| table.north) (b3) {};
+   \draw[->] (b3) -- (table);
+   
+   \draw[->] (series.south) |- (bpn.west);
+   \draw[->] (table.south) |- (bpn.east);
+   \node[] at (cirf.north -| bpn.south) (b1) {};
+   \draw[->] (bpn) -- (b1);
+   
+   \node[] at (cirf.south -| era.north) (b4) {};
+   \draw[->] (b4) -- (era);
+   
+   \node[] at (tirf.north -| era.south) (b5) {};
+   \draw[->] (era) -- (b5);
+   
+   \node[] at (tirf.south -| pom.north) (b6) {};
+   \draw[->] (b6) -- (pom);
+   
+   \node[] at (itrf.north -| pom.south) (b7) {};
+   \draw[->] (pom) -- (b7);
+ 
+  
+  %------------------------------------------------------------
+  %
+  %  Backgrounds
+  %
+  %
+  
+  \begin{pgfonlayer}{background}
+   \node[fill=light-green, rectangle, rounded corners=1mm, drop shadow, fit=(gcrf) (c1), transform shape=false ] {};
+   \node[fill=very-light-blue, rectangle, rounded corners=1mm, drop shadow, fit=(tirf) (c6), transform shape=false] {};
+   \node[fill=very-light-green, rectangle, rounded corners=1mm, drop shadow, fit=(cirf) (c4), transform shape=false] {};
+   \node[fill=light-blue, rectangle, rounded corners=1mm, drop shadow, fit=(itrf) (c8), transform shape=false] {};
+  \end{pgfonlayer}
+  
+\end{tikzpicture}

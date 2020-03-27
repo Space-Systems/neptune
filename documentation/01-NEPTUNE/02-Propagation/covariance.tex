@@ -1,0 +1,515 @@
+%------------------------------------------------------------------------------
+\section{Covariance matrix propagation}
+\label{sec:propagation-covariance}
+%------------------------------------------------------------------------------
+
+\subsection{State space representation}
+\label{sec:state-space-notation}
+%------------------------------------------------------------------------------
+
+The orbit determination problem is typically approached by using a state space representation. For a very detailed description of the associated concepts, referencing the textbook
+of \citet{tapley2004} is highly recommended, which also served as the basis for the following derivation. 
+
+The \gls{sym:stateDim}-dimensional state vector $\xt$ of a satellite can be defined as
+\begin{equation}
+ \xt = \left(\rt^T, \vt^T, \gls{sym:cvec}^T \right)^T,
+\end{equation}
+with \gls{sym:cvec} being a multi-dimensional vector of constant parameters to be solved for in the orbit determination process, which might, for example,
+include the drag and \acrshort{acr:srp} coefficients. Due to the non-linear nature of orbital motion, the conversion of the second-order differential equations of motion into a vector of first-order differential equations is written as
+\begin{equation}
+ \frac{d}{dt} \xt = \gls{sym:functionvec}\left(\gls{sym:state},\gls{sym:t}\right). \label{eq:non-linear-system}
+\end{equation}
+As the state, in general, cannot be observed directly, an additional equation, the \textit{measurement model} \citep{maybeck1979}, is required to map the state vector to the observations:
+\begin{equation}
+ \yt = \gls{sym:functiongvec}\left(\gls{sym:state},\gls{sym:t}\right) + \boldsymbol{\gls{sym:obsError}}, \label{eq:non-linear-obs}
+\end{equation}
+here, \gls{sym:obsError} is the error in the observation. With {\yt} being \gls{sym:obsDim}-dimensional, and, in general, $\gls{sym:obsDim}<\gls{sym:stateDim}$, for the orbit determination the number of 
+observations \gls{sym:numObs} guarantees that $\gls{sym:numObs}\times\gls{sym:obsDim} >> \gls{sym:stateDim}$.
+
+A linearization is obtained by introducing a reference trajectory, denoted by an index \gls{idx:ref}, and work with the deviations
+\begin{align}
+ \Delta\xt &= \xt - \xref, \label{eq:deviation-ref} \\
+ \Delta\yt &= \yt - \yref, \label{eq:deviation-ref-y}
+\end{align}
+which are assumed to be small - a concept familiar to Encke's method for perturbed orbits. Expanding \eq{eq:non-linear-system} and \eq{eq:non-linear-obs} about the reference state gives
+\begin{align}
+ \xdot &= \gls{sym:functionvec}\left(\gls{sym:state}_{\gls{idx:ref}},\gls{sym:t}\right) + \left(\frac{\partial \gls{sym:functionvec}\left(\gls{sym:state},\gls{sym:t}\right)}{\partial
+\xt}\right)_{\gls{idx:ref}} \cdot \left(\xt - \xref\right) + \mathcal{O}\left(\Delta\xt^2\right), \\
+\yt &= \gls{sym:functiongvec}\left(\gls{sym:state}_{\gls{idx:ref}},\gls{sym:t}\right) + \left(\frac{\partial \gls{sym:functiongvec}\left(\gls{sym:state},\gls{sym:t}\right)}{\partial
+\xt}\right)_{\gls{idx:ref}} \cdot \left(\xt - \xref\right) + \mathcal{O}\left(\Delta\xt^2\right) + \boldsymbol{\gls{sym:obsError}},
+\end{align}
+or, combined with \eq{eq:deviation-ref} and \eq{eq:deviation-ref-y} and neglecting higher-order terms:
+\begin{align}
+ \Delta \xdot &= \left(\frac{\partial \xdot}{\partial \xt}\right)_{\gls{idx:ref}} \Delta \xt, \\
+ \Delta \yt &= \left(\frac{\partial \gls{sym:functiongvec}\left(\gls{sym:state},\gls{sym:t}\right)}{\partial \xt}\right)_{\gls{idx:ref}} \Delta \xt + \gls{sym:obsError}.
+\end{align}
+Defining the system matrix $\gls{sym:systemMat}\left(\gls{sym:t}\right)$ as
+\begin{equation}
+ \gls{sym:systemMat}\left(\gls{sym:t}\right) \equiv \left(\frac{\partial \xdot}{\partial \xt}\right)_{\gls{idx:ref}}
+\end{equation}
+and the output matrix as
+\begin{equation}
+ \gls{sym:outputMat}\left(\gls{sym:t}\right) \equiv \left(\frac{\partial \gls{sym:functiongvec}\left(\gls{sym:state},\gls{sym:t}\right)}{\partial \xt}\right)_{\gls{idx:ref}}
+\end{equation}
+the homogeneous part of the state space representation is obtained for the linearized system:
+\begin{align}
+ \Delta \xdot &= \gls{sym:systemMat}\left(\gls{sym:t}\right) \Delta \xt, \label{eq:diff-homo} \\
+ \Delta \yt   &= \gls{sym:outputMat}\left(\gls{sym:t}\right) \Delta \xt + \gls{sym:obsError}. \label{eq:meas-model-linearized}
+\end{align}
+The general solution for \eq{eq:diff-homo} is:
+\begin{align}
+ \Delta \xt &= \frac{\partial \Delta \xt}{\partial \Delta\gls{sym:state}_0} \Delta \gls{sym:state}_0 \\
+            &= \frac{\partial \left(\xt - \xref\right)}{\partial \left(\gls{sym:state}_0 - \gls{sym:state}_{\gls{idx:ref},0}\right)} \Delta \gls{sym:state}_0 
+\label{eq:ref-constant}\\
+            &= \frac{\partial \xt}{\partial \gls{sym:state}_0} \Delta \gls{sym:state}_0 \label{eq:set-homo}
+\end{align}
+given the initial condition $\gls{sym:state}\left(\gls{sym:t}_0\right)=\gls{sym:state}_0$ and noting that the reference state is constant in the partial derivative in
+\eq{eq:ref-constant}. Now the state error transition matrix \gls{sym:set} can be introduced, which translates the state error $\Delta \xt$ from $\gls{sym:t}_0$ to $\gls{sym:t}$:
+\begin{equation}
+ \set{\gls{sym:t}}{\gls{sym:t}_0} \equiv \frac{\partial \xt}{\partial \gls{sym:state}_0}
+\end{equation}
+Differentiating \eq{eq:set-homo} provides
+\begin{equation}
+ \Delta \xdot = \dot{\gls{sym:set}}\left(\gls{sym:t},\gls{sym:t}_0\right) \Delta \gls{sym:state}_0,
+\end{equation}
+which, together with \eq{eq:set-homo}, can be substituted into \eq{eq:diff-homo}:
+\begin{equation}
+ \dot{\gls{sym:set}}\left(\gls{sym:t},\gls{sym:t}_0\right) \Delta \gls{sym:state}_0 = \gls{sym:systemMat}\left(\gls{sym:t}\right)
+\set{\gls{sym:t}}{\gls{sym:t}_0} \Delta \gls{sym:state}_0,
+\end{equation}
+finally providing a differential equation for the state error transition matrix, which will later be integrated numerically for the propagation of the covariance matrix:
+\begin{equation}
+ \dot{\gls{sym:set}}\left(\gls{sym:t},\gls{sym:t}_0\right) = \gls{sym:systemMat}\left(\gls{sym:t}\right) \set{\gls{sym:t}}{\gls{sym:t}_0} \label{eq:set-ode}
+\end{equation}
+
+The main advantage of solving for the state error transition matrix using \eq{eq:set-ode} over the direct solution of \eq{eq:diff-homo} 
+is that the state error transition matrix allows for a simple formulation of the covariance matrix propagation and the determination of 
+the best estimate of the state vector \citep{tapley2004}.
+
+The influence of system or process noise, which is characterized by the unmodeled accelerations, is provided by another term leading to the general formulation of the state
+space representation:
+\begin{equation}
+ \Delta \xdot = \gls{sym:systemMat}\left(\gls{sym:t}\right) \Delta \xt + \gls{sym:inputMat} \left(\gls{sym:t}\right) \gls{sym:inputVec}\left(\gls{sym:t}\right),
+\label{eq:state-space}
+\end{equation}
+here, $\gls{sym:inputVec}\left(\gls{sym:t}\right)$ is the process noise, while $\gls{sym:inputMat}\left(\gls{sym:t}\right)$ is the input matrix, which converts the unmodeled
+accelerations into the quantities of the state vector.
+
+A particular solution to \eq{eq:state-space} can be found via the \textit{variation of constants} method, starting with:
+\begin{equation}
+ \Delta \xt = \set{\gls{sym:t}}{\gls{sym:t}_0} \gls{sym:vop}\left(\gls{sym:t}\right). \label{eq:vop}
+\end{equation}
+Differentiating:
+\begin{equation}
+ \Delta \xdot = \dot{\gls{sym:set}}\left(\gls{sym:t},\gls{sym:t}_0\right) \gls{sym:vop}\left(\gls{sym:t}\right) + \set{\gls{sym:t}}{\gls{sym:t}_0}
+\dot{\gls{sym:vop}}\left(\gls{sym:t}\right),
+\end{equation}
+and substituting into \eq{eq:state-space} provides
+\begin{equation}
+ \dot{\gls{sym:set}}\left(\gls{sym:t},\gls{sym:t}_0\right) \gls{sym:vop}\left(\gls{sym:t}\right) + \set{\gls{sym:t}}{\gls{sym:t}_0}
+\dot{\gls{sym:vop}}\left(\gls{sym:t}\right) = \gls{sym:systemMat}\left(\gls{sym:t}\right) \Delta \xt + \gls{sym:inputMat} \left(\gls{sym:t}\right)
+\gls{sym:inputVec}\left(\gls{sym:t}\right).
+\end{equation}
+This equation can be re-written by substituting the already known relationships for the time derivative of the state error transition matrix, \eq{eq:set-ode},
+and \eq{eq:vop}: 
+\begin{equation}
+ \gls{sym:systemMat}\left(\gls{sym:t}\right) \set{\gls{sym:t}}{\gls{sym:t}_0} \gls{sym:vop}\left(\gls{sym:t}\right) + \set{\gls{sym:t}}{\gls{sym:t}_0}
+\dot{\gls{sym:vop}}\left(\gls{sym:t}\right) = \gls{sym:systemMat}\left(\gls{sym:t}\right) \set{\gls{sym:t}}{\gls{sym:t}_0} \gls{sym:vop}\left(\gls{sym:t}\right)  +
+\gls{sym:inputMat} \left(\gls{sym:t}\right) \gls{sym:inputVec}\left(\gls{sym:t}\right),
+\end{equation}
+which results in
+\begin{equation}
+ \set{\gls{sym:t}}{\gls{sym:t}_0} \dot{\gls{sym:vop}}\left(\gls{sym:t}\right) = \gls{sym:inputMat} \left(\gls{sym:t}\right) \gls{sym:inputVec}\left(\gls{sym:t}\right).
+\end{equation}
+The solution is now obtained by integration:
+\begin{equation}
+ \gls{sym:vop}\left(\gls{sym:t}\right) = \gls{sym:vop}_0 + \int_{\gls{sym:t}_0}^{\gls{sym:t}} \gls{sym:set}^{-1}\left(\gls{sym:xi},\gls{sym:t}_0\right)
+\gls{sym:inputMat}\left(\gls{sym:xi}\right)\gls{sym:inputVec}\left(\gls{sym:xi}\right) d\gls{sym:xi}. \label{eq:result-ct}
+\end{equation}
+
+Substituting the result for $\gls{sym:vop}\left(\gls{sym:t}\right)$ from \eq{eq:result-ct} into \eq{eq:vop} results in:
+\begin{equation}
+ \Delta \xt = \set{\gls{sym:t}}{\gls{sym:t}_0} \gls{sym:vop}_0 + \int_{\gls{sym:t}_0}^{\gls{sym:t}} \set{\gls{sym:t}}{\gls{sym:t}_0}
+\gls{sym:set}^{-1}\left(\gls{sym:xi},\gls{sym:t}_0\right)
+\gls{sym:inputMat}\left(\gls{sym:xi}\right)\gls{sym:inputVec}\left(\gls{sym:xi}\right) d\gls{sym:xi},
+\end{equation}
+which can be simplified using the following properties of the state error transition matrix:
+\begin{equation}
+ \set{\gls{sym:t}}{\gls{sym:t}_0}\gls{sym:set}^{-1}\left(\gls{sym:xi},\gls{sym:t}_0\right) = \set{\gls{sym:t}}{\gls{sym:t}_0} \set{\gls{sym:t}_0}{\gls{sym:xi}}
+ = \set{\gls{sym:t}}{\gls{sym:xi}},
+\end{equation}
+as well as the initial condition $\gls{sym:vop}_0 = \gls{sym:state}_0$ to finally provide the general solution for the inhomogeneous \eq{eq:state-space}:
+\begin{equation}
+ \Delta \xt = \set{\gls{sym:t}}{\gls{sym:t}_0} \Delta \gls{sym:state}_0 + \int_{\gls{sym:t}_0}^{\gls{sym:t}} \set{\gls{sym:t}}{\gls{sym:xi}}
+\gls{sym:inputMat}\left(\gls{sym:xi}\right)\gls{sym:inputVec}\left(\gls{sym:xi}\right) d\gls{sym:xi}. \label{eq:state-space-general-solution}
+\end{equation}
+
+The result in \eq{eq:state-space-general-solution} is also referred to as the \textit{matrix superposition integral} \citep{gelb1974}, where the second term describes how an input 
+(here: process noise \gls{sym:inputVec}) at a time \gls{sym:xi} translates into a state vector change at time \gls{sym:t}.
+
+%------------------------------------------------------------------------------
+\subsection{General formulation using the state transition matrix}
+\label{sec:propagation-covariance-theory}
+%------------------------------------------------------------------------------
+
+Using the state space representation, as introduced in \sect{sec:state-space-notation}, with its general solution given by \eq{eq:state-space-general-solution},
+ the covariance matrix at a time \gls{sym:t} follows as:
+\begin{alignat}{3}
+ \gls{sym:P}\left(\gls{sym:t}\right) = \gls{sym:expVal}\left[\Delta\gls{sym:state}\left(\gls{sym:t}\right)\cdot\Delta\gls{sym:state}\left(\gls{sym:t}
+\right)^T\right]&=
+\gls{sym:expVal}\Bigl[&&\left(\gls{sym:set}\left(\gls{sym:t},\gls{sym:t}_0\right)\cdot
+\Delta\gls{sym:state}\left(\gls{sym:t}_0\right)+
+\int_{\gls{sym:t}_0}^{\gls{sym:t}}\gls{sym:set}\left(\gls{sym:t},\gls{sym:xi}\right)\cdot
+\gls{sym:inputMat}\left(\gls{sym:xi}\right)\cdot\gls{sym:inputVec}\left(\gls{sym:xi}\right) d\gls{sym:xi}\right)\times \notag \\
+& &&\left(\gls{sym:set}\left(\gls{sym:t},\gls{sym:t}_0\right)\cdot
+\Delta\gls{sym:state}\left(\gls{sym:t}_0\right)+ \int_{\gls{sym:t}_0}^{\gls{sym:t}}\gls{sym:set}\left(\gls{sym:t},\gls{sym:eta}\right)\cdot
+\gls{sym:inputMat}\left(\gls{sym:eta}\right)\cdot\gls{sym:inputVec}\left(\gls{sym:eta}\right) d\gls{sym:eta}\right)^T\Bigr] \notag \\
+&= &&\gls{sym:set}\left(\gls{sym:t},\gls{sym:t}_0\right)\cdot\gls{sym:expVal}\left[\Delta\gls{sym:state}\left(\gls{sym:t}_0\right)\cdot
+\Delta\gls{sym:state}\left(\gls{sym:t}_0\right)^T\right]\cdot \gls{sym:set}\left(\gls{sym:t},\gls{sym:t}_0\right)^T + \label{eq:full-cov-prop} \\
+& &&
+\gls{sym:set}\left(\gls{sym:t},\gls{sym:t}_0\right)\cdot\int_{\gls{sym:t}_0}^{\gls{sym:t}}\gls{sym:expVal}\left[\Delta\gls{sym:state}\left(\gls{sym:t}_0\right)
+\cdot\gls{sym:inputVec}\left(\gls{sym:eta}\right)^T\right]\cdot\gls{sym:inputMat}\left(\gls{sym:eta}\right)\cdot
+\gls{sym:set}\left(\gls{sym:t},\gls{sym:eta}\right) d\gls{sym:eta}+ \notag \\
+& &&
+\left(\gls{sym:set}\left(\gls{sym:t},\gls{sym:t}_0\right)\cdot\int_{\gls{sym:t}_0}^{\gls{sym:t}}\gls{sym:expVal}\left[\Delta\gls{sym:state}\left(\gls{sym:t}_0\right)
+\cdot\gls{sym:inputVec}\left(\gls{sym:eta}\right)^T\right]\cdot\gls{sym:inputMat}\left(\gls{sym:eta}\right)\cdot
+\gls{sym:set}\left(\gls{sym:t},\gls{sym:eta}\right) d\gls{sym:eta}\right)^T + \notag \\
+& &&
+\int_{\gls{sym:t}_0}^{\gls{sym:t}} \int_{\gls{sym:t}_0}^{\gls{sym:t}} \gls{sym:set}\left(\gls{sym:t},\gls{sym:xi}\right) \cdot
+\gls{sym:inputMat}\left(\gls{sym:xi}\right) \cdot
+\gls{sym:expVal}\left[\gls{sym:inputVec}\left(\gls{sym:xi}\right)\cdot \gls{sym:inputVec}\left(\gls{sym:eta}\right)^T\right]
+\gls{sym:inputMat}\left(\gls{sym:eta}\right)^T \cdot
+\gls{sym:set}\left(\gls{sym:t},\gls{sym:eta}\right)^T d\gls{sym:xi} d\gls{sym:eta}. \notag
+\end{alignat}
+Analysing the individual terms in the above sum, the first one is the time update of the covariance matrix from $\gls{sym:t}_0$ to \gls{sym:t}, with
+\begin{equation}
+  \gls{sym:P}\left(\gls{sym:t}_0\right) = \gls{sym:expVal}\left[\Delta\gls{sym:state}\left(\gls{sym:t}_0\right)\cdot\Delta\gls{sym:state}\left(\gls{sym:t}_0\right)^T\right ].
+\end{equation}
+
+The second and third term in \eq{eq:full-cov-prop} are similar in that the one is obtained from the other by transposing. That contribution results 
+from the cross-correlation of the state vector at $\gls{sym:t}_0$ and the process noise and shall be defined as \gls{sym:Qxu}:
+\begin{equation}
+ \gls{sym:Qxu}\left(\gls{sym:t}\right) =
+\gls{sym:set}\left(\gls{sym:t},\gls{sym:t}_0\right)\cdot\int_{\gls{sym:t}_0}^{\gls{sym:t}}\gls{sym:expVal}\left[\Delta\gls{sym:state}\left(\gls{sym:t}_0\right)
+\cdot\gls{sym:inputVec}\left(\gls{sym:eta}\right)^T\right]\cdot\gls{sym:inputMat}\left(\gls{sym:eta}\right)\cdot
+\gls{sym:set}\left(\gls{sym:t},\gls{sym:eta}\right) d\gls{sym:eta}
+\end{equation}
+
+The last term in \eq{eq:full-cov-prop} shall be denoted as $\gls{sym:Quu}\left(\gls{sym:t}\right)$, being the second moment of process noise matrix:
+\begin{equation}
+ \gls{sym:Quu}\left(\gls{sym:t}\right) = \int_{\gls{sym:t}_0}^{\gls{sym:t}} \int_{\gls{sym:t}_0}^{\gls{sym:t}} \gls{sym:set}\left(\gls{sym:t},\gls{sym:xi}\right) \cdot
+\gls{sym:inputMat}\left(\gls{sym:xi}\right) \cdot
+\gls{sym:expVal}\left[\gls{sym:inputVec}\left(\gls{sym:xi}\right)\cdot \gls{sym:inputVec}\left(\gls{sym:eta}\right)^T\right]
+\gls{sym:inputMat}\left(\gls{sym:eta}\right)^T \cdot
+\gls{sym:set}\left(\gls{sym:t},\gls{sym:eta}\right)^T d\gls{sym:xi} d\gls{sym:eta}.
+\end{equation}
+
+It is now possible to write \eq{eq:full-cov-prop} in a more condensed way:
+\begin{equation}
+ \gls{sym:P}\left(\gls{sym:t}\right) = \set{\gls{sym:t}}{\gls{sym:t}_0} \gls{sym:P}_0 \set{\gls{sym:t}}{\gls{sym:t}_0}^T + \gls{sym:Qxu}\left(\gls{sym:t}\right) +
+\gls{sym:Qxu}\left(\gls{sym:t}\right)^T + \gls{sym:Quu}\left(\gls{sym:t}\right).
+\end{equation}
+
+%------------------------------------------------------------------------------
+\subsection{SET matrix integration}
+\label{sec:propagation-covariance-set-integration}
+%------------------------------------------------------------------------------
+The state vector \gls{sym:state} is defined as
+\begin{equation}
+ \gls{sym:state} = \left(\gls{sym:radvec}, \gls{sym:velvec}\right)^T 
+                 = \left(\rx, \ry, \rz, \gls{sym:v}_{\gls{idx:x}}, \gls{sym:v}_{\gls{idx:y}}, 
+\gls{sym:v}_{\gls{idx:z}}\right)^T
+\end{equation}
+
+The partial derivative matrix \gls{sym:matrixF}, without any solve-for parameters, is defined as
+\begin{equation}
+ \gls{sym:matrixF}\left(\gls{sym:tg}\right) = \frac{\partial \dot{\gls{sym:state}}}{\partial \gls{sym:state}} = 
+ \begin{pmatrix}
+    % first row
+    \frac{\partial \gls{sym:v}_{\gls{idx:x}}}{\partial \rx} & 
+    \frac{\partial \gls{sym:v}_{\gls{idx:x}}}{\partial \ry} &     
+    \frac{\partial \gls{sym:v}_{\gls{idx:x}}}{\partial \rz} & 
+    \frac{\partial \gls{sym:v}_{\gls{idx:x}}}{\partial \gls{sym:v}_{\gls{idx:x}}} &
+    \frac{\partial \gls{sym:v}_{\gls{idx:x}}}{\partial \gls{sym:v}_{\gls{idx:y}}} &
+    \frac{\partial \gls{sym:v}_{\gls{idx:x}}}{\partial \gls{sym:v}_{\gls{idx:z}}} \\
+    % second row
+    \frac{\partial \gls{sym:v}_{\gls{idx:y}}}{\partial \rx} &
+    \frac{\partial \gls{sym:v}_{\gls{idx:y}}}{\partial \ry} & 
+    \frac{\partial \gls{sym:v}_{\gls{idx:y}}}{\partial \rz} & 
+    \frac{\partial \gls{sym:v}_{\gls{idx:y}}}{\partial \gls{sym:v}_{\gls{idx:x}}} &
+    \frac{\partial \gls{sym:v}_{\gls{idx:y}}}{\partial \gls{sym:v}_{\gls{idx:y}}} & 
+    \frac{\partial \gls{sym:v}_{\gls{idx:y}}}{\partial \gls{sym:v}_{\gls{idx:z}}} \\
+    % third row
+    \frac{\partial \gls{sym:v}_{\gls{idx:z}}}{\partial \rx} &
+    \frac{\partial \gls{sym:v}_{\gls{idx:z}}}{\partial \ry} & 
+    \frac{\partial \gls{sym:v}_{\gls{idx:z}}}{\partial \rz} &
+    \frac{\partial \gls{sym:v}_{\gls{idx:z}}}{\partial \gls{sym:v}_{\gls{idx:x}}} &
+    \frac{\partial \gls{sym:v}_{\gls{idx:z}}}{\partial \gls{sym:v}_{\gls{idx:y}}} &
+    \frac{\partial \gls{sym:v}_{\gls{idx:z}}}{\partial \gls{sym:v}_{\gls{idx:z}}} \\
+    % fourth row   
+    \frac{\partial \gls{sym:a}_{\gls{idx:x}}}{\partial \rx} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:x}}}{\partial \ry} & 
+    \frac{\partial \gls{sym:a}_{\gls{idx:x}}}{\partial \rz} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:x}}}{\partial \gls{sym:v}_{\gls{idx:x}}} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:x}}}{\partial \gls{sym:v}_{\gls{idx:y}}} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:x}}}{\partial \gls{sym:v}_{\gls{idx:z}}} \\
+    % fifth row
+    \frac{\partial \gls{sym:a}_{\gls{idx:y}}}{\partial \rx} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:y}}}{\partial \ry} & 
+    \frac{\partial \gls{sym:a}_{\gls{idx:y}}}{\partial \rz} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:y}}}{\partial \gls{sym:v}_{\gls{idx:x}}} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:y}}}{\partial \gls{sym:v}_{\gls{idx:y}}} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:y}}}{\partial \gls{sym:v}_{\gls{idx:z}}} \\
+    % sixth row
+    \frac{\partial \gls{sym:a}_{\gls{idx:z}}}{\partial \rx} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:z}}}{\partial \ry} & 
+    \frac{\partial \gls{sym:a}_{\gls{idx:z}}}{\partial \rz} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:z}}}{\partial \gls{sym:v}_{\gls{idx:x}}} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:z}}}{\partial \gls{sym:v}_{\gls{idx:y}}} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:z}}}{\partial \gls{sym:v}_{\gls{idx:z}}}    
+  \end{pmatrix} \label{eq:partial-derivative-matrix}
+\end{equation}
+
+%------------------------------------------------------------------------------
+\subsubsection{Partial derivatives for the geopotential}
+\label{sec:propagation-covariance-set-integration-geopotential}
+%------------------------------------------------------------------------------
+
+The partial derivatives of the acceleration contribution due to the non-spherical Earth in the body fixed frame, are
+determined according to \cite{long1989}. 
+As they are only a function of the radius vector, the partial derivate matrix contribution of the geopotential results in (see 
+\eq{eq:partial-derivative-matrix}):
+\begin{equation}
+ \gls{sym:matrixF}_{\gls{idx:geop}}\left(\gls{sym:tg}\right) =  
+ \begin{pmatrix}
+    % first row
+    0 & 0 & 0 & 1 & 0 & 0 \\
+    % second row
+    0 & 0 & 0 & 0 & 1 & 0 \\
+    % third row
+    0 & 0 & 0 & 0 & 0 & 1 \\
+    % fourth row   
+    \frac{\partial \gls{sym:a}_{\gls{idx:x}}}{\partial \rx} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:x}}}{\partial \ry} & 
+    \frac{\partial \gls{sym:a}_{\gls{idx:x}}}{\partial \rz} &
+    0 & 0 & 0 \\
+    % fifth row
+    \frac{\partial \gls{sym:a}_{\gls{idx:y}}}{\partial \rx} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:y}}}{\partial \ry} & 
+    \frac{\partial \gls{sym:a}_{\gls{idx:y}}}{\partial \rz} &
+    0 & 0 & 0 \\
+    % sixth row
+    \frac{\partial \gls{sym:a}_{\gls{idx:z}}}{\partial \rx} &
+    \frac{\partial \gls{sym:a}_{\gls{idx:z}}}{\partial \ry} & 
+    \frac{\partial \gls{sym:a}_{\gls{idx:z}}}{\partial \rz} &
+    0 & 0 & 0    
+  \end{pmatrix} \label{eq:partial-derivative-matrix-geopotential}
+\end{equation}
+The individual derivatives are based on a differentiation of the acceleration vector components derived for the geopotential 
+in \eq{eq:geopotential-acceleration-1} through \eq{eq:geopotential-acceleration-2} and are computed as follows:
+\begin{equation}
+  \begin{aligned}
+ \frac{\partial \gls{sym:avec}_{\gls{idx:geop},\gls{idx:bodyfixed}}}{\partial \rbf} &= 
+  \frac{\partial}{\partial\rbf} \left(\frac{\partial\gls{sym:potential}}{\partial\gls{sym:r}}\right) 
+  \frac{\partial\gls{sym:radvec}}{\partial\rbf} +
+  \frac{\partial}{\partial\rbf} \left(\frac{\partial\gls{sym:potential}}{\partial\phigc}\right) 
+  \frac{\partial\phigc}{\partial\rbf} +
+  \frac{\partial}{\partial\rbf} \left(\frac{\partial\gls{sym:potential}}{\partial\gls{sym:long}}\right) 
+  \frac{\partial\gls{sym:long}}{\partial\rbf}  \\
+  &+ \frac{\partial\gls{sym:potential}}{\partial\gls{sym:r}} \frac{\partial^2\gls{sym:r}}{\partial\rbf} +
+      \frac{\partial\gls{sym:potential}}{\partial\phigc} \frac{\partial^2\gls{sym:lat}}{\partial\rbf} +
+      \frac{\partial\gls{sym:potential}}{\partial\gls{sym:long}} \frac{\partial^2\gls{sym:long}}{\partial\rbf} 
+\label{eq:geop-acc-derivative}
+\end{aligned}
+\end{equation}
+
+The partial derivatives of the first three terms in \eq{eq:geop-acc-derivative}, $\partial\gls{sym:potential}/\partial\gls{sym:r}$, 
+$\partial\gls{sym:potential}/\partial\phigc$, $\partial\gls{sym:potential}/\partial\gls{sym:long}$, with respect to the
+body-fixed radius vector, $\gls{sym:r}_{\gls{idx:bodyfixed}}$, are obtained by differentiating
+\eq{eq:geopotential-acceleration-1} through \eq{eq:geopotential-acceleration-2} 
+using the following notation \citep{long1989}:
+\begin{equation}
+ \frac{\partial}{\partial\rbf}
+ \begin{bmatrix}
+  \frac{\partial\gls{sym:potential}}{\partial\gls{sym:r}} \\[0.5em]
+  \frac{\partial\gls{sym:potential}}{\partial\phigc} \\[0.5em]
+  \frac{\partial\gls{sym:potential}}{\partial\gls{sym:long}}
+ \end{bmatrix} 
+ = 
+ \begin{pmatrix}
+  %first row
+  \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:r}^2} & 
+  \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:r}\partial\phigc} & 
+  \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:r}\partial\gls{sym:long}} \\
+  % second row
+  \frac{\partial^2\gls{sym:potential}}{\partial\phigc\partial\gls{sym:r}} & 
+  \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:lat}^2_{\gls{idx:gc}}} & 
+  \frac{\partial^2\gls{sym:potential}}{\partial\phigc\partial\gls{sym:long}} \\
+  % third row
+  \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:long}\partial\gls{sym:r}} &
+  \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:long}\partial\gls{sym:r}} &
+  \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:long}\partial\phigc}
+ \end{pmatrix}
+ \begin{bmatrix}
+  \frac{\partial\gls{sym:radvec}}{\partial\gls{sym:r}_{\gls{idx:bodyfixed}}} \\[0.5em]
+  \frac{\partial\phigc}{\partial\rbf} \\[0.5em]
+  \frac{\partial\gls{sym:long}}{\partial\rbf}
+ \end{bmatrix} \label{eq:second-derivative-potential} 
+\end{equation}
+For example, the first element in \eq{eq:second-derivative-potential} would be read as:
+\begin{equation}
+ \frac{\partial}{\partial\rbf} \left(\frac{\partial\gls{sym:potential}}{\partial\gls{sym:r}}\right) =
+ \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:r}^2} \frac{\partial\gls{sym:r}}{\partial\rbf} +
+ \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:r}\partial\phigc} 
+\frac{\partial\phigc}{\partial\rbf} +
+\frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:r}\partial\gls{sym:long}} \frac{\partial\gls{sym:long}}{\partial\rbf}
+\end{equation}
+The matrix in \eq{eq:second-derivative-potential} is symmetric, so that only six different second derivatives have to be computed, based on the first 
+derivatives in \eq{eq:deriv-geopotential}, as well as the derivatives of the associated Legendre functions (\eq{eq:deriv-legendre-phi} and 
+\eq{eq:deriv-legendre-phi-2}) with respect to the  independent variable (being the sine of the geocentric latitude):
+\begin{align}
+%
+% d^2U/dr^2
+%
+ \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:r}^2} = &\frac{\gls{sym:grav}}{\gls{sym:r}^3} 
+             \sum\limits_{\gls{sym:geo_n}=2}^{\infty} \left(\frac{\re}{\gls{sym:r}}\right)^{\gls{sym:geo_n}} 
+\left(\gls{sym:geo_n}+2\right)\left(\gls{sym:geo_n}+1\right) \times \notag \\
+      &\qquad \qquad \times \sum\limits_{\gls{sym:geo_m}=0}^{\gls{sym:geo_n}} \left(\cnm{}{} \cos 
+\left(\gls{sym:geo_m}\gls{sym:long}\right) + \snm{}{} \sin \left(\gls{sym:geo_m}\gls{sym:long}\right)\right) 
+\legphi{}{} \displaybreak[0] \\[1em]
+%
+% d^2U/drdphi
+%
+ \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:r}\partial\phigc} = &
+ \frac{\partial^2\gls{sym:potential}}{\partial\phigc\partial\gls{sym:r}} = -\frac{\gls{sym:grav}}{\gls{sym:r}^2} 
+             \sum\limits_{\gls{sym:geo_n}=2}^{\infty} 
+\left(\frac{\re}{\gls{sym:r}}\right)^{\gls{sym:geo_n}} \left(\gls{sym:geo_n}+1\right) 
+\sum\limits_{\gls{sym:geo_m}=0}^{\gls{sym:geo_n}} \left(\cnm{}{} \cos 
+\left(\gls{sym:geo_m}\gls{sym:long}\right) + \snm{}{} \sin \left(\gls{sym:geo_m}\gls{sym:long}\right)\right) \times \notag 
+\\
+ & \qquad \qquad \times \left(\legphi{}{+1} - \gls{sym:geo_m} \tan \phigc \legphi{}{} \right) \displaybreak[0] \\[1em]
+%
+% d^2U/drdlambda
+%
+ \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:r}\partial\gls{sym:long}} = & 
+ \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:long}\partial\gls{sym:r}} = -\frac{\gls{sym:grav}}{\gls{sym:r}^2} 
+             \sum\limits_{\gls{sym:geo_n}=2}^{\infty} 
+\left(\frac{\re}{\gls{sym:r}}\right)^{\gls{sym:geo_n}} \left(\gls{sym:geo_n}+1\right) 
+\sum\limits_{\gls{sym:geo_m}=0}^{\gls{sym:geo_n}} \gls{sym:geo_m} \left(\snm{}{} \cos 
+\left(\gls{sym:geo_m}\gls{sym:long}\right) - \cnm{}{} \sin \left(\gls{sym:geo_m}\gls{sym:long}\right)\right) \times \notag 
+\\
+ & \qquad \qquad \times \legphi{}{} \displaybreak[0] \\[1em]
+%
+% d^2U/dphi^2
+%
+ \frac{\partial^2\gls{sym:potential}}{\partial\phigc^2} = &\frac{\gls{sym:grav}}{\gls{sym:r}} 
+ \sum\limits_{\gls{sym:geo_n}=2}^{\infty} \left(\frac{\re}{\gls{sym:r}}\right)^{\gls{sym:geo_n}} \sum\limits_{\gls{sym:geo_m}=0}^{\gls{sym:geo_n}} 
+ \left(\cnm{}{} \cos \left(\gls{sym:geo_m}\gls{sym:long}\right) + \snm{}{} \sin \left(\gls{sym:geo_m}\gls{sym:long}\right)\right) 
+\left(\tan\phigc\legphi{}{+1} \right. + \notag \\  & \qquad \qquad + \left. \left(\gls{sym:geo_m}^2\sec^2\phigc - \gls{sym:geo_m}\tan^2\phigc - 
+\gls{sym:geo_n}\left(\gls{sym:geo_n}+1\right)\right)\legphi{}{}\right) \displaybreak[0]  \label{eq:d2Udphi2}\\[1em]
+%
+% d^2U/dphidlambda
+ \frac{\partial^2\gls{sym:potential}}{\partial\phigc\partial\gls{sym:long}} = & 
+ \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:long}\partial\phigc} = \frac{\gls{sym:grav}}{\gls{sym:r}} \sum\limits_{\gls{sym:geo_n}=2}^{\infty} 
+\left(\frac{\re}{\gls{sym:r}}\right)^{\gls{sym:geo_n}} \sum\limits_{\gls{sym:geo_m}=0}^{\gls{sym:geo_n}} \gls{sym:geo_m} \left(\snm{}{} \cos 
+\left(\gls{sym:geo_m}\gls{sym:long}\right) - \cnm{}{} \sin \left(\gls{sym:geo_m}\gls{sym:long}\right)\right) \times \notag \\
+ & \qquad \qquad \times \left(\legphi{}{+1} - \gls{sym:geo_m} \tan \phigc \legphi{}{} \right) \displaybreak[0] \\[1em]
+%
+% d^2U/dlambda^2
+%
+ \frac{\partial^2\gls{sym:potential}}{\partial\gls{sym:long}^2} = &
+ -\frac{\gls{sym:grav}}{\gls{sym:r}^2} \sum\limits_{\gls{sym:geo_n}=2}^{\infty} \left(\frac{\re}{\gls{sym:r}}\right)^{\gls{sym:geo_n}} 
+\sum\limits_{\gls{sym:geo_m}=0}^{\gls{sym:geo_n}} \gls{sym:geo_m}^2 \left(\cnm{}{} \cos \left(\gls{sym:geo_m}\gls{sym:long}\right) + \snm{}{} \sin 
+\left(\gls{sym:geo_m}\gls{sym:long}\right)\right) \legphi{}{}  
+\end{align}
+Note that there is no discontinuity for $\phigc=90^\circ$ in \eq{eq:d2Udphi2}, as for $\gls{sym:geo_m}=0$ the tangent is reduced by a cosine function provided 
+by the \legphi{}{+1} function and for $\gls{sym:geo_m}=1$ one obtains for the combination of secant and tangent:
+\begin{equation}
+ \sec^2\phigc - \tan^2\phigc = 1
+\end{equation}
+Finally, for all $\gls{sym:geo_m}>1$, there is always a $\cos^2\phigc$ term, which reduces the secant (to unity) and the squared tangent (to $\sin^2\phigc$).
+
+The second part of \eq{eq:geop-acc-derivative} contains second derivatives of \gls{sym:r}, \phigc and \gls{sym:long} with respect to the radius in the 
+body-fixed frame. These derivatives are obtained by differentiating \eqsto{eq:deriv-spherical-1}{eq:deriv-spherical-3} \citep{long1989}:
+\begin{align}
+ \frac{\partial^2\gls{sym:r}}{\partial\rbf^2}    =& \frac{1}{\gls{sym:r}}\left(\gls{sym:identity}-\frac{\rbf\rbf^T}{\gls{sym:r}^2}\right) \\[1em]
+ \frac{\partial^2\phigc}{\partial\rbf^2}         =& 
+-\frac{1}{\left(\rx^2+\ry^2\right)^{3/2}}\left(\left(\frac{\partial\rz}{\partial\rbf}\right)^T-\frac{\rz\rbf}{\gls{sym:r}^2}
+\right)\left(\rx\left(\frac{\partial\rx}{\partial\rbf}\right)+\ry\left(\frac{\partial\ry}{\partial\rbf}\right)\right) - \notag \\[1em]
+ & 
+-\frac{1}{\gls{sym:r}^2\sqrt{\rx^2+\ry^2}}\left(\rbf\left(\frac{\partial\rz}{\partial\rbf}\right)+\rz\gls{sym:identity}-\frac{2\rz}{\gls{sym:r}^2}
+\rbf\rbf^T\right) \\[1em]
+ \frac{\partial^2\gls{sym:long}}{\partial\rbf^2} =& \frac{1}{\left(\rx^2+\ry^2\right)^2}
+ \begin{bmatrix}
+ -\ry \\
+ \rx  \\
+  0
+ \end{bmatrix}
+ \left(\rx\left(\frac{\partial\rx}{\partial\rbf}\right)+\ry\left(\frac{\partial\ry}{\partial\rbf}\right)\right) +
+ \frac{1}{\rx^2+\ry^2}
+ \begin{bmatrix}
+  0 & -1 & 0 \\
+  1 & 0  & 0 \\
+  0 & 0  & 0 
+ \end{bmatrix}
+\end{align}
+While the above equations appear to be quite complex, they can be significantly simplified, considering the fact that the partial derivatives of the radius 
+components are unit vectors:
+\begin{align}
+ \frac{\partial\rx}{\partial\rbf} = \left[1,0,0\right] \notag \\
+ \frac{\partial\ry}{\partial\rbf} = \left[0,1,0\right] \notag \\
+ \frac{\partial\rz}{\partial\rbf} = \left[0,0,1\right] \notag 
+\end{align}
+
+Now all quantities are available to compute the inertial acceleration $\gls{sym:avec}_{\gls{idx:bodyfixed}}$ in the body-fixed (\acrshort{acr:itrf}) frame. 
+In order to obtain the derivative of the acceleration in the \acrshort{acr:gcrf} with respect to the radius vector in the \acrshort{acr:gcrf},  
+the relationship from \eq{eq:ns-trafo} is used:
+\begin{equation}
+ \frac{\partial\gls{sym:avec}_{\gls{idx:ns}}}{\partial\gls{sym:radvec}} = 
+\kot{itrf}{gcrf}\frac{\partial\gls{sym:avec}_{\gls{idx:bodyfixed}}}{\partial\rbf}\frac{\partial\rbf}{\partial\gls{sym:radvec}}= 
+\kot{itrf}{gcrf}\frac{\partial\gls{sym:avec}_{\gls{idx:bodyfixed}}}{\partial\rbf}\left(\kot{itrf}{gcrf}\right)^T
+\end{equation}
+
+%------------------------------------------------------------------------------
+\subsubsection{Partial derivatives for atmospheric drag contributions}
+\label{sec:propagation-covariance-set-integration-drag}
+%------------------------------------------------------------------------------
+
+The computation of partial derivatives due to atmospheric drag is based on \eq{eq:drag-acceleration}, the latter being a function of the relative velocity, 
+which deviates from the inertial velocity due to the rotating atmosphere and horizontal wind. A similar procedure to the one shown in the following was 
+presented in \cite{long1989}. Provided that the relative velocity is already available in the \gls{acr:gcrf}, the derivatives of the acceleration vector with 
+respect to the inertial velocity vector can be determined as follows:
+\begin{equation}
+ \frac{\partial\gls{sym:avec}_{\gls{idx:drag}}}{\partial\gls{sym:velvec}} = 
+   \frac{\partial\gls{sym:avec}_{\gls{idx:drag}}}{\partial\relvel}\frac{\partial\relvel}{\partial\gls{sym:velvec}} =
+   \frac{\partial\gls{sym:avec}_{\gls{idx:drag}}}{\partial\relvel} = 
+-\frac{\density}{2}\frac{\cd\crossSection}{\gls{sym:mass}}\left(\gls{sym:identity}\left|\relvel\right|+\frac{\relvel\relvel^T}{\left|\relvel\right|}\right).
+\end{equation}
+The partial derivative of the relative velocity with respect to the inertial velocity is one, which is due to the definition of the relative 
+velocity in the \gls{acr:gcrf}:
+\begin{equation}
+ \relvel = \gls{sym:velvec} + f\left(\gls{sym:radvec},t\right)
+ \label{eq:relvel-fr}
+\end{equation}
+The additional terms, designated with $f\left(\gls{sym:radvec},t\right)$ are due to the already mentioned rotating atmosphere as well as horizontal wind and 
+are only functions of the radius vector and time.
+
+Neglecting horizontal wind contributions, the relative velocity can be given as a function of the rotating atmosphere alone, being assumed to co-rotate with 
+the Earth, resulting in:
+\begin{equation}
+ \relvel = \gls{sym:velvec} - \gls{sym:rot}_{,\gls{acr:gcrf}}\times\gls{sym:radvec}
+ \label{eq:relvel-rot}
+\end{equation}
+
+The angular rotation vector of the Earth, \gls{sym:rot}, is defined in the \gls{acr:tirs} as 
+$\gls{sym:rot}_{,\gls{acr:tirs}}=\left[0,0,\omega_{\gls{idx:earth}}\right]^T$. As the relative velocity is evaluated in the \gls{acr:gcrf}, one has to take care 
+of the appropriate frame transformation. 
+
+The associated partial derivatives of the acceleration vector with respect to the radius vector thus result as:
+\begin{equation}
+ \frac{\partial\gls{sym:avec}_{\gls{idx:drag}}}{\partial\gls{sym:radvec}} = 
+   \frac{\partial\gls{sym:avec}_{\gls{idx:drag}}}{\partial\relvel}\frac{\partial\relvel}{\partial\gls{sym:radvec}} =
+  -\frac{\partial\gls{sym:avec}_{\gls{idx:drag}}}{\partial\relvel}\left(\kot{tirs}{gcrf} \gls{sym:rot}_{,\gls{acr:tirs}}\right)
+\end{equation}
+Making use of the fact, that $\gls{sym:rot}_{,\gls{acr:tirs}}$ has only a non-zero component in \gls{sym:zg}-direction, the first rotation in the 
+transformation from \gls{acr:tirs} to \gls{acr:gcrf} (reduction of the \acrfull{acr:era}, see \eq{eq:ERA}) is not required (identity).

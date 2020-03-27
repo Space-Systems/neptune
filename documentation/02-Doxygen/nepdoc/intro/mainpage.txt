@@ -1,0 +1,25 @@
+/**
+@mainpage NEPTUNE
+
+@section Introduction
+  Within the Network Partnering Initiative (NPI) between ESA/ESOC and TU Braunschweig, the orbit propagation tool NEPTUNE (NPI Ephemeris Propagation Tool with Uncertainty Extrapolation) is being developed. The initial orbit state, which consists of the radius and velocity vector as well as the variance/covariance matrix of an object, is numerically integrated using a variable-step multi-step double integration method. Perturbative accelerations due to the Earth's geopotential, the Earth's atmosphere, lunisolar gravitational perturbations, solar and Earth radiation pressure, as well as tides are considered.
+
+  NEPTUNE also provides the means to simulate oriented surfaces and the application of additional accelerations (e.g. maneuvers), which are not provided by the perturbations force model.
+
+@section Overview
+  <ul> 
+    <li> \ref neptune_sa "NEPTUNE main driver" </li>
+    <ul>
+      <li> \ref parseCommandLine  "Command line parsing" </li>
+      <li> \ref initErrorHandler  "Initialize logfile and error handling"</li>
+      <li> \ref rdinp             "Read input file" </li>
+      <li> \ref init_neptune      "Initialize NEPTUNE" </li>
+      <li> \ref propagate         "Propagate orbit by calling NEPTUNE library function 'propagate()'"</li>
+    </ul>
+    <li> \ref libneptune          "NEPTUNE library" </li>
+    <ul>
+      <li> \ref init_neptune      "Initialization" </li>
+      <li> \ref propagate         "Propagation"    </li>
+    </ul>
+  </ul>
+*/

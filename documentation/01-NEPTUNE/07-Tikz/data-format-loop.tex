@@ -1,0 +1,23 @@
+\begin{tikzpicture}[scale=0.7, transform shape]
+
+\node (satdat) [redbox, minimum width=100mm, text width=80mm] {Derived data type for OEM and OMM};
+
+\node (rdxml)  [bluebox, below left=0.4cm and -4.3cm of satdat] {XML reader};
+\node (wrxml)  [bluebox, below right=0.4cm and -4.3cm of satdat] {XML writer};
+
+\node (wrenc)  [bluebox, above left=0.4cm and -4.3cm of satdat] {OEM/OMM encoder};
+\node (rdenc)  [bluebox, above right=0.4cm and -4.3cm of satdat] {OEM/OMM decoder};
+
+\node (encfile) [textfeld, minimum width=40mm, minimum height=10mm, text width=40mm, above=1.8cm of satdat] {Encoded data file};
+\node (xmlfile) [textfeld, minimum width=40mm, minimum height=10mm, text width=40mm, below=1.8cm of satdat] {XML file};
+
+\draw[->] (xmlfile) -| (rdxml);
+\draw[->] (wrxml)   |- (xmlfile);
+\draw[->] (rdxml)   -- (rdxml|-satdat.south);
+\draw[->] (satdat.south-|wrxml) -- (wrxml);
+\draw[->] (satdat.north-|wrenc) -- (wrenc);
+\draw[->] (rdenc)   -- (rdenc|-satdat.north);
+\draw[->] (encfile) -| (rdenc);
+\draw[->] (wrenc)   |- (encfile);
+
+\end{tikzpicture}

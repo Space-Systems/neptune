@@ -1,0 +1,63 @@
+%\begin{tikzpicture}[scale=0.7, transform shape]
+\begin{tikzpicture}[transform shape]
+    
+    \tikzcuboid{%
+    shiftx=0cm,%
+    shifty=0cm,%
+    scale=1.00,%
+    rotation=0,%
+    densityx=1,%
+    densityy=1,%
+    densityz=1,%
+    dimx=6,%
+    dimy=4,%
+    dimz=5,%
+    %front/.style={draw=blue!75!black,fill=blue!25!white},%
+    front/.style={draw=ilr-blue,fill=light-blue},%
+    %right/.style={draw=blue!25!black,fill=blue!75!white},%
+    right/.style={draw=ilr-blue,fill=blue!65!white},%
+    %top/.style={draw=blue!50!black,fill=blue!50!white},%
+    top/.style={draw=ilr-blue,fill=blue!50!white},%
+    anglex=-7,%
+    angley=90,%
+    anglez=221.5,%
+    scalex=1,%
+    scaley=1,%
+    scalez=0.5,%
+    emphedge=false,%
+    shade,%
+    shadeopacity=0.15,%
+    }
+      
+    % corrections for remaining blue boxes
+    \filldraw[fill=blue!65!white, draw=ilr-blue, yshift=2cm] (0,0) ++(221.5:-0.5cm) -- ++(221.5:-0.15cm) -- ++(-90:0.11cm);
+    \filldraw[fill=light-blue, draw=ilr-blue, yshift=2cm] (0,0) ++(221.5:-0.5cm) ++(221.5:-0.15cm) -- ++(-90:0.11cm) -- ++(-7:0.89cm) -- ++(221.5:-0.15cm) -- 
+++(-7:-1cm);
+    %-- ++(221.5:-0.15cm) --++ (-7:-1cm);
+    % green box coming out...
+    \filldraw[fill=light-green, draw=dark-green, yshift=2cm] (0,0) -- ++(-7:1cm) -- ++(-90:1cm) -- ++(-7:-1cm) -- cycle;
+    \filldraw[fill=light-green, draw=dark-green, yshift=2cm] (0,0) -- ++(221.5:-0.5cm) -- ++ (-7:1cm) -- ++(221.5:0.5cm);
+    \filldraw[fill=light-green, draw=dark-green, yshift=2cm] (0,0) ++(-90:1cm) ++ (-7:1cm) -- ++(221.5:-0.15cm) -- ++(90:1cm) -- ++(221.5:0.15cm);
+    
+    % correct one green line to blue
+    \draw[ilr-blue, yshift=2cm] (0,0) ++ (-7:1cm) ++ (221.5:-0.15cm) -- ++(-90:1cm);
+    
+    % add labels
+    \draw[xshift=1cm, yshift=-2.7cm] node{Perigee altitude};
+    \draw[xshift=6.4cm, yshift=-1.7cm] node{Eccentricity};
+    \draw[xshift=-2.4cm, yshift=0.3cm] node[rotate=90]{Inclination};
+  
+    % information text
+    \draw[xshift=8cm, yshift=1cm] node[right,text width=5cm,information text] {
+An exemplary orbit could translate to the 
+\begin{itemize}
+  \item third bin in the {\color{ilr-blue} perigee altitude} dimension,
+  \item the first bin in the {\color{ilr-blue} eccentricity} dimension,
+  \item the fourth bin in the {\color{ilr-blue} inclination} dimension.
+\end{itemize}
+
+The force model is selected according to the code stored for the selected bin.
+
+};
+    
+\end{tikzpicture}

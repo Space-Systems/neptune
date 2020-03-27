@@ -1,0 +1,272 @@
+\documentclass[%
+  a4paper,%
+  twoside,
+  nexus, %arial,
+  11pt,% <10pt, 9pt>
+  %style=screen,
+  %sender=bottom,
+  blue,% <orange, green, violet>
+  %rgb, <cmyk>
+  %mono,
+  %extramargin,
+  %marginleft, <marginright>
+  ]{tubsbook}
+  
+%\renewcommand{\rmdefault}{phv} % Arial
+%\renewcommand{\sfdefault}{phv} % Arial
+
+\usepackage[english]{babel}
+% bibliography
+\usepackage[round, authoryear]{natbib}
+\usepackage{amsmath}                    % Packages for math
+\usepackage{amsthm}			% -||-
+\usepackage{amsfonts}			% -||-
+\usepackage{amssymb}			% -||-
+\usepackage{makeidx}
+%\usepackage{splitidx}
+\usepackage[intoc]{nomencl}
+\usepackage{pifont}	% for special symbols
+\usepackage{booktabs}	% for special table commands
+\usepackage{multirow}
+\usepackage{subfigure}
+%\usepackage{listings}
+%\usepackage{framed} % framing an entity
+\usepackage{booktabs} % nice tables
+%\usepackage{html}
+%\usepackage{hyperref}
+%\html{
+%    \usepackage{htmllist}
+%     }
+
+\graphicspath{
+{graphics/}{./../00-Templates/}
+}
+\usepackage{todo}       % creates a todo list
+\usepackage{lmodern}
+\usepackage{siunitx}
+\usepackage{mathabx}	% special symbols like \Earth and \Sun
+
+\usepackage{titlesec}
+ 
+\titleformat
+{\chapter} % command
+[display] % shape
+{\bfseries\LARGE} % format
+{Chapter \thechapter} % label
+{2 ex} % sep
+{
+ %   \rule{\textwidth}{0.3pt}
+    %\centering
+} % before-code
+[
+\vspace{0.5ex}%
+%\rule{\textwidth}{0.3pt}
+]
+
+% drawings, plots, etc
+%----------------------------------------------
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\usetikzlibrary{calc,%
+                       shapes,%
+                       matrix,%
+                       decorations,%
+                       backgrounds, %
+                       fit, %
+                       arrows, %
+                       positioning, %
+                       trees, %
+                       shadows, %
+                       intersections,%
+                       pgfplots.groupplots}	% libraries for Tikz
+                       
+%\tikzexternalize
+%\tikzset{external/system call={lualatex \tikzexternalcheckshellescape -halt-on-error -interaction=batchmode -jobname "\image" "\texsource"}}
+\usetikzlibrary{arrows,calc}
+\usepackage{relsize}
+\newcommand\LM{\ensuremath{\mathit{LM}}}
+\newcommand\IS{\ensuremath{\mathit{IS}}}
+
+%----------------------------------------------
+
+% syntax highlighting
+%------------------------------------------------
+\usepackage{pdftexcmds}
+\usepackage[chapter]{minted}
+%------------------------------------------------
+
+% nomenclature and index
+%--------------------------------------
+%\makenomenclature
+\makeindex
+%--------------------------------------
+
+%====================================================
+%
+% New commands and abbreviations
+%
+%-----------------------------------------------------
+
+\usepackage[%
+  pdfauthor={Vitali Braun},%
+  pdftitle={NEPTUNE Documentation},%
+  pdftex,%
+  hidelinks,%
+  linktocpage, breaklinks]{hyperref}
+%------------------------------------------------------------------------------
+%
+%	Glossary
+%
+%------------------------------------------------------------------------------
+
+\usepackage[nonumberlist, acronym,section]{glossaries}
+	%nonumberlist: no page numbering
+	%acronym: abbreviations list
+	%toc: entry in table of contents
+	%section: in toc placed at section level
+	%nopostdot: no dots after description
+				
+\newglossary[slg1]{symbolslist}{syi}{syg}{List of Symbols}			% symbols
+\newglossary[alg]{acronymlist}{acr}{acn}{List of Abbreviations}			% abbreviations	
+
+\input{../00-Templates/glossary}
+    
+\makenoidxglossaries
+  
+%=======================================================
+%
+% Titlepage information
+%
+%-------------------------------------------------------
+
+\newcommand{\DocDate}{\today}                     %% automatic current date or free text
+\newcommand{\DocTitleEntry}{NEPTUNE}     %%
+\newcommand{\DocAuthor}{Vitali Braun, Andr\'e Horstmann, Christopher Kebschull}
+\newcommand{\DocHeadB}{NEPTUNE/TR-2019}
+
+%----------------------------------------------------------------------------------
+
+%===============================================================
+%
+% Title page
+%
+%-------------------------------
+
+\title{\LARGE \DocTitleEntry}
+\subtitle{\large Technical Reference}
+\author{\Large \DocAuthor}
+
+%---------------------------------------------------------------
+
+\logo{\includegraphics{../00-Templates/ilrlogo_englisch.png}} % ilrlogo_englisch.png
+\titlepicture{doctor_pop2009.jpg}
+
+%===============================================================
+%
+% Hurenkinder/Schusterjungen vermeiden
+%
+\clubpenalty         = 10000
+\widowpenalty        = 10000
+\displaywidowpenalty = 10000
+
+\sisetup{separate-uncertainty}
+\sisetup{detect-all}
+
+\allowdisplaybreaks % Allows page break in math environment
+
+\input{../00-Templates/tikz-styles}	% style definitions used in this document
+\input{../00-Templates/commands}
+%---------------------------------------------------------------------------------------------------
+
+\begin{document}
+
+  \pagenumbering{roman}
+  \maketitle[image] %[<plain/image/imagetext>,<logo=left/right>]
+  \hypersetup{pageanchor=true}
+
+  %\pagestyle{plain} 
+  %\setcounter{page}{1}
+  
+  \include{status}
+  
+  \tableofcontents
+    
+  % main document
+  \newpage 
+  \pagenumbering{arabic} 
+  \setcounter{page}{1}
+  %\pagestyle{headings}
+
+  % Introduction
+  \include{intro}
+%  \clearpage
+
+  % Orbital data formats
+  % \include{dataformat}
+%  \clearpage
+
+% Differential correction
+% \include{diffcorr}
+ % \todo{Discuss weight matrix in differential correction} 
+%  \clearpage
+    
+  % Orbit propagation
+  \include{propagation}
+%  \clearpage
+ % \todo{Correct matrix in Eq. 4.144: d/drbf=... error in element 3,2} 
+  % interpolation
+ % \include{interpolation}
+%  \clearpage
+
+  % Autoconfiguration
+ % \include{autoconfig}
+%  \clearpage
+  
+  % verification and validation
+  \include{validation}
+ 
+%------------------------------------------------------------------------------
+\addcontentsline{toc}{chapter}{References}
+
+\nocite{iso8601}
+\nocite{ccsds:ndm}
+
+\bibliographystyle{plainnat}
+\bibliography{../00-Templates/literature}
+
+%------------------------------------------------------------------------------
+\addcontentsline{toc}{chapter}{Glossary}
+
+\chapter*{Glossary}
+      
+  \setglossarystyle{altlong4col}% 
+  %\glossarystyle{aiaostyle}%
+  \setlength{\glsdescwidth}{0.7\textwidth}
+  %\setlength{\glspagelistwidth}{0.1\textwidth}
+  \printnoidxglossary[type=symbolslist]			% latin
+  %\printglossary[type=symbolslistgreek] 		% greek
+  %\printglossary[type=symbolslistindex] 		% indices
+  %\setglossarysection{chapter}						% 
+  %\glstoctrue
+  \printnoidxglossary[type=acronymlist]%mySymbolStyle]		% abbreviations
+      
+%------------------------------------------------------------------------------
+
+\listoffigures
+\addcontentsline{toc}{chapter}{\listfigurename}  
+
+%------------------------------------------------------------------------------
+
+\listoftables
+\addcontentsline{toc}{chapter}{\listtablename}
+
+%------------------------------------------------------------------------------
+
+%\begin{appendix}
+%  \include{annex-neptune}
+%\end{appendix}
+
+% \todos
+
+\end{document}

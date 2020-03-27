@@ -1,0 +1,35 @@
+\begin{tikzpicture} 
+  \begin{semilogyaxis}[
+      %y tick label style={
+      %  /pgf/number format/.cd,
+      %      fixed,
+      %      fixed zerofill,
+      %      precision=1,
+      %  /tikz/.cd
+      % },
+      x tick label style={
+       /pgf/number format/.cd,
+           fixed,
+           fixed zerofill,
+           precision=0,
+       /tikz/.cd
+      },
+       width=0.7\textwidth,
+       scaled x ticks = false,
+       xlabel = {Geopotential degree},
+       ylabel = Value,
+       xmin=3,
+       xmax=70,
+       %clip=false,
+       %xtick={0,1,2,3,4,5,6,7},
+       grid=major,
+       legend entries={Mean values of degree \gls{sym:geo_n}, Kaula's rule, Standard deviation of degree \gls{sym:geo_n}},
+       %legend style={at={(1.2,0.5)}, anchor=west, draw=none},
+       legend cell align = left
+      ]
+      
+      \addplot[dark-red, mark=x] table {07-Tikz/data/coeff_eigen_gl04c.dat};
+      \addplot[domain=3:70, samples=100] {1e-5/x^2};
+      \addplot[ilr-blue, mark=o] table {07-Tikz/data/csig_eigen_gl04c.dat}; 
+  \end{semilogyaxis}
+ \end{tikzpicture}

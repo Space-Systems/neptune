@@ -1,0 +1,48 @@
+%------------------------------------------------------------------------------
+\chapter{Orbit Propagation}
+\label{cha:OrbitPropagation}
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+\section{Overview}
+%------------------------------------------------------------------------------
+
+One of the key elements of a space surveillance system is the propagation technique used in the orbit determination process. While the first surveillance systems in the \acrshort{acr:us} and the Soviet Union 
+employed fast analytical techniques, also known as \gls{acr:gp} methods, with today's computational limitations virtually non-existing, it is common to use so-called \gls{acr:sp} techniques, 
+which perform the numerical integration of a detailed force model. The numerical propagation tool \neptune (\acrlong{acr:neptune}) was designed to be used in the context of a space surveillance system and is described in detail in the following. 
+\begin{figure}[h!]
+ \centering
+ \includegraphics[width=0.5\textwidth]{neptune_logo.png}
+ \caption{\neptune logo.\label{fig:neptune-logo}}
+\end{figure}
+The first step was to define the required force model and select state-of-the-art methods that would be implemented to meet the need in the intended context. Therefore, besides a 3 \gls{acr:dof} propagation for the state vector, \neptune has also 
+the capability to propagate the covariance matrix, which is an essential step in the filtering process within the statistical orbit determination. Finally, the concept of 
+including time-correlated (coloured) noise into the filtering application was studied in detail and shall be presented here, based on the work of 
+\citet{nazarenko2010}.
+
+The coordinate and time systems implemented in \neptune are based on the \gls{acr:iau} recommendations and will be outlined in \sect{sec:propagation-coordinates}. Especially the 
+conversion from the inertial to the Earth-fixed frame and vice versa is computationally expensive, so that a method has been devised to significantly improve 
+computation speed without significant performance loss.
+
+It is possible to define the shape of the satellite used in a \neptune propagation with a very simple geometry, which shall be described in 
+\sect{sec:propagation-satellite-model}. That approach served as a simple method to simulate box-wing configurations in the validation of \neptune (see \cha{cha:validation}).
+
+The numerical integrator and the force model will be given in detail in \sect{sec:propagation-state}, while the details for the covariance matrix propagation are provided in 
+\sect{sec:propagation-covariance}.
+
+Finally, the process noise, which results in additional contributions to the covariance propagation due to uncertainties in the force model, will be detailed in \sect{sec:noise}. 
+Different methods to incorporate noise into filtering applications shall be described with a focus on coloured noise, as especially the geopotential shows significant time-correlations.
+
+
+%------------------------------------------------------------------------------
+
+\input{02-Propagation/coordinates}
+\input{02-Propagation/satmodel}
+\input{02-Propagation/state}
+\input{02-Propagation/covariance}
+\input{02-Propagation/noise}
+
+%------------------------------------------------------------------------------
+%\bibliographystyle{plain}
+%\bibliography{wp2report}
+%------------------------------------------------------------------------------

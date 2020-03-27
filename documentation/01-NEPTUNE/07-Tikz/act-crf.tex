@@ -1,0 +1,31 @@
+\begin{tikzpicture}[scale=0.7, transform shape]
+   \matrix[row sep=1mm,column sep=1mm] { 
+   % First row: 
+   \node [] {Three-character ID}; & 
+   & 
+   \node [] {Configuration code}; & \\
+   
+   % Second row: 
+   \node [fill=gray90] {\texttt{abc}};          &
+   \node {$\rightarrow$};                       &
+   \node (string) [fill=gray90] {\texttt{361211001109}}; & \\
+   
+   % Third row (place holder): 
+   \node [circle, inner sep=0pt, minimum size=15pt, fill=white]{}; & & & \\
+   
+   % Description...
+   \node (70) {\texttt{36}}; & \node {$\rightarrow$}; & \node (geop) [text width=6cm] {Geopotential degree: $36\times36$}; & \\
+   \node      {\texttt{1}};  & \node {$\rightarrow$}; & \node        [text width=6cm] {Earth orientation parameters \textbf{ON}}; & \\ %\gls{acr:eop}
+   \node      {\texttt{2}};  & \node {$\rightarrow$}; & \node        [text width=6cm] {Atmosphere + horizontal wind \textbf{ON}}; & \\
+   \node      {\texttt{1}}; &  \node {$\rightarrow$}; & \node 	     [text width=6cm] {Solar gravity \textbf{ON}}; & \\
+   \node      {\texttt{1}}; &  \node {$\rightarrow$}; & \node        [text width=6cm] {Lunar gravity \textbf{ON}}; & \\
+   \node      {\texttt{0}}; &  \node {$\rightarrow$}; & \node        [text width=6cm] {Solar radiation pressure \textbf{OFF}}; & \\
+   \node      {\texttt{0}}; &  \node {$\rightarrow$}; & \node        [text width=6cm] {Earth albedo \textbf{OFF}}; & \\
+   \node      {\texttt{1}}; &  \node {$\rightarrow$}; & \node        [text width=6cm] {Solid tides \textbf{ON}}; & \\
+   \node      {\texttt{1}}; &  \node {$\rightarrow$}; & \node        [text width=6cm] {Ocean tides \textbf{ON}}; & \\
+   \node      {\texttt{09}}; & \node {$\rightarrow$}; & \node        [text width=6cm] {Relative tolerance: $10^{-9}$}; & \\
+   };
+
+  \draw [->] (string.south) -- ++(0,-0.5) -|  (70.north);
+
+\end{tikzpicture}

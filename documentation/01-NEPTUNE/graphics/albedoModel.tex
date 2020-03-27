@@ -1,0 +1,47 @@
+  \begin{tikzpicture}[>=latex, scale=0.7, transform shape]
+    \coordinate (Sub) at (0,0);
+    \coordinate (Sat) at ($ (Sub) + (0,5) $);
+    \coordinate (A)  at  ($ (Sub) + (2,0) $);
+    \coordinate (B)  at  ($ (A) + (-30:2) $);
+    \coordinate (Ar) at  ($ (Sub) - (2,0) $);
+    \coordinate (Br) at  ($ (Ar) + (210:4) $);
+ 
+    % Earth plates 
+    \draw[thick, tubsBlueDark100] (Br) -- (Ar) -- (Sub) node [below=1cm, black] {Earth plate model} -- (A) -- (B) -- ($ (B) + (-30:2) $);
+    \node[below left] (Blabel) at (B) {$\gls{sym:area}_i$};
+ 
+    % oriented surface
+    \draw[thick, tubsBlueDark100] ($ (Sat) + (-130:1.5) $) -- (Sat) node [above left, black, text width=3cm, text centered] {Satellite \\ (k-th surface)} -- ($ 
+(Sat) + (50:1.5) $) node[black,midway, right] {$\gls{sym:area}_k$};
+ 
+    % altitude
+    \draw[->] (Sub) -- node [midway, left] {\gls{sym:alti}} (Sat);
+
+    % arc for theta_inc
+    \filldraw[draw=tubsBlueDark100, fill=tubsBlueDark20] (B) -- ($ (B) + (1.5cm,0cm) $) arc [start angle=0, end angle=60, radius=1.5cm] -- (B);
+    \draw (B) ++(30:1cm) node{$\gls{sym:theta_inc}$};
+    
+    % arc for alpha_k
+    \filldraw[draw=tubsBlueDark100, fill=tubsBlueDark20] (B) -- ($ (B) + (60:1.2cm) $) arc [start angle=60, end angle=121.88, radius=1.2cm] -- (B);
+    \draw (B) ++(90:0.8cm) node{$\gls{sym:viewangle}_{ik}$};
+
+    % arc for phi_inc
+    \node (Y) at ($ (Sat) + (-40:1.5cm) $) {};
+    \filldraw[draw=tubsBlueDark100, fill=tubsBlueDark20] (Y) arc [start angle=-40, end angle=-58, radius=1.5cm] -- (Sat);
+    \draw[gray50] (Sat) ++(-49:1.2cm) -- +(-49:1cm) node[black, right] {$\gls{sym:phi_inc}$};
+ 
+    % distance satellite -> earth plate
+    \draw[->] (Sat) -- node[midway, right] {$\gls{sym:s}_{ik}$} (B);
+ 
+    % normal vector of earth plate
+    \draw[->] (B) -- +(60:2cm) node[very near end, left] {$\gls{sym:n0}_{,P}$};
+ 
+    % normal vector of satellite surface
+    \draw[->] (Sat) -- +(-40:2cm) node[near end, above=.2cm] {$\gls{sym:n0}_{,k}$};
+ 
+    % to Sun
+    \draw[->] (B) -- +(2cm,0) node[right] {to Sun};
+ 
+  \end{tikzpicture}
+  \vspace{0.5cm}
+

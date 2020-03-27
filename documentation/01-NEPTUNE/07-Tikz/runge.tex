@@ -1,0 +1,18 @@
+\begin{tikzpicture}
+
+    \begin{axis}[
+       xlabel = x,
+       ylabel = y,
+       legend entries={Runge function $y=\frac{1}{1+25\cdot x^2}$, Lagrange interpolation (10th degree)},
+       legend style={at={(0.5,-0.2)}, anchor=north, draw=none},
+       legend cell align = left
+    ]
+      \addplot[name path global=curve1, red, densely dotted, very thick, domain = -1:1, samples = 101] {1/(1+25*x^2)};
+      \addplot[name path global=curve2, blue, densely dashed, thick, domain = -1:1, samples = 101] 
+{-220.942*x^5*x^5+494.41*x^8-381.434*x^6-1.42109/10^14*x^5+123.36*x^4-16.8552*x^2+1};
+      %\addplot[red, densely dotted, very thick, domain = -1:1, samples = 101] {1/(1+25*x^2)};
+      %\addplot[blue, densely dashed, thick, domain = -1:1, samples = 101] 
+%{-220.942*x^5*x^5+494.41*x^8-381.434*x^6-1.42109/10^14*x^5+123.36*x^4-16.8552*x^2+1};
+      \ShowIntersections
+    \end{axis}
+\end{tikzpicture}

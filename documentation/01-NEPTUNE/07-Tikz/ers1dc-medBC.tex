@@ -1,0 +1,30 @@
+\begin{tikzpicture}
+  \begin{axis}[
+      %height=1.2\textwidth,
+      width=0.7\textwidth,
+      xlabel = {Hours after August 7, 1991},
+      ylabel = {Error (Neptune - ERS-1) / m},
+      xmin   = 0,
+      xmax   = 8,
+      %restrict x to domain=48472:48479,
+      %x coord trafo/.code={\pgfmathparse{#1-5.0}\pgfmathresult} % x-offset MJD
+      ymin   = -2,
+      ymax   = 3,
+      xtick  = {0,...,8},
+      ytick  = {-2,...,3},
+      %minor x tick num={1},
+      %minor y tick num={3},
+      scaled ticks = false,
+      ymajorgrids,
+      yminorgrids,
+      xmajorgrids,
+      xminorgrids,
+      legend entries={Radial, Along-track, Cross-track} ,
+      legend style={at={(1.05,1.0)}, anchor=north west, draw=none},
+      legend cell align = left
+  ]
+    \addplot[blue, thick]  table {07-Tikz/data/ers1-medBC.dcu};
+    \addplot[red, thick]   table {07-Tikz/data/ers1-medBC.dcv};
+    \addplot[green, thick] table {07-Tikz/data/ers1-medBC.dcw};
+  \end{axis}
+\end{tikzpicture}

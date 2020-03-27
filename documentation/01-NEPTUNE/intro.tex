@@ -1,0 +1,49 @@
+%------------------------------------------------------------------------------
+\chapter{Introduction}
+\label{cha:intro}
+%------------------------------------------------------------------------------
+
+The \gls{acr:ias} has been actively involved in orbital mechanics research since the \num{1970}s. After focusing on nuclear reactors in space and re-entry analyses in the early years, the focus was put on space debris research from the \num{1980}s, led by Prof. Dietrich Rex. While the important contributions from that time
+culminated in the development of the popular \gls{acr:master} model by \acrshort{acr:esa}, former research in the area of orbit determination and propagation
+virtually came to a halt. The numerical propagation tool \gls{acr:zuniem} is a product of that time and has been used since the \num{1980}s for various studies,
+including re-entry analyses, until today.
+
+With the growing importance of establishing a clear picture of the near-Earth orbital environment (often referred to with expressions such as \gls{acr:ssa} or \gls{acr:stm} or \gls{acr:sda}), especially after the major breakup events of Fengyun-1C in \num{2007} and Cosmos-2251/Iridium-33 in
+\num{2009}, several studies have been performed to identify the components and algorithms essential to obtain an assessment of the state of objects in Earth orbits. Combining its experience in the fields of orbital mechanics and space debris research, the \gls{acr:ias} has been involved in several national studies in the space surveillance context in the recent years. This resulted in the motivation to further refine the techniques, which were set up in the \num{1980}s and used
+since then, to develop state-of-the-art techniques and key algorithms in the context of a space surveillance system. The core element of such a system is a software that allows to compute the state of any orbiting object, based on information for a given epoch, to any point forward and backward in time. The \neptune (\acrlong{acr:neptune}) propagator has been developed for that purpose.
+
+\section{Scope of this document}
+
+The first part is about the numerical propagation tool \neptune in \cha{cha:OrbitPropagation}, including the description of the numerical integrator, the force model for state vector and covariance matrix propagation, as well as the model to account for unmodelled effects (process noise).
+
+\cha{cha:validation} shows how \neptune has been validated for both the state vector and the covariance matrix propagation.
+
+\section{Acknowledgements}
+
+The work documented in this report was performed under the Networking Partnership Agreement between the \gls{acr:esa} and the \gls{acr:tubs}, Institute of Space Systems (``Contract for the Definition of Orbit State, Orbit Ephemerides and Orbit Covariance
+Formats'', Contract No. 4000103850/11/D/JR).
+
+The \textit{Networking/Partnering Initiative} (\acrshort{acr:npi}) \acrshort{acr:esa} was aiming at ``fostering increased interaction between ESA, European universities,
+research institutes and industry''\footnote{\url{http://www.esa.int/Our_Activities/Space_Engineering_Technology/Networking_Partnering_Initiative}, accessed on February
+10, 2015} (recently, the NPI was incorporated into ESA's broader \gls{acr:osip}). Beginning in \num{2011}, a 4-year period was envisaged for the investigation of several key algorithms in the space surveillance and tracking context.
+
+The development of the entire framework, with \gls{acr:neptune} at its core, was highly interdisciplinary, ranging from purely mathematical methods, to computing, physics, estimation and optimization, and engineering
+techniques. While it has been very exciting to delve into each of the different methods, tools and algorithms, the authors would have required lots of additional time to cover all the details presented in this report. 
+
+Therefore, the authors would like to express their gratitude to all the people having contributed to this work: Michael Baade, who
+investigated the performance of different interpolation methods for tabulated ephemerides in his research thesis; Christian Boyer, who worked on the generation of simulated measurements
+during his Bachelor's thesis, including the \acrshort{acr:iau}2000/2006 reduction formulae, which provided first insights into the intricacies of those methods; Esfandiar
+Farahvashi analysed the numerical propagation of oriented surfaces in his Bachelor's thesis; Andr\'e Horstmann implemented a method proposed by \citet{lundberg1991} to consider
+shadow boundary crossings in the numerical integration with the variable-step multi-step St\"ormer-Cowell method during his research thesis; Guido Lange investigated in
+his research thesis performance issues of using tabulated precession-nutation coefficients as proposed by \citet{coppola2009}; Sebastian Weidemeyer was involved in three different
+areas of work, first working on methods to obtain mean elements, followed by investigating a method to account for acceleration discontinuities introduced by orbital manoeuvres
+and finally some performance issues when working with the Differential Correction method.
+
+There have been a lot of great discussions about specific topics with contributions by Sven Flegel, Johannes Gelhaus, Marek M\"ockel, Jonas Radtke and Christopher
+Kebschull. The authors are also grateful to Tim Flohrer and Holger Krag from \gls{acr:esoc} for various comments and valuable feedback during the development of the individual
+tools.
+
+The work performed in the four years of the \gls{acr:npi} involved studying a lot of methods, algorithms and literature, most of them being entirely new to the authors. In this
+context, gratitude is owed in particular to Heiner Klinkrad (who was the Technical Officer at \gls{acr:esoc} in this study): for providing a whole range of intriguing literature in
+the area of interest, for fruitful conversations during the meetings and also for providing support whenever there were difficult questions or problems, whether from a scientific
+or from a purely technical point of view.

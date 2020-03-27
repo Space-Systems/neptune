@@ -1,0 +1,53 @@
+#-----<IRAS/NEPTUNE>---------------------------------------------------------------------------------------------------
+#
+#   NEPTUNE -- Surfaces Definition File
+#
+#----------------------------------------------------------------------------------------------------------------------
+#
+#  Input to be provided:
+#
+#   -Mass:    Mass of the complete satellite in kg
+#   -CD:      Drag coefficient for the whole satellite
+#   -Area:    The surface area in m**2.
+#   -OR:      The orientation of the surface, which may be one of the following:
+#               1 = Earth-oriented
+#               2 = Sun-oriented
+#               3 = inertially fixed
+#   -Normal:  Two angles A and B to describe the pointing direction of the surface normal. The actual interpretation
+#             of the two angles depends on the orientation mode:
+#               * Earth-oriented:    A = Azimuth,                        B = Elevation in satellite-fixed frame
+#               * Sun-oriented:      A = Delta right ascension wrt. Sun, B = Delta declination wrt. Sun
+#               * Intertially fixed: A = Right ascension,                B = Declination in inertial frame
+#   -CRS:     specular reflectivity coefficient
+#   -CRD:     diffuse reflectivity coefficient
+#
+#-----------------------------------------------------------------------------------------------------------------------
+#
+#    NOTE 1: make sure that there are no blank lines in the data
+#            (escape with '#' if required)
+#    NOTE 2: In version 1.0 of NEPTUNE it is possible to define up to 30 individual surfaces.
+#    NOTE 3: If there are Earth- and Sun-oriented surfaces defined, it will be assumed that the Sun-oriented surfaces
+#            are mounted to an Earth-oriented satellite (e.g. solar arrays), so that the surface normal of the Sun-
+#            oriented surfaces is perpendicular to the satellite's surface normal it is mounted onto.
+#    NOTE 4: The values of specular reflectivity, diffuse reflectivity and absorption add up to 1: CRS + CRD + CA = 1
+#            Due to this fact, it is only important to have two values specified.
+#
+#-----------------------------------------------------------------------------------------------------------------------
+#
+  1000.0    ! Mass in kg
+  2.2       ! Drag coefficient
+#
+  1         ! Determine Equivalent Solar Hours (ESH) for all defined surfaces (0 = off, 1 = on)
+#
+#---------------------------------------------------------------------------------------------------
+#
+#    Area      OR         A        B      CRS   CRD
+#___[m**2]__ [1|2|3]____[deg]____[deg]____[-]___[-]___
+     10.0       1         0.0     0.0     0.3    0.0     ! Leading
+     10.0       1       180.0     0.0     0.3    0.0     ! Trailing
+     10.0       1         0.0    90.0     0.3    0.0     ! Space
+     10.0       1         0.0   -90.0     0.3    0.0     ! Earth
+     10.0       1        90.0     0.0     0.3    0.0     ! Left
+     10.0       1       270.0     0.0     0.3    0.0     ! Right
+#    20.0       2         0.0     0.0     0.3    0.0     ! Solar array (front)
+#     20.0       2       180.0     0.0     0.3    0.0     ! Solar array (back)

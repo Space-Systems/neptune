@@ -1,0 +1,26 @@
+
+NEPTUNE v2020-03 Changelog
+* Cleaned up for github release
+
+NEPTUNE v2020-02 Changelog
+* Changed versioning
+* Fixing correlation matrix error
+* Moving keplerian element errors to slam
+* build.sh is now cloning OPI from new Space-Systems repo on github. Also,
+  it's now cloning the tag OPI-2015
+* build.sh is now cloning libslam tag v2020-02
+* Changed default build script compiler from ifort to gfortran
+
+NEPTUNE 0.10.0 Changelog
+* Generating OEM output with OPI-interface
+
+NEPTUNE 0.9.18 Changelog
+
+* Object oriented NEPTUNE core
+* Needs new libslam with object oriented Reduction_class
+* Contains back-ported NRLMSISE-00 from a ported C-version ;-)
+* No longer depends on SPICE for SUN and MOON ephemerides
+* New data files with Chebyshev coefficients for SUN and MOON ephemerides
+* Reads all data files entirely - no need for re-reading any files post initialization
+* Contains new OpenMP parallelized test-executable openmp-test-sa.f90
+* NEPTUNE scales about 50% when using multiple cores

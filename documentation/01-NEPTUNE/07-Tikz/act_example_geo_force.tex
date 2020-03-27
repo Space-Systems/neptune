@@ -1,0 +1,25 @@
+\begin{tikzpicture}
+
+    \begin{axis}[
+       width=0.75\textwidth,
+       align=center,
+       %title={Force model (No. of perturbations considered) \\ \textbf{Geopotential n=3 in all cases}},
+       xlabel = Semi-major axis / km,
+       ylabel = Mean anomaly / deg,
+       scaled ticks=false,
+       colorbar,
+       ymin=0,
+       ymax=360,
+       xmin=41600, 
+       xmax=43000,
+       ytick={0,60,...,360},
+       xticklabel style={/pgf/number format/.cd,fixed, fixed zerofill, precision=0},
+       %xmin=34000, xmax=36500,
+      view={0}{90}      
+      ]
+      
+      \addplot3[surf, mesh/ordering=y varies] table {07-Tikz/data/geo-force-model.tmp};
+      \addplot3[draw=black, thick] coordinates {(42164,0,0) (42164,360,0)} node[pos=0.54, right] {GEO};
+      \addplot3[draw=black, thick] coordinates {(41428,167,0) (43328,167,0)} node[pos=0.75, above] {$\lambda = 0^\circ$};
+    \end{axis}
+\end{tikzpicture}

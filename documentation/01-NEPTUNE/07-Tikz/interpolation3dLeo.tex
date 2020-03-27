@@ -1,0 +1,15 @@
+\begin{tikzpicture}
+
+    \begin{axis}[
+       xlabel = Orbit altitude / km,
+       ylabel = Granule length / minutes,
+       colorbar,
+       ymin=15, ymax=200,
+       xmin=200, xmax=2000,
+      view={0}{90}      
+      ]
+    
+      \addplot3[surf, mesh/cols=48] table {07-Tikz/data/interpolation_3d_leo.dat};
+      
+    \end{axis}
+\end{tikzpicture}

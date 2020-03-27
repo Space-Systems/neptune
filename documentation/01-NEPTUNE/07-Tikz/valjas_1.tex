@@ -1,0 +1,45 @@
+%plot 'valjas_1_000.rad' u ($1-52357.0):10 w l lw 2 lt rgb 'green' title 'Cross-track', \
+%     'valjas_1_000.rad' u ($1-52357.0):9  w l lw 2 lt rgb 'red'   title 'Along-track', \
+%     'valjas_1_000.rad' u ($1-52357.0):8  w l lw 2 lt rgb 'blue'  title 'Radial'
+
+\begin{tikzpicture}[scale=1]
+
+  \begin{axis}[
+      height=0.6\textwidth,
+      width=0.8\textwidth,
+      xlabel = {Day since March 4, 2002},
+      ylabel = {Error/km},
+      y tick label style={
+       /pgf/number format/.cd,
+           fixed,
+           fixed zerofill,
+           precision=1,
+       /tikz/.cd
+      },
+      xmin   = 0,
+      xmax   = 24,
+      %clip=false,
+      %restrict x to domain=23:25,
+      %x coord trafo/.code={\pgfmathparse{#1-5.0}\pgfmathresult} % x-offset MJD
+      ymin   = -0.2,
+      ymax   = 1.8,
+      %xtick  = {250,300,...,600},
+      ytick  = {-0.2,0,0.2,...,1.8},
+      %minor x tick num={1},
+      %minor y tick num={3},
+      scaled ticks = true,
+      ymajorgrids,
+      %yminorgrids,
+      xmajorgrids,
+      %xminorgrids,
+      legend entries={Along-track, Cross-track, Radial} ,
+      legend style={at={(0.02,0.98)}, anchor=north west},
+      legend cell align = left
+  ]
+    \addplot[red, thick, smooth]          table {06-Validation/data/valjas_1_along2.out};
+    \addplot[green, thick, smooth]        table {06-Validation/data/valjas_1_cross2.out};
+    \addplot[blue, thick, smooth]         table {06-Validation/data/valjas_1_radial2.out};
+    
+  \end{axis}
+  
+\end{tikzpicture}

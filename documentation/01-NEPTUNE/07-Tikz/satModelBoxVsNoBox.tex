@@ -1,0 +1,15 @@
+\begin{tikzpicture}
+    \begin{axis}[
+       xlabel = Time / min,
+       xmin = 0,
+       xmax = 240,
+       ylabel = Error / m,
+       legend entries={Radial, Along-track, Cross-track},
+       legend style={at={(1.2,1.0)}, anchor=north west, draw=none},
+       legend cell align = left
+    ]
+      \addplot[red, dashed, very thick]          table {07-Tikz/data/comp3.out.radial};
+      \addplot[blue, dotted, very thick] table {07-Tikz/data/comp3.out.along};
+      \addplot[green, densely dotted, very thick] table {07-Tikz/data/comp3.out.cross};
+    \end{axis}
+\end{tikzpicture}

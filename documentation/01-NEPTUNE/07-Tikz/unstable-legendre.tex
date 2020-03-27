@@ -1,0 +1,23 @@
+\begin{tikzpicture} 
+  \begin{axis}[
+      y tick label style={
+        /pgf/number format/.cd,
+            fixed,
+            fixed zerofill,
+            precision=1,
+        /tikz/.cd
+       },
+       xlabel = {Combined, geopotential degree and order $\left(n+\frac{m}{n+1}\right)$},
+       ylabel = Error / \%,
+       xmin=30,
+       xmax=40,
+       clip=false,
+       xtick={30,31,...,40},
+       grid=major,
+       ytick scale label code/.code={$\cdot 10^{-7}$}
+      ]
+      
+      \addplot[ilr-blue, thick] table {07-Tikz/data/legendre-unstable.temp2.dat};      
+      %\node[fill=white, inner sep=0pt] (c1) at (axis cs:30.6,1.25e4) {$\cdot 10^{-7}$};
+  \end{axis}
+ \end{tikzpicture}

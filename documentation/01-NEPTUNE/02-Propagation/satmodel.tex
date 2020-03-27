@@ -1,0 +1,86 @@
+%------------------------------------------------------------------------------
+\section{Satellite geometry model}
+\label{sec:propagation-satellite-model}
+%------------------------------------------------------------------------------
+
+For the maintenance of an object catalogue in a space surveillance context, information about the shape of individual objects is, in general, limited or 
+even unavailable. However, for an accurate modelling of non-gravitational forces, detailed knowledge of the surface properties is inevitable. This problem 
+is typically dealt with by modelling the object as a point mass (or sphere of uniform density) and applying estimated values for the associated quantities in the 
+non-gravitational model equations, like the drag parameter or the \gls{acr:srp} coefficient.
+
+That design approach was also selected for \neptune, being a 3-\gls{acr:dof} propagator to be used in a space surveillance and tracking context. 
+In contrast, a 6-\gls{acr:dof} propagation would not only require additional torque modelling, but also a detailed 3D modelling of the surfaces of the object under
+consideration, which is the preferred solution for individual satellites, when high precision ephemerides (\acrshort{acr:poe}) with uncertainties in the cm-regime are to be
+obtained. 
+
+The validation process of \neptune (\cha{cha:validation}) is based on comparing computed ephemerides to available \gls{acr:poe} for distinct satellites and epochs. While this 
+approach already showed quite good results, a further improvement to augment the 3-\gls{acr:dof} propagation is to apply simple \textit{box-wing-models} for some of those
+satellites. It is thus possible to define individual surfaces for the \neptune propagation, with the following properties:
+\begin{itemize}
+ \item Surface area / \si{\metre\squared},
+ \item specular and diffuse reflectivity coefficients as well as
+ \item surface normal orientation. 
+\end{itemize}
+
+The orientation of the surface normal can be described by two angles for the initial state. For satellites, that are not in a randomly tumbling mode, one can 
+also provide a model for the orientation during the propagation. Three different modes have been defined for \neptune with their associated angles to give 
+the orientation, as shown in \tab{tab:sat-model-orientation}.
+\begin{table}[h!]
+ \centering
+ \caption{Orientation modes and the associated defining angles for \neptune box-wing model propagation.\label{tab:sat-model-orientation}}
+ \begin{tabular}{p{3cm}p{6cm}p{6cm}}
+  \toprule
+  Orientation mode & First angle & Second angle \\
+  \midrule
+  Earth-oriented   & Azimuth in satellite-centered horizontal plane (\gls{acr:ocrf}) & Elevation in satellite-centered horizontal frame (\gls{acr:ocrf}). \\
+  \midrule
+  Sun-oriented     & Offset to the right ascension of the Sun in the equatorial plane (\gls{acr:gcrf}) & Offset to the declination of the Sun perpendicular to the equatorial plane
+\gls{acr:gcrf}. \\
+  \midrule
+  Inertially fixed & Right ascension (\gls{acr:gcrf}) & Declination (\gls{acr:gcrf}) \\ 
+  \bottomrule
+ \end{tabular}
+\end{table}
+Each time, the cross-section of the satellite is requested by the force model, \neptune will evaluate the current orientation based on the orientation mode 
+and compute the value for that step. This might be, for example, the cross-section in relative velocity direction for the evaluation of the drag acceleration. 
+In that case, the inner product of the relative velocity vector and the surface normal vector is evaluated and summed for all surfaces where that product 
+is greater than zero:
+\begin{equation}
+ \gls{sym:area}_{\gls{idx:cross}}\left(\gls{sym:t}\right) = \sum_{i=0}^{n_{\gls{idx:srf}}} \gls{sym:area}_{i} \gls{sym:n0}\left(\gls{sym:t}\right)
+\gls{sym:velvec}_{\gls{idx:rel}}\left(\gls{sym:t}\right), \quad \forall \gls{sym:n0}\left(\gls{sym:t}\right)
+\gls{sym:velvec}_{\gls{idx:rel}}\left(\gls{sym:t}\right) > 0. \label{eq:satellite-model-normal}
+\end{equation}
+
+Note that this simple approach does not account for shadowing effects of individual surfaces. Also, due to the approach defined by \eq{eq:satellite-model-normal}, each defined
+surface is only accounted for its positive normal direction. For instance, if modelling a single flat plate, it is important to account for both, the front and the rear side, as
+shown exemplarily for a solar array in \gls{acr:leo} in \fig{fig:sat-model-solar-array}.
+\begin{figure}[h!]
+ \centering
+ \input{07-Tikz/satModelSolarArray}
+ \caption{Example for a Sun-oriented solar array with dimensions \SI{1}{\metre}$\times$\SI{1}{\metre} in a circular \gls{acr:leo}. The
+cross-section in relative velocity direction is shown for both, a single defined surface, as well as a combined front and rear surface.\label{fig:sat-model-solar-array}}
+\end{figure}
+As expected, for a single surface, the cross-section is zero for half an orbit, as the angle between the surface normal direction and the relative velocity vector is greater than 
+\ang{90;;}. However, as a real flat plate would also experience drag on the rear side, the correct result is only obtained for modelling two surfaces with normal
+directions being 
+\ang{180;;} apart.
+
+In \fig{fig:sat-model-box-wing} an example is shown for the difference between a box-wing and a \textit{cannon-ball} model, where the latter corresponds to a sphere with a
+cross-section that provides a best fit to the results of the box-winged satellite.
+\begin{figure}[h!]
+ \centering
+ \input{07-Tikz/satModelBoxVsNoBox}
+ \caption{Example for the difference between a box-wing and a cannon-ball model. An Earth-oriented cube (10 \si{\metre\squared} surface, each) with one Sun-oriented solar array
+(10 \si{\metre\square} area) in a circular \gls{acr:leo}. The radial, along-track and cross-track components are shown.\label{fig:sat-model-box-wing}}
+\end{figure}
+It can be seen, that radial and along-track periodic variations are introduced, which are in the range of a few metres. A box-wing model can thus be used for improved comparisons
+in the validation process of \neptune (\cha{cha:validation})\todo[Validation]{Use box-wing model for validation of NEPTUNE with POE.}.
+
+In the example shown in \fig{fig:sat-model-box-wing}, two different orientations for the surfaces of the box-wing model were combined: an Earth-oriented cube and a Sun-oriented
+solar array. In the current implementation, \neptune allows for an easy computation of a \textit{minimum solar incidence angle}, which is the minimum angle between the surface normal and the Sun
+direction for a given orbit. For example, a geostationary orbit would experience a variation of the minimum incidence angle between \ang{0;;} and \ang{23.5;;} over the course of a
+year due to its orientation with respect to the ecliptic.
+
+
+
+

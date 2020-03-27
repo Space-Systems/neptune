@@ -1,0 +1,335 @@
+%------------------------------------------------------------------------------
+\section{Reference frames}
+\label{sec:propagation-coordinates}
+%------------------------------------------------------------------------------
+
+In orbit propagation, the use of different coordinate and time systems is unavoidable, which is mainly because the equations of motion are most easily solved in an 
+inertial frame, whereas force models or observations are applied with respect to non-inertial frames, for example a co-rotating Earth-fixed frame.
+
+Therefore, it is important to deal with the required coordinate and time systems at an early stage of the development process. As the orbit propagator is supposed to 
+receive input states related to a certain coordinate frame and outputs the result again with respect to a certain frame, it is only to be recommended to use 
+standardised methods at this point.
+
+Based on the resolutions of the \gls{acr:iau} and \gls{acr:iugg} the \gls{acr:iers} realised and defined a celestial and a terrestrial reference frame \citep{luzum2010}. 
+It is important to differentiate between \textit{reference systems} and \textit{reference frames}. While a reference system is the conceptual definition of a 
+coordinate system, a reference frame is the actual realisation, using observations, station coordinates, etc. \citep{seidelmann2006}.
+
+The celestial system, named \gls{acr:icrs},  was defined by the \gls{acr:iau} Resolution A4 (1991) and was refined in 2000 and 2009 \citep{luzum2010}. Requiring a geocentric 
+reference system, the \gls{acr:gcrs} is a system oriented according to the \gls{acr:icrs} axes \citep{luzum2010}.
+
+The terrestrial system, named \gls{acr:itrs}, is based on \gls{acr:iugg} Resolution 2 (1991) \citep{luzum2010}. The transformation between these two systems accounts for three 
+different effects:
+\begin{itemize}
+ \item The motion of the celestial pole with respect to the celestial reference system (\textit{precession} of the ecliptic and the equator, as well as \textit{nutation}),
+ \item the rotation of the Earth and
+ \item the polar motion.
+\end{itemize}
+The transformations are typically referred to as the \gls{acr:cio} approach, which was defined by the \acrshort{acr:iau}-2006/2000 resolutions \citep{vallado2013}. In particular, 
+this means that the \acrshort{acr:iau}-2000 Nutation theory and the \acrshort{acr:iau}-2006 Precession, the latter based on the \textit{P03 model} \citep{capitaine2003, wallace2006}, 
+are the recommended models. The conversion uncertainty is on the order of milliarcseconds (mas), with 1 mas corresponding to a displacement of \SI{3}{\centi\metre} at
+a distance of one Earth radius \citep{coppola2009}.
+
+The realisation of the \gls{acr:itrs}, denoted as \gls{acr:itrf}, is regularly revised, with the axes definitions based on a weighted combination of a varying number of precisely
+known station coordinates. Since 1984, thirteen versions have been published, from \acrshort{acr:itrf}88 to \acrshort{acr:itrf}2014. Using the \gls{acr:eop}
+provided and regularly updated by the \gls{acr:iers} for the current realisation, \acrshort{acr:itrf}2014, this frame will in the following be referenced without its suffix:
+\acrshort{acr:itrf}.
+
+The realisation of the \gls{acr:icrs}, denoted as \gls{acr:icrf}, is defined for the barycenter of the solar system. For Earth-bound orbits it is advantageous to use a 
+similar realisation, called \gls{acr:gcrf}, which has the same orientation as the \gls{acr:icrf}, but has its origin at the center of mass of the Earth. The 
+axes are realised from \gls{acr:vlbi} observations of extragalactic radio sources \citep{luzum2010}.
+
+The models and the software routines were be obtained from the \gls{acr:iers} via the \gls{acr:sofa} service website\footnote{\url{http://www.iausofa.org/}, accessed on January 8, 2020.} and implemented into the numerical 
+propagation in \neptune. A description of the basic methods and algorithms is presented in the following.
+
+%------------------------------------------------------------------------------
+\subsection{Earth Orientation Parameters (EOP)}
+\label{sec:eop}
+%------------------------------------------------------------------------------
+
+The reduction of celestial coordinates, which is described in \sect{sec:propagation-frames-gcrf-itrf}, requires so-called \gls{acr:eop}, which are measured 
+quantities and regularly updated by the \gls{acr:iers}. As forecasts for each of the included quantity is difficult, the input data table for \neptune has to be updated regularly. 
+The following \gls{acr:eop} are used for the reduction:
+\begin{description}
+ \item[\gls{sym:pomx}] Displacement, in arcseconds, of the \gls{acr:irp} from the \gls{acr:cip} with the direction being along the \gls{acr:irm}, the meridian at \ang{0;;} with an offset of \SI{100}{\metre} to the east of the Greenwich meridian.
+ \item[\gls{sym:pomy}] Displacement, in arcseconds, of the \gls{acr:irp} from the \gls{acr:cip} with the direction being along the meridian \ang{90;;} W. 
+ \item[$\Delta\acrshort{acr:ut1}$] The difference between \gls{acr:ut1} and \gls{acr:utc}, which is kept within a range of \SI{1}{\second}:
+  \begin{equation}
+   \acrshort{acr:utc} = \acrshort{acr:ut1} - \Delta\acrshort{acr:ut1}.
+  \end{equation}
+ \item[\gls{sym:pndx}] Celestial pole offset added as a correction to \gls{sym:pnx}, including \gls{acr:fcn}.
+ \item[\gls{sym:pndy}] Celestial pole offset added as a correction to \gls{sym:pny}, including \gls{acr:fcn}.
+\end{description}
+The \gls{acr:cip} is the axis of the Earth rotation and, by definition, normal to the true equator.
+
+%------------------------------------------------------------------------------
+\subsection{Conversion between GCRF and ITRF}
+\label{sec:propagation-frames-gcrf-itrf}
+%------------------------------------------------------------------------------
+
+The transformation between the \gls{acr:gcrf} and the \gls{acr:itrf} is accomplished via three consecutive matrix multiplications, which might also be combined in a single 
+rotation matrix:
+\begin{equation}
+ \kot{gcrf}{itrf} = \gls{sym:bpn-matrix}\left(\gls{sym:t}\right) \gls{sym:era-matrix}\left(\gls{sym:t}\right) \gls{sym:pom-matrix}\left(\gls{sym:t}\right), 
+\end{equation}
+here and in the following the notation of the transformation matrix means that the conversion takes place from the subscripted to the superscripted system, with an example for 
+a radius vector conversion being:
+\begin{equation}
+ \gls{sym:radvec}_{\gls{acr:gcrf}} = \kot{gcrf}{itrf} \gls{sym:radvec}_{\gls{acr:itrf}}.
+\end{equation}
+Noting that the rotation matrices are orthogonal, the inverse, which is required for the converting back, from \gls{acr:gcrf} to \gls{acr:itrf}, is simply the transpose, so that 
+it is sufficient to compute the matrices once for both operations:
+\begin{equation}
+ \gls{sym:radvec}_{\gls{acr:itrf}} = \kot{itrf}{gcrf} \gls{sym:radvec}_{\gls{acr:gcrf}} = \gls{sym:pom-matrix}\left(\gls{sym:t}\right)^T \gls{sym:era-matrix}\left(\gls{sym:t}\right)^T \gls{sym:bpn-matrix}\left(\gls{sym:t}\right)^T \gls{sym:radvec}_{\gls{acr:gcrf}}. 
+\end{equation}
+
+The time parameter \gls{sym:t} used for the coordinate transformations, according to \citet{luzum2010}, is defined as the number of Julian centuries (in \gls{acr:tt}) since 
+the date 2000 January 1.5, while $\gls{sym:t}_{\acrshort{acr:tt}}$ is the current Julian day in \gls{acr:tt}:
+\begin{equation}
+ \gls{sym:t} = \frac{\gls{sym:t}_{\acrshort{acr:tt}} - 2451545.0\;\acrshort{acr:tt}}{\num{36525}}
+\end{equation}
+Terrestrial time (\acrshort{acr:tt}), sometimes also referred to as \gls{acr:tdt}, is the ``independent argument for apparent geocentric ephemerides'' \citep{seidelmann2006}. 
+It uses the SI second and has a constant offset to \gls{acr:tai}:
+\begin{equation}
+ \acrshort{acr:tt} = \acrshort{acr:tai} + \num{32.184}^s
+\end{equation}
+
+The individual steps for the transformation, as well as the intermediate frames called \gls{acr:cirf} and \gls{acr:tirf}, are shown in \fig{fig:gcrf-itrf-conversion} 
+and shall be looked at in detail in the following.
+
+\begin{figure}[h!]
+ \centering
+ \input{07-Tikz/gcrf2itrf}
+ \vspace{0.5cm}
+ \caption{Scheme for the reduction of the celestial coordinates. The transformation between the GCRF and ITRF involving three matrices 
+          and two intermediate frames. Also shown is the choice in methods between computing X, Y and s via their associated series or look them up in a 
+          pre-processed table.\label{fig:gcrf-itrf-conversion}}
+\end{figure}
+
+From a computational point of view, the series representation of the precession-nutation coordinates \gls{sym:pnx}, \gls{sym:pny} and 
+\gls{sym:scio} is quite demanding, as they have to evaluated at every force model call during the numerical integration. A very promising approach, which was 
+also presented by \citet{coppola2009}, is to use tabulated values for those quantities and thus save a lot of computation time. This approach was 
+also implemented and is presented in \sect{sec:pn-tabulation}.
+
+\subsubsection{Precession and nutation (IAU 2006/2000)}
+\label{sec:precession-nutation}
+
+The matrix $\gls{sym:bpn-matrix}\left(\gls{sym:t}\right)$ converts a state from the \gls{acr:icrf} to the \gls{acr:gcrf}:
+\begin{equation}
+ \gls{sym:radvec}_{\gls{acr:gcrf}} = \gls{sym:bpn-matrix}\left(\gls{sym:t}\right) \gls{sym:radvec}_{\gls{acr:icrf}}.
+\end{equation}
+It accounts for the motion of the \gls{acr:cip} in the \gls{acr:gcrf} due to precession and nutation, which can be expressed as \citep{luzum2010}:
+\begin{equation}
+\gls{sym:bpn-matrix}\left(\gls{sym:t}\right) = \left( \begin{array}{ccc} 1-a\gls{sym:pnx}^2 & -a\gls{sym:pnx}\gls{sym:pny} & \gls{sym:pnx} \\ -a\gls{sym:pnx}\gls{sym:pny} & 1-a\gls{sym:pny}^2 & \gls{sym:pny} \\ -\gls{sym:pnx} & -\gls{sym:pny} & 1-a(\gls{sym:pnx}^2+\gls{sym:pny}^2) 
+\end{array} \right) \gls{sym:kot}_{3}\left(\gls{sym:scio}\right), \label{eq:PNtrans}
+\end{equation}
+with $\gls{sym:kot}_{3}\left(\gls{sym:scio}\right)$ being a rotation providing the position of the \gls{acr:cio} on the equator of the \gls{acr:cip} and 
+the angle \gls{sym:scio} is therefore called the ``\gls{acr:cio} locator'' \citep{luzum2010}. The quantity $a$ is computed as \citep{luzum2010}:
+\begin{equation}
+ a = \frac{1}{1 + \sqrt{1-\gls{sym:pnx}^2-\gls{sym:pny}^2}} \cong \frac{1}{2} + \frac{1}{8}\left(\gls{sym:pnx}^2 + \gls{sym:pny}\right).
+\end{equation}
+
+The series for \gls{sym:pnx}, \gls{sym:pny} and \gls{sym:scio} are given in the following, each containing a polynomial and a trigonometric part. Note also, that the \gls{acr:cio} 
+locator is a function of \gls{sym:pnx} and \gls{sym:pny}.
+
+\begin{align}
+\gls{sym:pnx} = &\ang{;;-0.016617} + \ang{;;2004.191898}\gls{sym:t} - \ang{;;0.4297829}\gls{sym:t}^2 - \ang{;;0.19861834}\gls{sym:t}^3 + \notag \\ 
+                &+ \ang{;;0.000007578}\gls{sym:t}^4 + \ang{;;0.0000059285}\gls{sym:t}^5 + \notag \\
+                &+ \sum_{i=1}^{1306}\left[A_{xs0,i} \sin\left(a_{p,i}\right) + A_{xc0,i} \cos\left(a_{p,i}\right)\right] + 
+                   \sum_{i=1}^{253} \left[A_{xs1,i} \sin\left(a_{p,i}\right) + A_{xc1,i} \cos\left(a_{p,i}\right)\right]\gls{sym:t} + \label{eq:Xsum} \\
+                &+ \sum_{i=1}^{36}  \left[A_{xs2,i} \sin\left(a_{p,i}\right) + A_{xc2,i} \cos\left(a_{p,i}\right)\right]\gls{sym:t}^2 +
+                 + \sum_{i=1}^{4}   \left[A_{xs3,i} \sin\left(a_{p,i}\right) + A_{xc3,i} \cos\left(a_{p,i}\right)\right]\gls{sym:t}^3 +  \notag \\
+                &+ \sum_{i=1}^{1}   \left[A_{xs4,i} \sin\left(a_{p,i}\right) + A_{xc4,i} \cos\left(a_{p,i}\right)\right]\gls{sym:t}^4  \notag \\
+\notag \\
+\gls{sym:pny} = & \ang{;;-0.006951} - \ang{;;0.025896}\gls{sym:t} - \ang{;;22.4072747}\gls{sym:t}^2 + \ang{;;0.00190059}\gls{sym:t}^3 + \notag \\
+                    & + \ang{;;0.001112526}\gls{sym:t}^4 + \ang{;;0.0000001358}\gls{sym:t}^5 + \notag \\ 
+                    & + \sum_{i=1}^{962}\left[A_{ys0,i} \sin\left(a_{p,i}\right) + A_{yc0,i} \cos\left(a_{p,i}\right)\right] + 
+                        \sum_{i=1}^{277}\left[A_{ys1,i} \sin\left(a_{p,i}\right) + A_{yc1,i} \cos\left(a_{p,i}\right)\right]\gls{sym:t} + \label{eq:Ysum}  \\
+                    & + \sum_{i=1}^{30} \left[A_{ys2,i} \sin\left(a_{p,i}\right) + A_{yc2,i} \cos\left(a_{p,i}\right)\right]\gls{sym:t}^2
+                      + \sum_{i=1}^{5}  \left[A_{ys3,i} \sin\left(a_{p,i}\right) + A_{yc3,i} \cos\left(a_{p,i}\right)\right]\gls{sym:t}^3 + \notag \\
+                    & + \sum_{i=1}^{1}  \left[A_{ys4,i} \sin\left(a_{p,i}\right) + A_{yc4,i} \cos\left(a_{p,i}\right)\right]\gls{sym:t}^4 \notag \\
+\notag \\
+\gls{sym:scio} = &-\frac{\gls{sym:pnx}\gls{sym:pny}}{2} + \ang{;;0.000094} + \ang{;;0.00380865}\gls{sym:t} - \ang{;;0.00012268}\gls{sym:t}^2 - \ang{;;0.07257411}\gls{sym:t}^3 +
+\notag \\
+                 & + \ang{;;0.00002798}\gls{sym:t}^4 + \ang{;;0.00001562}\gls{sym:t}^5 + \notag \\
+                 & + \sum_{i=1}^{33}\left[A_{ss0,i} \sin\left(a_{p,i}\right) + A_{sc0,i} \cos\left(a_{p,i}\right)\right] +
+                     \sum_{i=1}^{3} \left[A_{ss1,i} \sin\left(a_{p,i}\right) + A_{sc1,i} \cos\left(a_{p,i}\right)\right]\gls{sym:t} + \label{eq:ssum}\\
+                 & + \sum_{i=1}^{25}\left[A_{ss2,i} \sin\left(a_{p,i}\right) + A_{sc2,i} \cos\left(a_{p,i}\right)\right]\gls{sym:t}^2 + 
+                     \sum_{i=1}^{4} \left[A_{ss3,i} \sin\left(a_{p,i}\right) + A_{sc3,i} \cos\left(a_{p,i}\right)\right]\gls{sym:t}^3 + \notag \\
+                 & + \sum_{i=1}^{1} \left[A_{ss4,i} \sin\left(a_{p,i}\right) + A_{sc4,i} \cos\left(a_{p,i}\right)\right]\gls{sym:t}^4 \notag
+                    \end{align}
+
+The arguments $a_{p,i}$ in the trigonometric series are a linear combination of \num{14} different terms to account for luni-solar and planetary nutation. 
+The time variable in the following is also \gls{acr:tt}, while the original equations are based on \gls{acr:tdb}, the latter being defined as ``the independent 
+argument of ephemerides and equations and motion that are referred to the barycenter of the solar system'' \citep{seidelmann2006}. Using \gls{acr:tt} instead of 
+\gls{acr:tdb}, however, results in \gls{acr:cip} location errors less than \num{0.01} $\mu$as \citep{luzum2010}, which are negligible. The full equation, as provided by \citet{vallado2013}, using the 
+Delaunay variables for the Sun and the Moon:
+\begin{align}
+ a_{p,i} &= a_{0x1,i} \gls{sym:manoMoon} + 
+            a_{0x2,i} \gls{sym:manoSun} + 
+            a_{0x3,i} \gls{sym:meanLongitudeMoon} +
+            a_{0x4,i} \gls{sym:meanElongationMoon} + 
+            a_{0x5,i} \gls{sym:meanRaanMoon} + \notag \\
+           &+a_{0x6,i} \gls{sym:meanLong}_{\gls{idx:mercury}} +
+            a_{0x7,i} \gls{sym:meanLong}_{\gls{idx:venus}} +
+            a_{0x8,i} \gls{sym:meanLong}_{\gls{idx:earth}} +
+            a_{0x9,i} \gls{sym:meanLong}_{\gls{idx:mars}} +
+            a_{0x10,i} \gls{sym:meanLong}_{\gls{idx:jupiter}} +
+            a_{0x11,i} \gls{sym:meanLong}_{\gls{idx:saturn}} + \label{eq:fundArg} \\
+            &+a_{0x12,i} \gls{sym:meanLong}_{\gls{idx:uranus}} +
+            a_{0x13,i} \gls{sym:meanLong}_{\gls{idx:neptune}} +
+            a_{0x14,i} \gls{sym:generalPrecession} \notag
+\end{align}
+One has to be careful with the subscripts. The first subscript. here ``$0$'' (in general $0$ to $4$), corresponds to the summation terms in \eqs{eq:Xsum}{eq:ssum} matching those with the same index ($0$ to $4$). 
+The ``$x$'' is for the coordinate \gls{sym:pnx}, while different coefficients are to be used for \gls{sym:pny} and \gls{sym:scio}. The third subscript denotes the fundamental argument under 
+consideration (all \num{14} are listed above), while the last subscript ``$i$'' is for the summation, which is different, depending on which sum the argument 
+belongs to in \eqs{eq:Xsum}{eq:ssum}.
+
+The fundamental arguments in \eq{eq:fundArg} are subdivided into the luni-solar nutation terms, given with the Delaunay variables, and the planetary precession terms, with the 
+following equations \citep{luzum2010}:
+\begin{align}
+ \gls{sym:manoMoon} &= \text{Mean anomaly of the Moon} \\
+		    &= \ang{;;485868.249036} + \ang{;;1717915923.2178}\gls{sym:t} + \ang{;;31.8792}\gls{sym:t}^2 + \ang{;;0.051635}\gls{sym:t}^3 - \ang{;;0.00024470}\gls{sym:t}^4  \notag \\
+		    \notag \\
+ \gls{sym:manoSun}  &=\text{Mean anomaly of the Sun} \\
+	      	    &= \ang{;;1287104.793048} + \ang{;;129596581.0481}\gls{sym:t} - \ang{;;0.5532}\gls{sym:t}^2 + \ang{;;0.000136}\gls{sym:t}^3 - \ang{;;0.00001149}\gls{sym:t}^4 \notag \\
+		    \notag \\
+ \gls{sym:meanLongitudeMoon} &= \text{Mean longitude of the Moon minus mean longitude of the ascending node of the Moon} \\
+			     &= \ang{;;335779.526232} + \ang{;;1739527262.8478}\gls{sym:t} - \ang{;;12.7512}\gls{sym:t}^2 - \ang{;;0.001037}\gls{sym:t}^3 + \ang{;;0.00000417}\gls{sym:t}^4 \notag \\
+		    \notag \\
+  \gls{sym:meanElongationMoon} &= \text{Mean elongation of the Moon from the Sun} \\
+			       &= \ang{;;1072260.703692} + \ang{;;1602961601.2090}\gls{sym:t} - \ang{;;6.3706}\gls{sym:t}^2 + \ang{;;0.006593}\gls{sym:t}^3 - \ang{;;0.00003169}\gls{sym:t}^4 \notag \\
+		    \notag \\
+  \gls{sym:meanRaanMoon} &= \text{Mean longitude of the ascending node of the Moon} \\
+			 &= \ang{;;450160.398036} - \ang{;;6962890.5431}\gls{sym:t} + \ang{;;7.4722}\gls{sym:t}^2 + \ang{;;0.007702}\gls{sym:t}^3 - \ang{;;0.00005939}\gls{sym:t}^4 \notag \\
+                    \notag \\
+  \gls{sym:meanLong}_{\gls{idx:mercury}} &= \text{Mean longitude of Mercury / rad} = \num{4.402608842} + \num{2608.7903141574}\gls{sym:t}   \\
+                    \notag  \\
+  \gls{sym:meanLong}_{\gls{idx:venus}}   &= \text{Mean longitude of Venus / rad} = \num{3.176146697} + \num{1021.3285546211}\gls{sym:t}   \\
+                    \notag  \\
+  \gls{sym:meanLong}_{\gls{idx:earth}}   &= \text{Mean longitude of Earth / rad} = \num{1.753470314} + \num{628.3075849991}\gls{sym:t}   \\
+                    \notag  \\
+  \gls{sym:meanLong}_{\gls{idx:mars}}    &= \text{Mean longitude of Mars / rad} = \num{6.203480913} + \num{334.0612426700}\gls{sym:t}   \\
+                    \notag  \\
+  \gls{sym:meanLong}_{\gls{idx:jupiter}} &= \text{Mean longitude of Jupiter / rad} = \num{0.599546497} + \num{52.9690962641}\gls{sym:t}   \\
+                    \notag  \\
+  \gls{sym:meanLong}_{\gls{idx:saturn}} &= \text{Mean longitude of Saturn / rad} = \num{0.874016757} + \num{21.3299104960}\gls{sym:t}   \\
+                    \notag  \\
+  \gls{sym:meanLong}_{\gls{idx:uranus}} &= \text{Mean longitude of Uranus / rad} = \num{5.481293872} + \num{7.4781598567}\gls{sym:t}   \\
+                    \notag  \\
+  \gls{sym:meanLong}_{\gls{idx:neptune}} &= \text{Mean longitude of Neptune / rad} = \num{5.311886287} + \num{3.8133035638}\gls{sym:t}   \\
+                    \notag  \\
+  \gls{sym:generalPrecession} &= \text{General accumulated precession in longitude / rad} = \num{0.024381750}\gls{sym:t} + \num{0.00000538691}\gls{sym:t}^2
+\end{align}
+
+\subsubsection{Earth rotation angle}
+\label{sec:earth-rotation-angle}
+
+The Earth rotation angle matrix consists of a single rotation around the \gls{acr:cip}:
+\begin{equation}
+\gls{sym:era-matrix}\left(\gls{sym:t}\right) = \gls{sym:kot}_{3}(-\gls{sym:era}) 
+\label{eq:ERAtrans}
+\end{equation}
+The \gls{acr:era} accounts for the sidereal rotation of the Earth, being the angle between \gls{acr:cio} and \gls{acr:tio} and defining \gls{acr:ut1} by convention \citep{luzum2010}. Thus, the time variable used to compute 
+the \gls{acr:era} is the Julian day in \gls{acr:ut1} with an offset to the epoch 2000 January 1.5:
+\begin{equation}
+ \gls{sym:t} = \text{Julian Day \acrshort{acr:ut1}} - \num{2451545.0},
+\end{equation}
+so that \gls{acr:era} can be computed as:
+\begin{equation}
+ \gls{sym:era}\left(\gls{sym:t}\right) = 2\gls{sym:pi} \left(\num{0.7790572732640} + \num{1.00273781191135448}\gls{sym:t}\right).
+\label{eq:ERA}
+\end{equation}
+From the \gls{acr:eop} the term $\Delta \gls{acr:ut1}$ is used to obtain \gls{acr:ut1} from \gls{acr:utc}, which is generally the input time system used. 
+
+\subsubsection{Polar motion}
+\label{sec:polar-motion}
+
+The rotational matrix describing the polar motion, which is the difference between the \gls{acr:cip} and the \gls{acr:irp} is computed via three consecutive rotations:
+\begin{equation}
+\gls{sym:pom-matrix}\left(\gls{sym:t}\right) = \gls{sym:kot}_{3}\left(-\gls{sym:stio}\right) \gls{sym:kot}_{2}\left(\gls{sym:pomx}\right) \gls{sym:kot}_{1}\left(\gls{sym:pomy}\right), 
+\label{eq:PM}
+\end{equation}
+here, \gls{sym:pomx} and \gls{sym:pomy} are the polar coordinates of the \gls{acr:cip} in the \gls{acr:itrf} (see also \sect{sec:eop}) and \gls{sym:stio} is the so-called \gls{acr:tio} locator, that ``provides the position of the TIO on the equator of the CIP corresponding to the kinematical definition of the 'non-rotating' origin (NRO) in the ITRS when the CIP 
+is moving with respect to the ITRS due to polar motion.'' \citep{luzum2010}. While \gls{sym:pomx} and \gls{sym:pomy} are quantities subject to measurements and provide alongside with the other \gls{acr:eop}, the 
+quantity \gls{sym:stio} results from a numerical integration of those values. However, it can be approximated using the average values for the \textit{Chandler wobble}, \gls{sym:chandlerWobble}, and the \textit{annual wobble}, \gls{sym:annualWobble}, of the pole \citep{vallado2013}, evaluated with respect 
+to \gls{acr:tt}:
+\begin{equation}
+ \gls{sym:stio} = \ang{;;0.0015}\left(\frac{\gls{sym:chandlerWobble}^2}{\num{1.2}} + \gls{sym:annualWobble}^2\right)\gls{sym:t}_{\gls{acr:tt}} \cong -\ang{;;0.000047}\gls{sym:t}_{\gls{acr:tt}}
+\end{equation}
+%\begin{itemize}
+% \item GCRS (see above) is geocentric but with same orientation as ICRS. GCRS in motion around the Earth-Moon barycenter. This is known as the Coriolis effect, which is included in PN model \cite{seidelmann2002}
+ \todo[Texts for Chapter: Reference frames]{Write about ocean tides, atmospheric influences, crust tides and FCN. FCN causes an offset of 0.1 to 0.3 mas \citep{luzum2010}, ocean tides result in some cm offset in the positioning \citep{bradley2011}}
+%\end{itemize}
+
+%\begin{table}[h]
+	%\caption{Table containing values of the amplitudes A and characterized multipliers N for each sum term, used for the determination of X, Y and $s_{CIO}$. The data\protect\footnotemark[1] is shown as in table $5.2a$, $5.2b$ and $5.2d$.}
+	%\centerline{
+	%\setlength{\tabcolsep}{1.5pt}
+		%\begin{tabular}{ >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} >{$}c<{$} }
+			%\hline
+			%i & A_{s0_{i}} & A_{c0_{i}} & N_{0x1_{i}} & N_{0x2_{i}} & N_{0x3_{i}} & N_{0x4_{i}} & N_{0x5_{i}} & N_{0x6_{i}} & N_{0x7_{i}} & N_{0x8_{i}} & N_{0x9_{i}} & N_{0x10_{i}} & N_{0x11_{i}} & N_{0x12_{i}} & N_{0x13_{i}} & N_{0x14_{i}} \\
+			%%\hline
+			 %1 & -17206424.18 & 3338.60 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+			%\vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots \\
+			 %1306 & 0.11 & 0.00 & 0 & 0 & 4 & -4 & 4 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+			%\hline
+			%i & A_{s1_{i}} & A_{c1_{i}} & N_{1x1_{i}} & N_{1x2_{i}} & N_{1x3_{i}} & N_{1x4_{i}} & N_{1x5_{i}} & N_{1x6_{i}} & N_{1x7_{i}} & N_{1x8_{i}} & N_{1x9_{i}} & N_{1x10_{i}} & N_{1x11_{i}} & N_{1x12_{i}} & N_{1x13_{i}} & N_{1x14_{i}} \\
+			 %1307 & -3309.73 & 205833.11 & 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+			%\vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots \\
+			%1559 & 0.00 & -0.10 & 1 & -1 & -2 & -2 & -1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+			%\hline
+			%i & A_{s2_{i}} & A_{c2_{i}} & N_{2x1_{i}} & N_{2x2_{i}} & N_{2x3_{i}} & N_{2x4_{i}} & N_{2x5_{i}} & N_{2x6_{i}} & N_{2x7_{i}} & N_{2x8_{i}} & N_{2x9_{i}} & N_{2x10_{i}} & N_{2x11_{i}} & N_{2x12_{i}} & N_{2x13_{i}} & N_{2x14_{i}} \\
+			%\vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots \\
+			%\hline
+		%\end{tabular}
+	%}
+	%\label{tab:TabulatedData}
+%\end{table}
+%test
+
+%------------------------------------------------------------------------------
+\subsubsection{Fast computation of precession-nutation coordinates using tabulated data}
+\label{sec:pn-tabulation}
+%------------------------------------------------------------------------------
+
+The evaluation of the complete series in \eqs{eq:Xsum}{eq:ssum} is computationally expensive, especially in view of the possibility of pre-processing the values for 
+\gls{sym:pnx}, \gls{sym:pny} and \gls{sym:scio} for a certain time period, as proposed by \citet{coppola2009}, for example. A tabulation of daily data would not result in 
+spectral content being lost, as periodic motions with periods less than two days are conventionally excluded from precession-nutation \citep{coppola2009}.
+
+A method to extract daily tabulated data for \gls{sym:pnx}, \gls{sym:pny} and \gls{sym:scio} was designed by \citet{lange2014} and implemented in \neptune. For intermediate 
+values, a Lagrange interpolation is performed, which currently is of 5$^{th}$ order. According to \citet{coppola2009}, the maximum deviation with respect to the series 
+representation is expected for \gls{sym:pny} (for an analysed interval between \num{1975} and \num{2050}) with \num{30} $\mu$as and \gls{sym:pnx} with \num{27} $\mu$as, respectively. 
+Changing to a 9$^{th}$ order interpolation would reduce the interpolation error for the same time frame to about \num{1} $\mu$as for both, \gls{sym:pnx} and \gls{sym:pny}
+\citep{coppola2009}.
+
+The tables were generated for a period between January 1, 1975 and January 1, 2050 with \textit{Txys}, a tool written by \citet{lange2014}, and available within the \neptune tool
+suite. If the propagation epoch happens to be outside the specified regime, the propagation will continue with computing the series instead of using the table.
+
+In \tab{tab:comparison-nutation-precession}, timing parameters are listed for various orbits and force models.
+\begin{table}[h!]
+ \centering
+ \caption{Mean propagation time for different orbits with \neptune, comparing full series computation of the IAU 2000/2006 CIO approach 
+ versus interpolated results. The full force model included 36$\times$36 geopotential, atmosphere, luni-solar gravity, SRP, tides and albedo. Computations performed on an
+Intel\textsuperscript{\textregistered} Core\textsuperscript{\texttrademark} i7 (2.67 GHz). \label{tab:comparison-nutation-precession}}
+ \begin{tabular}{@{}p{4cm}SSSSS@{}}
+  \toprule
+  {Configuration}               & {Perigee alti. / \si{\kilo\metre}}     & {Ecc.}  & {Incl. / deg} & {Full series / \si{\second}} & {Interpolation / \si{\second}} \\
+  \midrule
+  LEO, full, 1 week                   & 400.0                                  & 0.0     & 54.0          & 10.1                       & 4.6  \\
+  LEO, full, 1 month                  & 800.0                                  & 0.0     & 98.6          & 37.4                       & 18.0 \\
+  GTO, full, 1 month                  & 400.0                                  & 0.723   & 28.0          &  7.0                       & 3.1 \\
+  GEO, full, 1 year                   & 35786.0                                & 0.0     & 0.0           &  9.0                       & 4.1 \\
+  \midrule
+  LEO, 2-body, 1 week                   & 400.0                                  & 0.0     & 54.0          &  1.7                      &  0.1 \\
+  LEO, 2-body, 1 month                  & 800.0                                  & 0.0     & 98.6          &  7.7                      &  0.3 \\
+  GTO, 2-body, 1 month                  & 400.0                                  & 0.723   & 28.0          &  3.6                       & 0.2 \\
+  GEO, 2-body, 1 year                   & 35786.0                                & 0.0     & 0.0           &  4.3                       & 0.2 \\
+  \bottomrule  
+ \end{tabular}
+\end{table}
+ For a full force model, using a 5$^{th}$ order Lagrange interpolation for the tabulated data results in half the time required for the full series computation. 
+ For a 2-body propagation, the computation time even reduces by a factor of about \num{20} using tabulated and interpolated data.
+
+
+
+

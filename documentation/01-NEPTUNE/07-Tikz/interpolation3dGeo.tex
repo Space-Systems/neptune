@@ -1,0 +1,18 @@
+\begin{tikzpicture}
+
+    \begin{axis}[
+       xlabel = Orbit altitude / km,
+       ylabel = Granule length / minutes,
+       scaled ticks=false,
+       colorbar,
+       ymin=288,
+       ymax=2880,
+       %xmin=200, xmax=2000,
+      view={0}{90}      
+      ]
+      
+      \addplot3[surf, mesh/cols=50] table {07-Tikz/data/3dGEO_r01.sum};
+      \addplot3[draw=ilr-blue, thick] coordinates {(35786,288,0) (35786,2880,0)} node[pos=0.5, right] {GEO};
+      
+    \end{axis}
+\end{tikzpicture}

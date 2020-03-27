@@ -1,0 +1,33 @@
+\pgfplotsset{group/horizontal sep=40pt}
+\pgfplotsset{group/vertical sep=15pt}
+
+\begin{tikzpicture}
+ \begin{groupplot}[group style={group size=3 by 2},
+                   height=0.32\textwidth,
+                   width =0.33\textwidth,
+                   no markers,
+                   xmin=0,
+                   xmax=150,
+                   yticklabel style={/pgf/number format/.cd,fixed, fixed zerofill, precision=2},
+                   scaled ticks = false,
+                   /tikz/font=\small]
+\nextgroupplot
+\addplot[blue, thick] table {07-Tikz/data/drag-test_sma.sup};
+\node at (rel axis cs:0.5,0.20) {Semi-major axis};
+\nextgroupplot[yticklabel style={/pgf/number format/.cd,fixed,precision=0}]
+\addplot[blue, thick] table {07-Tikz/data/drag-test_ecc.sup};
+\node at (rel axis cs:0.5,0.20) {Eccentricity};
+\nextgroupplot[ymin=-0.03,ymax=0.03]
+\addplot[blue, thick] table {07-Tikz/data/drag-test_inc.sup};
+\node at (rel axis cs:0.5,0.20) {Inclination};
+\nextgroupplot[yticklabel style={/pgf/number format/.cd,fixed,precision=3}]
+\addplot[blue, thick] table {07-Tikz/data/drag-test_raan.sup};
+\node at (rel axis cs:0.5,0.25) {RAAN};
+\nextgroupplot[yticklabel style={/pgf/number format/.cd,fixed,precision=0}]
+\addplot[blue, thick] table {07-Tikz/data/drag-test_aop.sup};
+\node at (rel axis cs:0.55,0.25) {Argument of perigee};
+\nextgroupplot[yticklabel style={/pgf/number format/.cd,fixed,precision=0}]
+\addplot[blue, thick] table {07-Tikz/data/drag-test_ball.sup};
+\node at (rel axis cs:0.55,0.25) {Ballistic parameter};
+\end{groupplot}
+\end{tikzpicture}

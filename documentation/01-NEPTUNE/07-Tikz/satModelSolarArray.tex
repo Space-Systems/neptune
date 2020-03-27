@@ -1,0 +1,13 @@
+\begin{tikzpicture}
+    \begin{axis}[
+       xlabel = Time / min,
+       ylabel = Cross-section / m$^2$,
+       legend entries={Front only (1 surface), Front and rear (2 surfaces)},
+       legend style={at={(1.2,1.0)}, anchor=north west, draw=none},
+       legend cell align = left
+    ]
+    
+      \addplot[red, dashed, very thick] table {07-Tikz/data/satModelFrontOnly.dat};
+      \addplot[blue, densely dotted, very thick] table {07-Tikz/data/satModelFrontRear.dat};
+    \end{axis}
+\end{tikzpicture}

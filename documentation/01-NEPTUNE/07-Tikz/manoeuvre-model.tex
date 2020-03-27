@@ -1,0 +1,46 @@
+\begin{tikzpicture}[>= latex]
+ 
+  % Coordinates
+  \draw[->] (-0.1,0) -- (8.5,0);
+  \draw[->] (0,-0.1) -- node[left, very near end] {$\gls{sym:avec}\left(\gls{sym:t}\right)$} (0,4.5);
+  
+  % Maneuvers
+  \draw[gray80, dashed] (0.5,1) -- (8,1);
+  \draw[ilr-blue, thick] (2,2) -- (4,2) node[text=black, midway, anchor=south] {$\gls{sym:manoeuvre}_{1,p1}$};
+  \draw[ilr-blue, thick] (5,4) -- (6,4) node[text=black, midway, anchor=south] {$\gls{sym:manoeuvre}_{1,p2}$};
+  
+  % Dotted lines
+  \draw[gray50, dotted] (1,1) -- (1,-0.1) node[black, anchor=north] {$t_0$};
+  \draw[gray50, dotted] (2,2) -- (2,-0.1) node[black, anchor=north] {$t_1$};
+  \draw[gray50, dotted] (4,2) -- (4,-0.1) node[black, anchor=north] {$t_2$};
+  \draw[gray50, dotted] (5,4) -- (5,-0.1) node[black, anchor=north] {$t_3$};
+  \draw[gray50, dotted] (6,4) -- (6,-0.1) node[black, anchor=north] {$t_4$};
+  \draw[gray50, dotted] (7,1) -- (7,-0.1) node[black, anchor=north] {$t_5$};
+  
+  % Transition t0 -> t1
+  \draw[xshift=1cm, domain=0:1,smooth,variable=\x, thick, ilr-blue] plot ({\x},{(2.0*\x*\x*\x-3.0*\x*\x+1.0)+2.0*(3.0*\x*\x-2.0*\x*\x*\x)});
+  
+  % Transition t2 -> t3
+  \draw[xshift=4cm, domain=0:1,smooth,variable=\x, thick, ilr-blue] plot ({\x},{2.0*(2.0*\x*\x*\x-3.0*\x*\x+1.0)+4.0*(3.0*\x*\x-2.0*\x*\x*\x)});
+  
+  % Transition t4 -> t5
+  \draw[xshift=6cm, domain=0:1,smooth,variable=\x, thick, ilr-blue] plot ({\x},{4.0*(2.0*\x*\x*\x-3.0*\x*\x+1.0)+(3.0*\x*\x-2.0*\x*\x*\x)});
+  
+  % Nodes
+  \node[] at (1.3,1.7) {$\gls{sym:transition}_{\gls{idx:start}}$};
+  \node[] at (4.2,3.0) {$\gls{sym:transition}_{\gls{idx:phase}}$};
+  \node[] at (6.7,3.0) {$\gls{sym:transition}_{\gls{idx:end}}$};
+  
+  % Info text
+  \draw[xshift=7.5cm, yshift=3cm] node[right, text width=6cm, information text]{%
+  \begin{tabular}{ll}
+   $\gls{sym:manoeuvre}_{1,p1}$ & Manoeuvre 1, phase 1 \\
+   $\gls{sym:manoeuvre}_{1,p2}$ & Manoeuvre 1, phase 2 \\
+   $\gls{sym:transition}_{\gls{idx:start}}$ & Transition at start \\
+   $\gls{sym:transition}_{\gls{idx:phase}}$ & Transition between phases  \\
+   $\gls{sym:transition}_{\gls{idx:end}}$ & Transition at end \\
+  \end{tabular}
+
+  };
+  
+ \end{tikzpicture}

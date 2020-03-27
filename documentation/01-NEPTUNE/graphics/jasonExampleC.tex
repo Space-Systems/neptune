@@ -1,0 +1,39 @@
+\begin{tikzpicture} 
+  \begin{axis}[
+      %y tick label style={
+      %  /pgf/number format/.cd,
+      %      fixed,
+      %      fixed zerofill,
+      %      precision=1,
+      %  /graphics/.cd
+      % },
+      x tick label style={
+       /pgf/number format/.cd,
+           fixed,
+           fixed zerofill,
+           precision=0,
+       /graphics/.cd
+      },
+       width=0.45\textwidth,
+%       height=0.6\textwidth,
+       scaled ticks = true,
+       xlabel = {Time / h},
+       ylabel = {Position error / m},
+       xmin=0,
+       xmax=24,
+       ymin=-15,
+       ymax=5,
+       %clip=false,
+       xtick={0,6,...,24},
+       ytick={-15,-10,...,5},
+       grid=major,
+       legend entries={Radial, Along-track, Cross-track},
+       legend pos=south west,
+       legend cell align = left
+      ]
+      
+      \addplot[dark-red, thick]           table[x=Date, y=U] {graphics/SRPnoERP.rad.crp};
+      \addplot[ilr-blue, thick]  table[x=Date, y=V] {graphics/SRPnoERP.rad.crp};
+      \addplot[dark-orange, thick] table[x=Date, y=W] {graphics/SRPnoERP.rad.crp};
+  \end{axis}
+ \end{tikzpicture}

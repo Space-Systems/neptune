@@ -1,0 +1,38 @@
+\begin{tikzpicture}[scale=0.7, node distance=0.5cm, transform shape, >=latex]
+
+\node (actgen)         [redbox] 				{\textbf{ACT generation}};
+    \node (init)      [bluebox, below=of actgen]  	{Initialize orbit region data};
+    \node (cfgfile)   [speicher, right=of init]  	{Definitions};
+    \node (gename)     [bluebox, below=of init]  	{Generate file name for new ACT};
+    %\node (openfile) [bluebox, below=of gename]		{Create and open file (unformatted stream access)};
+    \node (header)      [bluebox, below=of gename]    {Open new file and write header};
+    \node (loop_bin)   [branch, below=of header]	{\textbf{Loop:} Region bins};
+    \node (cfgneptune)   [bluebox, below right=of loop_bin]   {Configure \neptune{} for reference trajectory};
+    \node (reference)    [bluebox, below=of cfgneptune]	{Generate reference trajectory};
+    \node (loop_acc)   [branch, below=of reference]	{\textbf{Loop:} Accuracy};
+    \node (reconfig)   [bluebox, below right=of loop_acc]     {Reconfigure and run \neptune{}};
+    %\node (propagate)   [bluebox, below=of reconfig]	{Run \neptune{}};
+    \node (compare)   [bluebox, below=of reconfig]	{Compare result with reference};
+    \node (end1)      [branch, below=2.2cm of loop_acc]	{\textbf{End?}};
+    \node (end2)      [branch, below=9.0cm of loop_bin]	{\textbf{End?}};
+    \node (end)       [redbox, below=of end2]          	{\textbf{End}};
+
+
+    \draw [->] (actgen)     to (init);
+    \draw [->] (cfgfile)   to (init);
+    \draw [->] (init)     to (gename);
+    \draw [->] (gename)     to (header);
+    %\draw [->] (openfile) to (header);
+    \draw [->] (header)      to (loop_bin);
+    \draw [->] (loop_bin)    -| (cfgneptune);
+    \draw [->] (cfgneptune)  to (reference);
+    \draw [->] (reference)   to (loop_acc);
+    \draw [->] (loop_acc)    -| (reconfig);
+    %\draw [->] (reconfig)    to (propagate);
+    \draw [->] (reconfig)   to (compare);
+    \draw [->] (compare)   |- (end1);
+    \draw [->] (end1)   |- (end2);
+    \draw [->] (end2)   to (end);
+    \draw [->] (end1)      to (loop_acc);
+    \draw [->] (end2)      to (loop_bin);
+  \end{tikzpicture}

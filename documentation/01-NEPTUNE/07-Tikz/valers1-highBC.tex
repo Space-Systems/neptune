@@ -1,0 +1,28 @@
+\begin{tikzpicture}
+  \begin{axis}[
+      width=0.7\textwidth,
+      xlabel = {Days after August 4, 1991},
+      ylabel = {Along-track error (Neptune - ERS-1) / km},
+      xmin   = 0,
+      xmax   = 7,
+      %restrict x to domain=48472:48479,
+      %x coord trafo/.code={\pgfmathparse{#1-5.0}\pgfmathresult} % x-offset MJD
+      ymin   = -8,
+      ymax   = 8,
+      xtick  = {0,...,7},
+      %minor x tick num={1},
+      %minor y tick num={3},
+      scaled ticks = false,
+      ymajorgrids,
+      yminorgrids,
+      xmajorgrids,
+      xminorgrids,
+      legend entries={$B=33.3$ kg/m$^2$, $B=10.0$ kg/m$^2$, $B=16.6$ kg/m$^2$} ,
+      legend style={at={(1.05,1.0)}, anchor=north west, draw=none},
+      legend cell align = left
+  ]
+    \addplot[blue, thick]  table {07-Tikz/data/ers1-alo.dat};
+    \addplot[red, thick]   table {07-Tikz/data/ers1-alo-highBC.dat};
+    \addplot[green, thick] table {07-Tikz/data/ers1-alo-medBC.dat};
+  \end{axis}
+\end{tikzpicture}
