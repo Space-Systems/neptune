@@ -132,6 +132,6 @@ if [[ $? -ne 0 ]]; then
 fi
 echo "Leaving NEPTUNE"
 cd ../work
-ln -sf bin/neptune-sa
+ln -sf ../bin/neptune-sa
 cd ..
 echo "Done"
