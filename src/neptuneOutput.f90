@@ -1623,7 +1623,7 @@ contains
 
             call getGeodeticLatLon(r_itrf, alt, lat, lon)
 
-            write(this%output_arr(i)%file_unit,140)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, alt, lat*rad2deg, lon*lat*rad2deg
+            write(this%output_arr(i)%file_unit,140)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, alt, lat*rad2deg, lon*rad2deg
 
         end select
 
