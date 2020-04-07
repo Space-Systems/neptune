@@ -1,0 +1,622 @@
+%---------------------------------------------------------------
+%
+% Glossary
+%
+% Providing latin and  greek symbols, as well as indices
+%
+%---------------------------------------------------------------
+
+
+
+%=====================================================================================================================
+%
+% LATIN (use prefix 'x' in sort)
+%
+%-----------------------
+
+ % A
+\newglossaryentry{sym:area}{		name=\ensuremath{A},          description={Area}, 				symbol=m$^2$,		
+type=main, sort=xA}
+\newglossaryentry{sym:systemMat}{	name=\ensuremath{\textbf{A}}, description={System matrix}, type=main, sort=xA}
+\newglossaryentry{sym:ap}{	name=\ensuremath{A_p}, description={Planetary geomagnetic activity index}, type=main, sort=xAp}
+\newglossaryentry{sym:avec}{		name=\ensuremath{\textbf{a}}, description={Acceleration vector}, 		symbol=km/s$^2$,
+type=main, sort=xa}
+\newglossaryentry{sym:chandlerWobble}{	name=\ensuremath{a_c}, description={Chandler wobble}, 		symbol=rad, type=main, sort=xac}
+\newglossaryentry{sym:annualWobble}{	name=\ensuremath{a_a}, description={Annual wobble}, 		symbol=rad, type=main, sort=xaa}
+\newglossaryentry{sym:a}{   		name=\ensuremath{a},          description={Magnitude of acceleration vector}, 	symbol=km/s$^2$, type=main, sort=xa}
+\newglossaryentry{sym:sma}{   		name=\ensuremath{a},          description={Semi-major axis}, 	symbol=km, type=main, sort=xa}
+\newglossaryentry{sym:albedo}{name=\ensuremath{a}, description={Albedo}, symbol=, type=main, sort=xa} 
+
+ % B
+\newglossaryentry{sym:inputMat}{name=\ensuremath{\textbf{B}}, 	description={Input matrix}, 					type=main, sort=xB}
+\newglossaryentry{sym:ball}{	name=\ensuremath{B}, 		description={Ballistic parameter}, 	symbol=kg/m$^2$, 	type=main, sort=xB}
+\newglossaryentry{sym:bytesize}{name=\ensuremath{b}, 		description={Storage size}, 		symbol=bytes, 		type=main, sort=xb}
+\newglossaryentry{sym:constb}{	name=\ensuremath{b}, 		description={Constant coefficient},    				type=main, sort=xb}
+ 
+ % C
+\newglossaryentry{sym:geo_C}{	name=\ensuremath{C}, 		description={Spherical harmonics cosine coefficient},   type=main, sort=xC}
+\newglossaryentry{sym:vop}{	name=\ensuremath{\textbf{C}}, 	description={Variation of constants vector},   		type=main, sort=xC}
+\newglossaryentry{sym:c}{	name=\ensuremath{c}, 		description={Covariance matrix element},    		type=main, sort=xc}
+\newglossaryentry{sym:cvec}{	name=\ensuremath{\textbf{c}}, 	description={Vector of constants},	    		type=main, sort=xc}
+\newglossaryentry{sym:cp}{	name=\ensuremath{c}, 		description={Polynomial coefficient},    		type=main, sort=xc}
+\newglossaryentry{sym:speedLight}{	name=\ensuremath{c}, 		description={Speed of light, $c=\SI{299792458}{\metre\per\second}$}, type=main,
+sort=xc}
+\newglossaryentry{sym:constc}{	name=\ensuremath{c}, 		description={Constant coefficient},    			type=main, sort=xc}
+\newglossaryentry{sym:c_d}{	name=\ensuremath{c_D}, 		description={Drag coefficient},    			type=main, sort=xcd}
+\newglossaryentry{sym:c_srp}{	name=\ensuremath{c_{R}}, 	description={Solar radiation pressure coefficient},    	type=main, sort=xcsrp}
+\newglossaryentry{sym:crs}{	name=\ensuremath{c_{R,s}}, 	description={Specular reflectivity coefficient},    	type=main, sort=xcrs}
+\newglossaryentry{sym:crd}{	name=\ensuremath{c_{R,d}}, 	description={Diffuse reflectivity coefficient},    	type=main, sort=xcrd}
+\newglossaryentry{sym:ca}{	name=\ensuremath{c_{A}}, 	description={Absorption coefficient},    		type=main, sort=xcA}
+
+% D
+\newglossaryentry{sym:meanElongationMoon}{name=\ensuremath{D}, description={Mean elongation of the Moon from the Sun (Delaunay variable)}, symbol=rad,	sort=zD,  		type=main}
+\newglossaryentry{sym:mahalanobisDistance}{name=\ensuremath{d_M}, description={Mahalanobis distance}, symbol=,	sort=zdM,  		type=main}
+
+% E
+\newglossaryentry{sym:ecc}{	name=\ensuremath{e}, description={Eccentricity},    	type=main, sort=xe}
+\newglossaryentry{sym:unitVec}{	name=\ensuremath{\mathbf{e}}, description={Unit vector},    	type=main, sort=xeS}
+\newglossaryentry{sym:expVal}{	name=\ensuremath{E}, description={Expected value},	type=main, sort=xE}
+\newglossaryentry{sym:ERKD}{  name=\ensuremath{ERK_{D}}, description={Approximated Error},      type=main, sort=xE}
+\newglossaryentry{sym:EPS}{  name=\ensuremath{EPS}, description={Maximum error},      type=main, sort=xE}
+\newglossaryentry{sym:emiss}{  name=\ensuremath{e}, description={Emissivity},      type=main, sort=xe}
+
+% F
+\newglossaryentry{sym:flux}{name=\ensuremath{F}, description={Solar flux}, symbol=W/m$^2$/Hz, type=main, sort=xF}
+\newglossaryentry{sym:matrixF}{name=\ensuremath{\textbf{F}}, description={Partial derivative matrix}, type=main, sort=xF}
+\newglossaryentry{sym:force}{name=\ensuremath{\textbf{F}}, description={Force vector}, symbol=N, type=main, sort=xF}
+\newglossaryentry{sym:specForce}{name=\ensuremath{f}, description={Specific force vector}, symbol=N/kg, type=main, sort=xF}
+\newglossaryentry{sym:functionvec}{name=\ensuremath{\textbf{f}}, description={Vector function}, type=main, sort=xf}
+\newglossaryentry{sym:function}{name=\ensuremath{f}, description={Function}, type=main, sort=xf}
+\newglossaryentry{sym:meanLongitudeMoon}{name=\ensuremath{F}, description={Mean longitude of the Moon minus the mean longitude of the ascending node of the Moon (Delaunay
+variable)}, symbol=rad,	sort=xF, type=main}
+\newglossaryentry{sym:ff}{name=\ensuremath{f}, description={Longitude function used in geopotential}, type=main, sort=yf}
+
+% G
+\newglossaryentry{sym:functiongvec}{name=\ensuremath{\textbf{g}}, description={Vector function}, type=main, sort=xg}
+\newglossaryentry{sym:g}{name=\ensuremath{g}, description={Weighting factor for acceleration differences}, type=main, sort=xg}
+\newglossaryentry{sym:fg}{name=\ensuremath{g}, description={Derivative of longitude function used in geopotential}, type=main, sort=yg}
+\newglossaryentry{sym:gmod}{name=\ensuremath{g'}, description={Weighting factor for acceleration differences}, type=main, sort=xgp}
+\newglossaryentry{sym:gravConst}{name=\ensuremath{G}, description={Constant of gravitation, $G \approx \SI{6.67384e11}{\metre\cubed\per\kg\per\second\squared}$}, type=main,
+sort=xg}
+
+%H
+\newglossaryentry{sym:alti}{name=\ensuremath{h}, description={Altitude}, symbol=km, type=main, sort=xh}
+\newglossaryentry{sym:stepsize}{name=\ensuremath{h}, description={Step size}, symbol=s, type=main, sort=xh}
+\newglossaryentry{sym:hermite}{name=\ensuremath{H}, description={Hermite polynomial}, type=main, sort=xH}
+\newglossaryentry{sym:outputMat}{name=\ensuremath{\textbf{H}}, 	description={Output matrix},		type=main, sort=xH}
+
+% I
+\newglossaryentry{sym:inc}{	name=\ensuremath{i}, 		description={Inclination},    	type=main, sort=xi}
+\newglossaryentry{sym:identity}{name=\ensuremath{\mathbf{I}}, 	description={Identity matrix},  type=main, sort=xI}
+
+% J
+\newglossaryentry{sym:performanceIndex}{name=\ensuremath{J}, description={Performance index}, type=main, sort=xJ}
+\newglossaryentry{sym:jacobian}{name=\ensuremath{\mathbf{J}}, description={Jacobian matrix}, type=main, sort=xJ}
+
+% K
+\newglossaryentry{sym:k}{name=\ensuremath{k}, description={Upper limit of summation}, type=main, sort=xk}
+\newglossaryentry{sym:corrFunc}{name=\ensuremath{K}, description={Correlation function}, type=main, sort=xK}
+\newglossaryentry{sym:corrFuncNorm}{name=\ensuremath{k}, description={Normalized correlation function}, type=main, sort=xk}
+\newglossaryentry{sym:loveNumber}{name=\ensuremath{k}, description={Love number}, type=main, sort=xk}
+\newglossaryentry{sym:loadDeformation}{name=\ensuremath{k'_{n}}, description={Load deformation coefficient of degree n}, type=main, sort=xkp}
+\newglossaryentry{sym:kP}{name=\ensuremath{k}, description={Order of interpolating polynomial}, type=main, sort=xk}
+\newglossaryentry{sym:geomag}{name=\ensuremath{K_p}, description={Planetary index for geomagnetic activity}, type=main, sort=xKp}
+\newglossaryentry{sym:albFunc}{name=\ensuremath{K}, description={Albedo and emissivity function}, type=main, sort=xK}
+
+% L
+\newglossaryentry{sym:L}{name=\ensuremath{L}, description={Cholesky decomposition of covariance matrix},type=main, sort=xL}
+\newglossaryentry{sym:performanceIndexModel}{name=\ensuremath{L}, description={Model for the prediction of the performance index}, type=main, sort=xL}
+\newglossaryentry{sym:l}{name=\ensuremath{l}, description={Counter for natural numbers}, 		type=main, sort=xl}
+\newglossaryentry{sym:levec}{name=\ensuremath{\mathbf{le}}, description={Local error vector},                type=main, sort=xl}
+\newglossaryentry{sym:le}{name=\ensuremath{le}, description={Local error magnitude},                type=main, sort=xl}
+\newglossaryentry{sym:manoMoon}{name=\ensuremath{l}, description={Mean anomaly of the Moon (Delaunay variable)}, symbol=rad,	sort=xl,  		type=main}
+\newglossaryentry{sym:manoSun}{name=\ensuremath{l'}, description={Mean anomaly of the Sun (Delaunay variable)}, symbol=rad,	sort=xls,  		type=main}
+
+% M
+\newglossaryentry{sym:geo_m}{	name=\ensuremath{m}, description={Order of geopotential},         		type=main, sort=xm}
+\newglossaryentry{sym:numObs}{	name=\ensuremath{m}, description={Number of observations}, 			type=main, sort=xm}
+\newglossaryentry{sym:m}{	name=\ensuremath{m}, description={Counter for natural numbers}, 		type=main, sort=xm}
+\newglossaryentry{sym:mass}{	name=\ensuremath{m}, description={Mass},     			symbol=kg,   	type=main, sort=xm}
+\newglossaryentry{sym:mbody}{name=\ensuremath{M}, description={Mass of a celestial body}, symbol=kg, type=main, sort=xM}
+\newglossaryentry{sym:mano}{	name=\ensuremath{M}, description={Mean anomaly},   				type=main, sort=xM}
+\newglossaryentry{sym:manoeuvre}{name=\ensuremath{M}, description={Manoeuvre},   				type=main, sort=xM}
+\newglossaryentry{sym:median}{name=\ensuremath{M}, description={Median},   				type=main, sort=xM}
+
+% N
+\newglossaryentry{sym:geo_n}{	name=\ensuremath{n}, 		description={Degree of geopotential},		type=main, sort=xn}
+\newglossaryentry{sym:stateDim}{name=\ensuremath{n}, 		description={Dimension of state vector},	type=main, sort=xn}
+\newglossaryentry{sym:n0}{	name=\ensuremath{\mathbf{n}_0}, description={Surface normal direction vector}, 	type=main, sort=xn0}
+\newglossaryentry{sym:N}{	name=\ensuremath{N}, 		description={Polynomial degree}, 		type=main, sort=xN}
+\newglossaryentry{sym:nut}{	name=\ensuremath{\mathbf{N}}, 		description={Nutation matrix}, 		type=main, sort=xN}
+\newglossaryentry{sym:n}{	name=\ensuremath{n}, 		description={Counter for natural numbers}, 	type=main, sort=xn}
+
+% O
+
+% P
+\newglossaryentry{sym:P}{		name=\ensuremath{\mathbf{P}}, 	description={Covariance matrix},    						type=main, sort=xP}
+\newglossaryentry{sym:prec}{	name=\ensuremath{\mathbf{P}}, 		description={Precession matrix}, 		type=main, sort=xP}
+\newglossaryentry{sym:srp}{		name=\ensuremath{P}, 	description={Solar radiation pressure},  symbol=N/$\text{m}^2$, type=main, sort=xP}
+\newglossaryentry{sym:legendre}{	name=\ensuremath{P}, 		description={Associated Legendre functions, typically with indices n and m},	type=main, sort=xP}
+\newglossaryentry{sym:polynomial}{	name=\ensuremath{P}, 		description={Polynomial},    							type=main, sort=xp}
+\newglossaryentry{sym:polynomialvector}{name=\ensuremath{\mathbf{P}},   description={Polynomial vector}, type=main, sort=xp}
+\newglossaryentry{sym:obsDim}{		name=\ensuremath{p},		description={Dimension of observation vector},	type=main, sort=xp}
+\newglossaryentry{sym:probDens}{		name=\ensuremath{p},		description={Probability density function},	type=main, sort=xp}
+\newglossaryentry{sym:pcol}{		name=\ensuremath{p_{col}},		description={Collision probability},	type=main, sort=xpcol}
+\newglossaryentry{sym:generalPrecession}{name=\ensuremath{p_a},		description={General accumulated precession in longitude}, symbol=rad,	type=main, sort=xpa}
+
+% Q
+\newglossaryentry{sym:bpn-matrix}{	name=\ensuremath{\mathbf{Q}}, description={Precession-nutation matrix according to CIP approach}, type=main, sort=xQ}
+\newglossaryentry{sym:Qxu}{		name=\ensuremath{\mathbf{Q}_{xu}}, 	description={State and process noise cross-correlation matrix},	
+type=main, sort=xQxu}
+\newglossaryentry{sym:Quu}{		name=\ensuremath{\mathbf{Q}_{uu}}, 	description={Second moment of the process noise matrix},		
+type=main, sort=xQuu}
+\newglossaryentry{sym:q}{               name=\ensuremath{q},   description={Counter for natural numbers}, type=main, sort=xq}
+
+% R
+\newglossaryentry{sym:era-matrix}{	name=\ensuremath{\mathbf{R}}, description={Earth rotation matrix}, type=main, sort=xR}
+\newglossaryentry{sym:radius}{name=\ensuremath{R}, description={Radius of a celestial body}, type=main, sort=xR}
+\newglossaryentry{sym:radvecdot}{name=\ensuremath{\dot{\mathbf{r}}}, description={Radial velocity vector}, type=main, sort=xR}
+\newglossaryentry{sym:radvecddot}{name=\ensuremath{\ddot{\mathbf{r}}}, description={Radial acceleration vector}, type=main, sort=xR}
+\newglossaryentry{sym:radvec}{name=\ensuremath{\mathbf{r}}, description={Radius vector}, symbol=km, type=main, sort=xradvec}
+\newglossaryentry{sym:r}{name=\ensuremath{r}, description={Magnitude of radius vector}, symbol=km, type=main, sort=xr}
+\newglossaryentry{sym:ratio}{name=\ensuremath{r}, description={Ratio}, type=main, sort=xr}
+\newglossaryentry{sym:rdot}{name=\ensuremath{\dot{r}}, description={Magnitude of velocity vector}, symbol=km/s, type=main, sort=xr}
+
+
+% S
+\newglossaryentry{sym:s0}{	name=\ensuremath{\mathbf{s}_0}, description={Sun normal direction vector}, 		type=main, sort=xs0}
+\newglossaryentry{sym:s}{	name=\ensuremath{\mathbf{s}}, 	description={Distance vector}, 				type=main, sort=xs}
+\newglossaryentry{sym:size}{	name=\ensuremath{s}, 	description={Size},	type=main, sort=xs}
+\newglossaryentry{sym:scio}{	name=\ensuremath{s}, 		description={CIO locator}, 				type=main, sort=xs}
+\newglossaryentry{sym:stio}{	name=\ensuremath{s'}, 		description={TIO locator}, 				type=main, sort=xsp}
+\newglossaryentry{sym:geo_S}{	name=\ensuremath{S}, 		description={Spherical harmonics sine coefficient},    	type=main, sort=xS}
+%\newglossaryentry{sym:srp}{     name=\ensuremath{\mathbf{SRP}}, description={Solar Radiation Pressure},                 type=main, sort=xs}
+
+% T
+\newglossaryentry{sym:cheby}{	name=\ensuremath{T}, description={Chebyshev polynomial of first kind}, 					type=main, sort=xT}
+\newglossaryentry{sym:kot}{	name=\ensuremath{\mathbf{T}}, description={Coordinate transformation rotation matrix}, 				type=main, sort=xT}
+\newglossaryentry{sym:orbPeriod}{name=\ensuremath{T}, description={Orbital period},				symbol=s,	type=main, sort=xT}
+\newglossaryentry{sym:transition}{name=\ensuremath{T}, description={Manoeuvre transition phase},				type=main, sort=xT}
+\newglossaryentry{sym:tg}{	name=\ensuremath{t}, description={General variable}, 							type=main, sort=xt}
+\newglossaryentry{sym:t}{	name=\ensuremath{t}, description={Time}, 					symbol=s,	type=main, sort=xt}
+
+% U
+\newglossaryentry{sym:potential}{	name=\ensuremath{U}, 		description={Potential function}, 			type=main, sort=xU}
+\newglossaryentry{sym:chebyU}{		name=\ensuremath{U}, 		description={Chebyshev polynomial of second kind}, 	type=main, sort=xU}
+\newglossaryentry{sym:inputVec}{	name=\ensuremath{\textbf{u}}, 	description={System noise vector}, 			type=main, sort=xu}
+\newglossaryentry{sym:trueLat}{	name=\ensuremath{u}, description={Argument of true latitude}, symbol=rad, type=main, sort=xu}
+
+% V
+\newglossaryentry{sym:velvec}{	name=\ensuremath{\textbf{v}}, 	description={Velocity vector}, 		symbol=km/s, type=main, sort=xv}
+\newglossaryentry{sym:v}{	name=\ensuremath{v}, 		description={Magnitude of velocity}, 	symbol=km/s, type=main, sort=xv}
+
+% W
+\newglossaryentry{sym:weight}{		name=\ensuremath{w}, description={Weight function}, type=main, sort=xw}
+\newglossaryentry{sym:pom-matrix}{	name=\ensuremath{\mathbf{W}}, description={Polar motion rotation matrix}, type=main, sort=xW}
+\newglossaryentry{sym:weightMatrix}{	name=\ensuremath{\mathbf{W}}, description={Observation weighting matrix}, type=main, sort=xW}
+
+% X
+\newglossaryentry{sym:state}{		name=\ensuremath{\mathbf{x}}, 		description={State vector},    						type=main, sort=xx}
+\newglossaryentry{sym:bestEstimate}{	name=\ensuremath{\mathbf{\hat{x}}}, 	description={Best estimate of state vector},    			type=main, sort=xxhat}
+\newglossaryentry{sym:xg}{		name=\ensuremath{x}, 			description={General variable}, 					type=main, sort=xxa}
+\newglossaryentry{sym:pomx}{		name=\ensuremath{x_p}, 			description={Polar motion x coordinate},	symbol=rad, 	type=main, sort=xxp}
+\newglossaryentry{sym:pnx}{		name=\ensuremath{X}, 			description={Precession-nutation coordinate X}, 			type=main, sort=xX}
+\newglossaryentry{sym:pndx}{	name=\ensuremath{dX}, 		description={Correction to precession-nutation coordinate X, including FCN}, 			type=main, sort=xXd}
+
+% Y
+\newglossaryentry{sym:pny}{	name=\ensuremath{Y}, 		description={Precession-nutation coordinate Y}, 			type=main, sort=xY}
+\newglossaryentry{sym:pndy}{	name=\ensuremath{dY}, 		description={Correction to precession-nutation coordinate Y, including FCN}, 			type=main, sort=xYd}
+\newglossaryentry{sym:yg}{	name=\ensuremath{y}, 		description={General variable}, 					type=main, sort=xy}
+\newglossaryentry{sym:pomy}{	name=\ensuremath{y_p}, 		description={Polar motion y coordinate},	symbol=rad, 	type=main, sort=xyp}
+\newglossaryentry{sym:obs}{	name=\ensuremath{\mathbf{y}}, 	description={Observation vector}, 					type=main, sort=xy}
+
+% Z
+\newglossaryentry{sym:Z}{	name=\ensuremath{Z}, 		description={Random variable},    		type=main, sort=xZ}
+\newglossaryentry{sym:z}{	name=\ensuremath{\mathbf{z}}, 	description={Vector of random variables},    	type=main, sort=xz}
+\newglossaryentry{sym:precz}{	name=\ensuremath{z}, 	description={Precession angle (rotation about inertial z-axis)},    	type=main, sort=xz}
+\newglossaryentry{sym:zg}{	name=\ensuremath{z}, 		description={General variable},    		type=main, sort=xz}
+
+%==================================================================================================================
+%
+% GREEK (use prefix 'y' in sort)
+%
+%------------------------
+
+% ALPHA
+\newglossaryentry{sym:stepfraction}{   name=\ensuremath{\alpha}, description={Fraction of stepsize},        sort=yalpha, type=main}
+\newglossaryentry{sym:viewangle}{   name=\ensuremath{\alpha}, description={View angle},        sort=yalpha, type=main}
+
+% BETA
+\newglossaryentry{sym:stepsimplification}{   name=\ensuremath{\beta}, description={Simplification of step size function},        sort=yeps,type=main}
+
+% GAMMA
+\newglossaryentry{sym:gamma}{name=\ensuremath{\gamma}, description={Constant stepsize coefficients}, sort=ygamma, type=main}
+\newglossaryentry{sym:bigGamma}{name=\ensuremath{\Gamma}, description={Auxiliary stepsize function}, sort=yGamma, type=main}
+\newglossaryentry{sym:gammaStar}{name=\ensuremath{\gamma^{*}}, description={Difference between constant stepsize coefficients}, sort=ygamma, type=main}
+
+% DELTA
+\newglossaryentry{sym:fwdDifference}{name=\ensuremath{\Delta}, description={Forward difference operator}, sort=yDelta, type=main}
+\newglossaryentry{sym:bwdDifference}{name=\ensuremath{\nabla}, description={Backward difference operator}, sort=yDelta, type=main}
+\newglossaryentry{sym:ctrDifference}{name=\ensuremath{\delta}, description={Central difference operator}, sort=ydelta, type=main}       
+\newglossaryentry{sym:deltam}{   name=\ensuremath{\delta_m}, description={Term used for the normalization/de-normalization of harmonic coefficients or Legendre functions},       
+sort=ydeltam,type=main}
+
+% EPSILON
+\newglossaryentry{sym:error}{	name=\ensuremath{\epsilon}, description={Tolerance in stepsize control},	sort=yeps,type=main}
+\newglossaryentry{sym:obsError}{name=\ensuremath{\epsilon}, description={Observation error}, 	sort=yeps,type=main}
+\newglossaryentry{sym:nuteps}{ name=\ensuremath{\Delta\epsilon}, description={Nutation in the obliquity of the ecliptic}, symbol=rad, sort=yeps, type=main}
+\newglossaryentry{sym:machineepsilon}{name=\ensuremath{\epsilon_{m}}, description={Machine Epsilon},    sort=yeps,type=main}
+
+% ZETA
+\newglossaryentry{sym:zeta}{name=\ensuremath{\zeta}, description={Approximated error},    sort=yzeta, type=main}
+\newglossaryentry{sym:preczeta}{	name=\ensuremath{\zeta}, 	description={Precession angle (rotation about z-axis in MOD frame)},	type=main, sort=yzeta}
+
+% ETA
+\newglossaryentry{sym:eta}{name=\ensuremath{\eta}, description={General variable}, sort=yeta,type=main}
+
+% THETA
+\newglossaryentry{sym:era}{		name=\ensuremath{\theta_{ERA}}, description={Earth rotation angle ERA}, 				symbol=rad, sort=ythetaera, type=main}
+\newglossaryentry{sym:gast}{		name=\ensuremath{\theta_{GAST}}, description={Earth rotation angle based on Greenwich apparent sidereal time}, symbol=rad, sort=ythetagast, type=main}
+\newglossaryentry{sym:prectheta}{	name=\ensuremath{\theta}, description={Precession angle (rotation about intermediate negative y-axis)},	type=main, sort=xtheta}
+\newglossaryentry{sym:theta_inc}{	name=\ensuremath{\theta_{inc}}, description={Solar incidence angle wrt. Earth plate surface normal}, 	symbol=rad, sort=yothetainc, type=main}
+
+% IOTA
+
+% KAPPA
+\newglossaryentry{sym:lightDark}{name=\ensuremath{\kappa}, description={Earth albedo model switch: $\kappa=1$ if illuminated, $\kappa=0$ otherwise}, symbol=, sort=ykappa, type=main}
+
+% LAMBDA
+\newglossaryentry{sym:long}{name=\ensuremath{\lambda}, description={Longitude}, symbol=rad, sort=ylambda, type=main}
+\newglossaryentry{sym:damp}{name=\ensuremath{\lambda_{LM}}, description={Levenberg-Marquardt method damping parameter}, sort=ylambdaLM, type=main}
+\newglossaryentry{sym:meanLong}{name=\ensuremath{\lambda_M}, description={Mean longitude}, symbol=rad, sort=ylambdaM, type=main}
+\newglossaryentry{sym:SCcoeff}{name=\ensuremath{\lambda}, description={St\"ormer-Cowell predictor coefficient}, sort=ylambda, type=main}
+
+% MU
+\newglossaryentry{sym:grav}{name=\ensuremath{\mu}, description={Specific gravitational constant (Earth, if without index)}, symbol=km$^3$/s$^2$,
+sort=ymu, type=main}
+\newglossaryentry{sym:mean}{name=\ensuremath{\mu}, description={Mean value}, sort=ymu, type=main}
+
+% NU
+\newglossaryentry{sym:shadowFunction}{name=\ensuremath{\nu}, description={Shadow function, discriminating between the satellite being in umbra, penumbra or full
+sunlight}, sort=ynu, type=main}
+
+% XI
+\newglossaryentry{sym:xi}{name=\ensuremath{\xi}, description={General variable}, sort=yksi,type=main}
+
+% OMICRON
+
+% PI
+\newglossaryentry{sym:pi}{name=\ensuremath{\pi}, description={Mathematical constant (\ensuremath{\pi = 3.1415\ldots})}, sort=ypi,type=main}
+\newglossaryentry{sym:normalization}{name=\ensuremath{\Pi}, description={Transformation between normalized and unnormalized quantities of degree $n$ and order $m$
+of the geopotential}, sort=yPi,type=main}
+
+% RHO
+\newglossaryentry{sym:density}{name=\ensuremath{\rho}, description={Density}, symbol=kg/m$^2$, type=main, sort=yrho}
+\newglossaryentry{sym:gainLM}{name=\ensuremath{\rho_{LM}}, description={Levenberg-Marquardt gain ratio}, type=main, sort=yrhoLM}
+\newglossaryentry{sym:stepfactor}{name=\ensuremath{\rho}, description={Fraction of next to current step size}, type=main, sort=yrho}
+\newglossaryentry{sym:range}{name=\ensuremath{\rho}, description={Slant range}, symbol=km, type=main, sort=yrho}
+\newglossaryentry{sym:frho}{name=\ensuremath{\rho}, description={Radius function used in geopotential}, symbol=km/s$^2$, type=main, sort=yrho}
+
+% SIGMA
+\newglossaryentry{sym:stdev}{name=\ensuremath{\sigma}, description={Standard deviation},  type=main, sort=ysig}
+\newglossaryentry{sym:stepfct}{name=\ensuremath{\sigma}, description={Step size function},  type=main, sort=ysig}
+
+% TAU
+\newglossaryentry{sym:tau}{	name=\ensuremath{\tau}, description={Time interval fraction}, 	type=main, 			sort=ytau}
+\newglossaryentry{sym:taut}{	name=\ensuremath{\tau}, description={Time variable}, 			type=main, symbol=s, 	sort=ytau}
+
+% UPSILON
+
+% PHI
+\newglossaryentry{sym:lat}{	name=\ensuremath{\phi}, 	description={Latitude}, 						symbol=rad, 			sort=yphi,	type=main}
+\newglossaryentry{sym:phi_inc}{	name=\ensuremath{\phi_{inc}}, 	description={Solar incidence angle wrt. satellite surface normal}, 	symbol=rad, 			sort=yphii, 	type=main}
+\newglossaryentry{sym:set}{	name=\ensuremath{\boldsymbol{\Phi}}, 	description={State error transition matrix},								
+sort=yPhi, 	type=main}
+\newglossaryentry{sym:solarFlux}{	name=\ensuremath{\Phi}, 	description={Solar flux}, symbol=W/m$^2$,	sort=yPhi, 	type=main}
+\newglossaryentry{sym:phi_acc}{ name=\ensuremath{\boldsymbol{\phi}}, description={Modified divided differences vector}, symbol=m/s$^2$,		sort=yphi, 	type=main}
+\newglossaryentry{sym:phiComp}{ name=\ensuremath{\phi}, description={Absolute value of modified divided differences vector}, symbol=m/s$^2$,		sort=yphi, 	type=main}
+
+% CHI
+\newglossaryentry{sym:dampTune}{ name=\ensuremath{\chi_0}, description={Tuning parameter for Levenberg-Marquardt method}, sort=ychi, type=main}
+
+% PSI
+\newglossaryentry{sym:sumsteps}{ name=\ensuremath{\psi}, description={Sum of steps},                                  symbol=s, sort=ypsi, type=main}
+\newglossaryentry{sym:angularDistance}{ name=\ensuremath{\psi}, description={Angular distance of two points on unit sphere}, symbol=rad, sort=ypsi, type=main}
+\newglossaryentry{sym:nutpsi}{ name=\ensuremath{\Delta\psi}, description={Nutation in longitude of the ecliptic}, symbol=rad, sort=ypsi, type=main}
+
+% OMEGA
+\newglossaryentry{sym:aop}{	name=\ensuremath{\omega}, 				description={Argument of perigee}, 																				symbol=rad, 	sort=yw, type=main}
+\newglossaryentry{sym:rot}{	name=\ensuremath{\boldsymbol{\omega}_{\gls{idx:earth}}}, 	description={Angular velocity vector of Earth's rotation in inertial space, its magnitude being \ensuremath{\left|\boldsymbol{\omega}_{\gls{idx:earth}}\right|=\SI{7.2921150e-5}{\radian\per\second}}}, 	symbol=rad/s, 	sort=yw, type=main}
+\newglossaryentry{sym:raan}{	name=\ensuremath{\Omega}, 				description={Right ascension of ascending node}, 																		symbol=rad, 	sort=yW, type=main}
+\newglossaryentry{sym:meanRaanMoon}{name=\ensuremath{\Omega}, description={Mean longitude of the ascending node of the Moon (Delaunay variable)}, symbol=rad,	sort=yW,  		type=main}
+
+%===========================================================================================================================
+%
+% INDICES (use prefix 'z' in sort)
+%
+%-------------------------
+\newglossaryentry{idx:3b}{	name=\ensuremath{3b},	description={Third body},  				sort=z3b, 		type=main}
+\newglossaryentry{idx:abs}{	name=\ensuremath{abs},	description={Absorbed},  				sort=zabs, 		type=main}
+\newglossaryentry{idx:bodyfixed}{	name=\ensuremath{bf},	description={Body-fixed},  				sort=zbf, 		type=main}
+\newglossaryentry{idx:cfg}{		name=\ensuremath{cfg},	description={Configuration},  				sort=zcfg, 		type=main}
+\newglossaryentry{idx:cross}{		name=\ensuremath{c},	description={Cross-section},  				sort=zc, 		type=main}
+\newglossaryentry{idx:compression}{		name=\ensuremath{c},	description={Compression},  				sort=zc, 		type=main}
+\newglossaryentry{idx:c1}{              name=\ensuremath{c1},   description={First shadow boundary crossing},           sort=zc,                type=main}
+\newglossaryentry{idx:c2}{              name=\ensuremath{c2},   description={Second shadow boundary crossing},          sort=zc,                type=main}
+\newglossaryentry{idx:dim}{		name=\ensuremath{d},	description={Dimension},  				sort=zd, 		type=main}
+\newglossaryentry{idx:dc}{		name=\ensuremath{DC},	description={Differential Correction},  				sort=zDC, 		type=main}
+\newglossaryentry{idx:c}{		name=\ensuremath{C},	description={Covariance}, sort=zC, 		type=main}
+\newglossaryentry{idx:drag}{		name=\ensuremath{D},	description={Atmospheric drag}, 			sort=zD, 		type=main}
+\newglossaryentry{idx:end}{		name=\ensuremath{e},	description={End},  				sort=ze, 		type=main}
+\newglossaryentry{idx:eph}{		name=\ensuremath{eph},	description={Ephemeris},  				sort=zephemeris,	type=main}
+\newglossaryentry{idx:file}{		name=\ensuremath{f}, 	description={File},     				sort=zfile,  		type=main}
+\newglossaryentry{idx:geop}{		name=\ensuremath{g}, 	description={Geopotential},     			sort=zgeopotential,  	type=main}
+\newglossaryentry{idx:gc}{		name=\ensuremath{gc}, 	description={Geocentric},     				sort=zgc, 		type=main}
+\newglossaryentry{idx:header}{		name=\ensuremath{h}, 	description={Header}, 					sort=zh, 		type=main}
+\newglossaryentry{idx:i}{		name=\ensuremath{i}, 	description={Counter}, 					sort=zi,		type=main}
+\newglossaryentry{idx:interp}{		name=\ensuremath{I}, 	description={Interpolation}, 					sort=zI,		type=main}
+\newglossaryentry{idx:int}{		name=\ensuremath{int}, 	description={Integration},				sort=zint,		type=main}
+\newglossaryentry{idx:id}{		name=\ensuremath{id},	description={Identifier/ID}, 				sort=zid, 		type=main}
+\newglossaryentry{idx:jd}{		name=\ensuremath{JD}, 	description={Julian Day},     				sort=zjd,  		type=main}
+\newglossaryentry{idx:ns}{		name=\ensuremath{ns}, 	description={Non-spherical},    			sort=zns,  		type=main}
+\newglossaryentry{idx:nam}{		name=\ensuremath{nam}, 	description={Name}, 					sort=znam, 		type=main}
+\newglossaryentry{idx:man}{		name=\ensuremath{man}, 	description={Maneuver}, 				sort=zman, 		type=main}
+\newglossaryentry{idx:msg}{		name=\ensuremath{m}, 	description={Message}, 				sort=zm, 		type=main}
+\newglossaryentry{idx:predict}{         name=\ensuremath{p},    description={Predicted value},                          sort=zp,                type=main}
+\newglossaryentry{idx:phase}{		name=\ensuremath{p},	description={Phase},  				sort=zp, 		type=main}
+\newglossaryentry{idx:peri}{		name=\ensuremath{p},	description={Perigee},   				sort=zp, 		type=main}
+\newglossaryentry{idx:pert}{            name=\ensuremath{p}, 	description={Perturbation},                        	sort=zp,             type=main}
+\newglossaryentry{idx:plate}{		name=\ensuremath{P},	description={Plate},    				sort=zP, 		type=main}
+\newglossaryentry{idx:pol}{		name=\ensuremath{pol},	description={Polynomial},	sort=zpol, 		type=main}
+\newglossaryentry{idx:max}{		name=\ensuremath{max},	description={Maximum},    				sort=zmax, 		type=main}
+\newglossaryentry{idx:lat}{		name=\ensuremath{\phi},	description={Geocentric latitude},			sort=zphi, 		type=main}
+\newglossaryentry{idx:lon}{		name=\ensuremath{\lambda},	description={Longitude},			sort=zlambda, 		type=main}
+\newglossaryentry{idx:prj}{		name=\ensuremath{prj},	description={Projection},			sort=zprj, 		type=main}
+\newglossaryentry{idx:ref}{		name=\ensuremath{r},	description={Reference},    				sort=zr, 		type=main}
+\newglossaryentry{idx:cmb}{		name=\ensuremath{cmb},	description={Combined},    				sort=zcmb, 		type=main}
+\newglossaryentry{idx:ring}{		name=\ensuremath{r},	description={Rings},    				sort=zr, 		type=main}
+\newglossaryentry{idx:rs}{		name=\ensuremath{r,s},	description={Specular reflection},    				sort=zrs, 		type=main}
+\newglossaryentry{idx:rd}{		name=\ensuremath{r,d},	description={Diffuse reflection},    				sort=zrd, 		type=main}
+\newglossaryentry{idx:rel}{		name=\ensuremath{rel},	description={Relative},    				sort=zrel, 		type=main}
+\newglossaryentry{idx:sat}{		name=\ensuremath{S},	description={Satellite},  				sort=zS, 		type=main}
+\newglossaryentry{idx:state}{		name=\ensuremath{S},	description={State},  				sort=zS, 		type=main}
+\newglossaryentry{idx:srf}{		name=\ensuremath{srf},	description={Surface},  				sort=zsrf, 		type=main}
+\newglossaryentry{idx:start}{		name=\ensuremath{s},	description={Start},  				sort=zs, 		type=main}
+\newglossaryentry{idx:seg}{		name=\ensuremath{seg},	description={Segment},  				sort=zseg,		type=main}
+\newglossaryentry{idx:tgt}{		name=\ensuremath{tgt},	description={Target},  				sort=ztgt,		type=main}
+\newglossaryentry{idx:chs}{		name=\ensuremath{chs},	description={Chaser},  				sort=zchs,		type=main}
+\newglossaryentry{idx:threshold}{	name=\ensuremath{th},	description={Threshold},  				sort=zthres, type=main}
+\newglossaryentry{idx:radial}{		name=\ensuremath{U},	description={Radial component},				sort=zU,		type=main}
+\newglossaryentry{idx:single}{		name=\ensuremath{s},	description={Single integration},				sort=zs,		type=main}
+\newglossaryentry{idx:sample}{		name=\ensuremath{s},	description={Sample},				sort=zs,		type=main}
+\newglossaryentry{idx:double}{		name=\ensuremath{d},	description={Double integration},				sort=zd,		type=main}
+\newglossaryentry{idx:local}{		name=\ensuremath{l},	description={Local}, sort=zl,		type=main}
+\newglossaryentry{idx:along}{		name=\ensuremath{V},	description={Along-track component},			sort=zV,		type=main}
+\newglossaryentry{idx:normal}{		name=\ensuremath{W},	description={Cross-track or orbit normal component},	sort=zW,	type=main}
+\newglossaryentry{idx:wind}{		name=\ensuremath{w},	description={Wind},  					sort=zw, 		type=main}
+\newglossaryentry{idx:water}{		name=\ensuremath{w},	description={Water},  					sort=zw, 		type=main}
+\newglossaryentry{idx:x}{		name=\ensuremath{x},	description={x-component of inertial reference frame},  sort=zx, 		type=main}
+\newglossaryentry{idx:y}{		name=\ensuremath{y},	description={y-component of inertial reference frame},  sort=zy, 		type=main}
+\newglossaryentry{idx:z}{		name=\ensuremath{z},	description={z-component of inertial reference frame},  sort=zz, 		type=main}
+\newglossaryentry{idx:earth}{		name=\ensuremath{\Earth},description={Earth}, 					sort=zzearth, 		type=main}
+\newglossaryentry{idx:sun}{		name=\ensuremath{\Sun},	description={Sun}, 					sort=zzsun, 		type=main}
+\newglossaryentry{idx:moon}{		name=\ensuremath{\Moon},description={Moon}, 					sort=zzmoon, 		type=main}
+\newglossaryentry{idx:mercury}{		name=\ensuremath{\Mercury},description={Mercury}, 					sort=zzmercury, 		type=main}
+\newglossaryentry{idx:venus}{		name=\ensuremath{\Venus},description={Venus}, 					sort=zzvenus, 		type=main}
+\newglossaryentry{idx:mars}{		name=\ensuremath{\Mars},description={Mars}, 					sort=zzmars, 		type=main}
+\newglossaryentry{idx:jupiter}{		name=\ensuremath{\Jupiter},description={Jupiter}, 					sort=zzjupiter, 		type=main}
+\newglossaryentry{idx:saturn}{		name=\ensuremath{\Saturn},description={Saturn}, 					sort=zzsaturn, 		type=main}
+\newglossaryentry{idx:uranus}{		name=\ensuremath{\Uranus},description={Uranus}, 					sort=zzuranus, 		type=main}
+\newglossaryentry{idx:neptune}{		name=\ensuremath{\Neptune},description={Neptune}, 					sort=zzneptune, 		type=main}
+
+%----------------------------------------------
+%
+% ABBREVIATIONS
+%
+%-----------------------------------------------
+
+\newacronym{acr:subvn}{SVN}{Subversion}
+\newacronym{acr:irm}{IRM}{IERS Reference Meridian}
+\newacronym{acr:irp}{IRP}{IERS Reference Pole}
+\newacronym{acr:fcn}{FCN}{Free Core Nutation}
+\newacronym{acr:vlbi}{VLBI}{Very Long Baseline Interferometry}
+\newacronym{acr:dmc}{DMC}{Dynamic Model Compensation}
+\newacronym{acr:snc}{SNC}{State Noise Compensation}
+\newacronym{acr:dc}{DC}{Differential Correction}
+\newacronym{acr:sa}{SA}{Selective Availability}
+\newacronym{acr:sst}{SST}{Space Surveillance \& Tracking}
+\newacronym{acr:dst}{Dst}{Disturbance storm time}
+\newacronym{acr:rcs}{RCS}{Radar Cross-Section}
+\newacronym{acr:ares}{ARES}{Assessment of Risk Event Statistics}
+\newacronym{acr:od}{OD}{Orbit Determination}
+\newacronym{acr:slr}{SLR}{Satellite Laser Ranging}
+\newacronym{acr:ca}{CA}{Collision Avoidance}
+\newacronym{acr:iod}{IOD}{Initial Orbit Determination}
+\newacronym{acr:sv}{SV}{State Vector}
+\newacronym{acr:uct}{UCT}{Uncorrelated Track}
+\newacronym{acr:ct}{CT}{Correlated Track}
+\newacronym{acr:spa}{SPA}{Support to Precursor Space Situational Awareness Services}
+\newacronym{acr:eu}{EU}{European Union}
+\newacronym{acr:tira}{TIRA}{Tracking and Imaging Radar}
+\newacronym{acr:agi}{AGI}{Analytical Graphics Inc.}
+\newacronym{acr:comspoc}{ComSpOC}{Commercial Space Operations Center}
+\newacronym{acr:eiscat}{EISCAT}{European Incoherent Scatter Scientific Association}
+\newacronym{acr:ison}{ISON}{International Scientific Optical Network}
+\newacronym{acr:iso}{ISO}{International Organization for Standardization}
+\newacronym{acr:graves}{GRAVES}{Grande R\'eseau Adapt\'e a la Veille Spatial}
+\newacronym{acr:ews}{EWS}{Early Warning System}
+\newacronym{acr:sbss}{SBSS}{Space Based Space Surveillance}
+\newacronym{acr:darpa}{DARPA}{Defense Advanced Research Projects Agency}
+\newacronym{acr:dod}{DoD}{Department of Defense}
+\newacronym{acr:aeos}{AEOS}{Advanced Electro-Optical System}
+\newacronym{acr:msss}{MSSS}{Maui Space Surveillance Site}
+\newacronym{acr:sstel}{SST}{Space Surveillance Telescope}
+\newacronym{acr:geodss}{GEODSS}{Ground-based Electro-Optical Deep-Space Surveillance}
+\newacronym{acr:motif}{MOTIF}{Maui Optical Tracking and Identification Facility}
+\newacronym{acr:afb}{AFB}{Air Force Base}
+\newacronym{acr:afsss}{AFSSS}{Air Force Space Surveillance System}
+\newacronym{acr:iau}{IAU}{International Astronomical Union}
+\newacronym{acr:iugg}{IUGG}{International Union of Geodesy and Geophysics}
+\newacronym{acr:oem}{OEM}{Orbit Ephemeris Message}
+\newacronym{acr:opm}{OPM}{Orbit Parameter Message}
+\newacronym{acr:coem}{cOEM}{Encoded Orbit Ephemeris Message}
+\newacronym{acr:omm}{OMM}{Orbit Mean-Element Message}
+\newacronym{acr:comm}{cOMM}{Encoded Orbit Mean-Element Message}
+\newacronym{acr:xml}{XML}{Extensible Markup Language}
+\newacronym{acr:xsd}{XSD}{XML Schema Definition}
+\newacronym{acr:ccsds}{CCSDS}{Consultative Committee for Space Data Systems}
+\newacronym[longplural=Navigation Data Messages]{acr:ndm}{NDM}{Navigation Data Message}
+\newacronym{acr:esoc}{ESOC}{European Space Operations Centre}
+\newacronym{acr:jaxa}{JAXA}{Japan Aerospace Exploration Agency}
+\newacronym{acr:nasa}{NASA}{National Aeronautics and Space Administration}
+\newacronym{acr:hpop}{HPOP}{High Precision Orbit Propagator}
+\newacronym{acr:zuniem}{ZUNIEM}{Zuschlag Numerical Integration of the Equations of Motion}
+\newacronym{acr:iss}{ISS}{International Space Station}
+\newacronym{acr:sts}{STS}{Space Transportation System}
+\newacronym{acr:teme}{TEME}{True Equator Mean Equinox}
+\newacronym{acr:icrf}{ICRF}{International Celestial Reference Frame}
+\newacronym{acr:icrs}{ICRS}{International Celestial Reference System}
+\newacronym{acr:sofa}{SOFA}{Standards Of Fundamental Astronomy}
+\newacronym{acr:itrf}{ITRF}{International Terrestrial Reference Frame}
+\newacronym{acr:tirf}{TIRF}{Terrestrial Intermediate Reference Frame}
+\newacronym{acr:cirf}{CIRF}{Celestial Intermediate Reference Frame}
+\newacronym{acr:cio}{CIO}{Celestial Intermediate Origin}
+\newacronym{acr:tio}{TIO}{Terrestrial Intermediate Origin}
+\newacronym{acr:cip}{CIP}{Celestial Intermediate Pole}
+\newacronym{acr:itrs}{ITRS}{International Terrestrial Reference System}
+\newacronym{acr:ut}{UT}{Universal Time}
+\newacronym{acr:ut1}{UT1}{Universal Time corrected for polar motion}
+\newacronym{acr:utc}{UTC}{Universal Time Coordinated}
+\newacronym{acr:tt}{TT}{Terrestrial Time}
+\newacronym{acr:tdb}{TDB}{Barycentric Dynamical Time (\textit{Temps Dynamique Barycentric})}
+\newacronym{acr:tdt}{TDT}{Terrestrial Dynamical Time}
+\newacronym{acr:tai}{TAI}{International Atomic Time (\textit{Temps Atomique International})}
+\newacronym{acr:sgp}{SGP}{Simplified General Perturbations}
+\newacronym{acr:sdp}{SDP}{Simplified Deep-space Perturbations}
+\newacronym{acr:gp}{GP}{General Perturbations}
+\newacronym{acr:sp}{SP}{Special Perturbations}
+\newacronym{acr:tle}{TLE}{Two Line Elements}
+\newacronym{acr:norad}{NORAD}{North American Aerospace Defense Command}
+\newacronym{acr:dof}{DOF}{Degree-of-Freedom}
+\newacronym{acr:api}{API}{Application Programming Interface}
+\newacronym{acr:hwm}{HWM}{Horizontal Wind Model}
+\newacronym{acr:eop}{EOP}{Earth Orientation Parameters}
+\newacronym{acr:egm}{EGM}{Earth Gravitational Model}
+\newacronym{acr:eigen}{EIGEN}{European Improved Gravity model of the Earth by New techniques}
+\newacronym{acr:srp}{SRP}{Solar Radiation Pressure}
+\newacronym{acr:eci}{ECI}{Earth Centered Inertial}
+\newacronym{acr:gcrf}{GCRF}{Geocentric Celestial Reference Frame}
+\newacronym{acr:gcrs}{GCRS}{Geocentric Celestial Reference System}
+\newacronym{acr:rk}{RK}{Runge-Kutta}
+\newacronym{acr:mjd}{MJD}{Modified Julian Day}
+\newacronym{acr:ocrf}{OCRF}{Orbit Centered Reference Frame}
+\newacronym{acr:neptune}{NEPTUNE}{NPI Ephemeris Propagation Tool with Uncertainty Extrapolation}
+\newacronym{acr:osip}{OSIP}{Open Space Innovation Platform}
+\newacronym{acr:npi}{NPI}{Networking/Partnering Initiative}
+\newacronym{acr:rtn}{RTN}{Radial, Transversal, Normal}
+\newacronym{acr:gps}{GPS}{Global Positioning System}
+\newacronym{acr:tubs}{TU-BS}{Technische Universit\"at Braunschweig}
+\newacronym{acr:ias}{IAS}{Institute of Aerospace Systems}
+\newacronym[longplural=Precision Orbit Ephemerides]{acr:poe}{POE}{Precision Orbit Ephemeris}
+\newacronym{acr:ers}{ERS}{European Remote Sensing satellite}
+\newacronym{acr:icesat}{ICESat}{Ice, Cloud, and Land Elevation Satellite}
+\newacronym{acr:sp3}{SP3}{Standard Product $\#$ 3}
+\newacronym{acr:wgs}{WGS}{World Geodetic System}
+\newacronym{acr:au}{AU}{Astronomical Unit, $1\;AU = 1.496\cdot 10^{11}\;m$}
+\newacronym{acr:lageos}{LAGEOS}{Laser Geodynamics Satellites}
+\newacronym{acr:legos}{LEGOS}{Laboratoire d'Etudes en G\'{e}ophysique et Oc\'{e}anographie Spatiales}
+\newacronym{acr:cls}{CLS}{Collecte Localisation Satellites}
+\newacronym{acr:ids}{IDS}{International DORIS Service}
+\newacronym{acr:doris}{DORIS}{Doppler Orbitography and Radiopositioning Integrated by Satellite}
+\newacronym{acr:leo}{LEO}{Low Earth Orbit}
+\newacronym{acr:gto}{GTO}{Geostationary Transfer Orbit}
+\newacronym{acr:geo}{GEO}{Geostationary Earth Orbit}
+\newacronym{acr:meo}{MEO}{Medium Earth Orbit}
+\newacronym{acr:heo}{HEO}{High Eccentricity Orbit}
+\newacronym{acr:raan}{RAAN}{Right Ascension of Ascending Node}
+\newacronym{acr:act}{ACT}{Auto Configuration Table}
+\newacronym{acr:ac}{AC}{Auto Configuration}
+\newacronym{acr:nrl}{NRL}{Naval Research Laboratory}
+\newacronym{acr:nrlmsise}{NRLMSISE-00}{Naval Research Laboratory Mass Spectrometer and Incoherent Scatter Radar (Extended)}
+\newacronym{acr:msis}{MSIS}{Mass Spectrometer and Incoherent Scatter Radar}
+\newacronym{acr:master}{MASTER}{Meteoroid and Space Debris Terrestrial Environment Reference}
+\newacronym{acr:nga}{NGA}{National Geo\-spatial-Intelligence Agency}
+\newacronym{acr:ftp}{FTP}{File Transfer Protocol}
+\newacronym{acr:mc}{MC}{Monte Carlo}
+\newacronym{acr:nanu}{NANU}{Notice Advisory to NAVSTAR Users}
+\newacronym{acr:navstar}{NAVSTAR}{Navigation System using Timing and Ranging}
+\newacronym{acr:us}{US}{United States}
+\newacronym{acr:nsscc}{NSSCC}{National Space Surveillance Control Center}
+\newacronym{acr:prn}{PRN}{Pseudo Random Noise}
+\newacronym{acr:svn}{SVN}{Satellite Vehicle Number}
+\newacronym{acr:csr}{CSR}{Center for Space Research}
+\newacronym{acr:esa}{ESA}{European Space Agency}
+\newacronym{acr:ascii}{ASCII}{American Standard Code for Information Interchange}
+\newacronym{acr:hp}{HP}{High Precision}
+\newacronym{acr:sfu}{SFU}{Solar Flux Units (\num{1} sfu = \num{1.0d2})}%{\watt})} % ( \per\metre\square\per\hertz})}
+\newacronym{acr:jspoc}{JSpOC}{Joint Space Operations Center}
+\newacronym{acr:sql}{SQL}{Structured Query Language}
+\newacronym{acr:fk}{FK}{Fundamental Katalog}
+\newacronym{acr:cospar}{COSPAR}{Committee on Space Research}
+\newacronym{acr:msb}{MSB}{Most Significant Bit}
+\newacronym{acr:lsb}{LSB}{Least Significant Bit}
+\newacronym{acr:jpl}{JPL}{Jet Propulsion Laboratory}
+\newacronym{acr:jplde}{DE}{JPL Development Ephemeris}
+\newacronym{acr:tirs}{TIRS}{Terrestrial Intermediate Reference System}
+\newacronym{acr:cirs}{CIRS}{Celestial Intermediate Reference System}
+\newacronym{acr:era}{ERA}{Earth Rotation Angle}
+\newacronym{acr:ukf}{UKF}{Unscented Kalman Filter}
+\newacronym{acr:ekf}{EKF}{Extended Kalman Filter}
+\newacronym{acr:ssn}{SSN}{Space Surveillance Network}
+\newacronym[longplural=Owners and/or Operators]{acr:oo}{O/O}{Owner and/or Operator}
+\newacronym{acr:usstratcom}{USSTRATCOM}{United States Strategic Command}
+\newacronym[longplural=Orbital Conjunction Messages]{acr:ocm}{OCM}{Orbital Conjunction Message}
+\newacronym[longplural=Conjunction Summary Messages]{acr:csm}{CSM}{Conjunction Summary Message}
+\newacronym[longplural=Conjunction Data Messages]{acr:cdm}{CDM}{Conjunction Data Message}
+\newacronym{acr:naif}{NAIF}{Navigation and Ancillary Information Facility}
+\newacronym{acr:ssa}{SSA}{Space Situational Awareness}
+\newacronym{acr:stm}{STM}{Space Traffic Management}
+\newacronym{acr:sda}{SDA}{Space Domain Awareness}
+\newacronym{acr:spice}{SPICE}{Spacecraft Planet Instrument C-matrix Events}
+\newacronym{acr:spk}{SPK}{SPICE Kernel}
+\newacronym{acr:ssa-pp}{SSA-PP}{SSA Preparatory Programme}
+\newacronym{acr:tip}{TIP}{Tracking and Impact Prediction}
+\newacronym{acr:ode}{ODE}{Ordinary Differential Equation}
+\newacronym[longplural=Orbit Data Messages]{acr:odm}{ODM}{Orbit Data Message}
+\newacronym{acr:de}{DE}{Development Ephemerides}
+\newacronym{acr:tca}{TCA}{Time of Closest Approach}
+\newacronym{acr:usg}{USG}{United States Government}
+\newacronym{acr:iers}{IERS}{International Earth Rotation and Reference Systems Service}
+\newacronym{acr:grace}{GRACE}{Gravity Recovery and Climate Experiment}
+\newacronym{acr:tgp}{TGP}{Tide Generating Potential}
+\newacronym{acr:rms}{RMS}{Root Mean Square}
+\newacronym{acr:grace-fo}{GRACE-FO}{GRACE Follow-on}
+\newacronym{acr:gfz}{GFZ}{Deutsches GeoForschungsZentrum}
+\newacronym{acr:champ}{CHAMP}{Challenging Minisatellite Payload}
+\newacronym{acr:goce}{GOCE}{Gravity Field and Steady-State Ocean Circulation Explorer}
+\newacronym{acr:icgem}{ICGEM}{International Centre for Global Earth Models}
+\newacronym{acr:pda}{GAMBIT}{Geopotential Adaptation Method to Bias Trajectories}
+\newacronym{acr:pec}{PEC}{Predict-Evaluate-Correct}
+\newacronym{acr:rss}{RSS}{Residuals Sum of Squares}
+\newacronym{acr:sbtc}{SBTC}{Shadow Boundary Transit Correction}
+\newacronym{acr:mod}{MOD}{Mean of Date}
+\newacronym{acr:tod}{TOD}{True of Date}
+\newacronym{acr:pod}{POD}{Precise Orbit Determination}
+\newacronym{acr:gast}{GAST}{Greenwich Apparent Sidereal Time}
+\newacronym{acr:pef}{PEF}{Pseudo Earth Fixed}
+\newacronym{acr:ir}{IR}{Infrared}
+\newacronym{acr:erp}{ERP}{Earth Radiation Pressure}
+\newacronym{acr:bol}{BOL}{Begin of Life (of a spacecraft)}
+\newacronym{acr:lod}{LOD}{Length of Day}
+\newacronym{acr:nso}{NSO}{Non-Singular Orbital Elements}
+\newacronym{acr:cs}{CS}{Cartesian Space}
+\newacronym{acr:lm}{LM}{Levenberg-Marquardt method}
+\newacronym{acr:ohm}{OHM}{Orbit Hybrid Message}
+\newacronym[longplural=Accepted Error Levels]{acr:ael}{AEL}{Accepted Error Level}
+\newacronym[longplural=Orbital Data Requests]{acr:odr}{ODR}{Orbital Data Request}
+\newacronym[longplural=Probability Density Functions]{acr:pdf}{PDF}{Probability Density Function}
+\newacronym{acr:prare}{PRARE}{Precise Range And Range-rate Equipment}
+\newacronym{acr:leop}{LEOP}{Launch and Early Orbit Phase}
+\newacronym{acr:glonass}{GLONASS}{Globalnaya navigatsionnaya sputnikovaya sistema}
+\newacronym{acr:odin}{ODIN}{Orbit Determination by Improved Normal Equations}
+\newacronym{acr:euv}{EUV}{Extreme Ultraviolet}

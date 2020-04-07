@@ -8,7 +8,6 @@ logfile
 *.o
 *.aux
 *.pdf
-*.out
 *.lot
 *.lof
 *.idx

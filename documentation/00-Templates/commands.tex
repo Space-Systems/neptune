@@ -1,0 +1,118 @@
+\newenvironment{code}{\captionsetup{type=listing}}{}
+
+% General
+\newcommand{\cha}[1]{Chapter~\ref{#1}}
+\newcommand{\anx}[1]{Annex~\ref{#1}}
+\newcommand{\eq}[1]{Equation~\ref{#1}}
+\newcommand{\eqs}[2]{Equations~\ref{#1} and~\ref{#2}}
+\newcommand{\eqsto}[2]{Equations~\ref{#1}~-~\ref{#2}}
+\newcommand{\fig}[1]{Figure~\ref{#1}}
+\newcommand{\lis}[1]{Listing~\ref{#1}}
+\newcommand{\alg}[1]{Algorithm~\ref{#1}}
+\newcommand{\sect}[1]{Section~\ref{#1}}
+\newcommand{\tab}[1]{Table~\ref{#1}}
+\newcommand{\specialcell}[2][c]{%
+  \begin{tabular}[#1]{@{}l@{}}#2\end{tabular}}
+  
+%\newcommand{\ul}{\underline}
+\newcommand{\ol}{\overline}
+\newcommand{\tb}{\textbf}
+\newcommand{\ts}{\textsl}
+
+% XML Tags
+\newcommand{\xmltag}[1]{\emph{#1}}
+
+\newcommand{\body}{\xmltag{body}\/}
+\newcommand{\ccsds}{\xmltag{\gls{acr:ccsds}}\/}
+\newcommand{\data}{\xmltag{data}\/}
+\newcommand{\maneuvers}{\xmltag{maneuvers}\/}
+\newcommand{\metadata}{\xmltag{metadata}\/}
+\newcommand{\segm}{\xmltag{segment}\/}
+\newcommand{\type}{\xmltag{type}\/}
+\newcommand{\units}{\xmltag{units}\/}
+\newcommand{\oem}{\xmltag{\gls{acr:oem}}\/}
+\newcommand{\omm}{\xmltag{\gls{acr:omm}}\/}
+
+% NEPTUNE
+\newcommand{\neptune}{\textsc{Neptune}~}	% NEPTUNE name
+\newcommand{\cover}{\textsc{Cover}~}
+\newcommand{\nover}{\textsc{Nover}~}
+
+% Others (especially math...)
+\newcommand{\phigc}{\ensuremath{\gls{sym:lat}_{\gls{idx:gc}}}}
+\newcommand{\rbf}{\ensuremath{\gls{sym:radvec}_{\gls{idx:bodyfixed}}}}
+\newcommand{\leg}[2]{\ensuremath{\gls{sym:legendre}_{\gls{sym:n}#1,\gls{sym:m}#2} \left(\gls{sym:xg}\right)}}
+\newcommand{\legphi}[2]{\ensuremath{\gls{sym:legendre}_{\gls{sym:n}#1,\gls{sym:m}#2} \left(\sin\phigc\right)}}
+\newcommand{\cnm}[2]{\ensuremath{\gls{sym:geo_C}_{\gls{sym:n}#1,\gls{sym:m}#2}}}
+\newcommand{\ncnm}[2]{\ensuremath{\overline{\gls{sym:geo_C}}_{\gls{sym:n}#1,\gls{sym:m}#2}}}
+\newcommand{\cij}[2]{\ensuremath{\gls{sym:geo_C}_{j#1,i#2}}}
+\newcommand{\snm}[2]{\ensuremath{\gls{sym:geo_S}_{\gls{sym:n}#1,\gls{sym:m}#2}}}
+\newcommand{\nsnm}[2]{\ensuremath{\overline{\gls{sym:geo_S}}_{\gls{sym:n}#1,\gls{sym:m}#2}}}
+\newcommand{\sij}[2]{\ensuremath{\gls{sym:geo_S}_{j#1,i#2}}}
+\newcommand{\re}{\ensuremath{\gls{sym:radius}_{\gls{idx:earth}}}}
+\newcommand{\rx}{\ensuremath{\gls{sym:r}_{\gls{idx:x}}}}
+\newcommand{\ry}{\ensuremath{\gls{sym:r}_{\gls{idx:y}}}}
+\newcommand{\rz}{\ensuremath{\gls{sym:r}_{\gls{idx:z}}}}
+\newcommand{\x}{\ensuremath{\gls{sym:xg}}}
+\newcommand{\y}{\ensuremath{\gls{sym:yg}}}
+\newcommand{\kot}[2]{\ensuremath{\gls{sym:kot}^{\scriptscriptstyle\acrshort{acr:#1}}_{\scriptscriptstyle\acrshort{acr:#2}}}}
+\newcommand{\density}{\ensuremath{\gls{sym:density}}}
+\newcommand{\cd}{\ensuremath{\gls{sym:c_d}}}
+\newcommand{\crossSection}{\ensuremath{\gls{sym:area}_{\gls{idx:cross}}}}
+\newcommand{\relvel}{\ensuremath{\gls{sym:velvec}_{\gls{idx:rel}}}}
+\newcommand{\xt}{\ensuremath{\gls{sym:state}\left(\gls{sym:t}\right)}}
+\newcommand{\yt}{\ensuremath{\gls{sym:obs}\left(\gls{sym:t}\right)}}
+\newcommand{\xdot}{\ensuremath{\dot{\gls{sym:state}}\left(\gls{sym:t}\right)}}
+\newcommand{\xref}{\ensuremath{\gls{sym:state}_{\gls{idx:ref}}\left(\gls{sym:t}\right)}}
+\newcommand{\yref}{\ensuremath{\gls{sym:obs}_{\gls{idx:ref}}\left(\gls{sym:t}\right)}}
+\newcommand{\rt}{\ensuremath{\gls{sym:radvec}\left(\gls{sym:t}\right)}}
+\newcommand{\argmin}{\operatornamewithlimits{argmin}}
+\newcommand{\argmax}{\operatornamewithlimits{argmax}}
+\newcommand{\vt}{\ensuremath{\gls{sym:velvec}\left(\gls{sym:t}\right)}}
+\newcommand{\rhon}[1]{\ensuremath{\gls{sym:frho}_{#1}}}
+\newcommand{\fnk}[2]{\ensuremath{\gls{sym:ff}_{#1,#2}}}
+\newcommand{\gnk}[2]{\ensuremath{\gls{sym:fg}_{#1,#2}}}
+\newcommand{\set}[2]{\ensuremath{\gls{sym:set}\left(#1,#2\right)}}
+
+\newcommand{\kalman}{\textsc{Kalman}-Filter }
+\newcommand{\catalogObjects}{17500}
+\newcommand{\catalogObjectsAsOf}{March 2, 2016}
+
+\newcommand{\stepLM}{\mathbf{\gls{sym:stepsize}}_{\acrshort{acr:lm}}}
+%--------------------------------------------------------
+
+% Citation aliases
+\defcitealias{ccsds:ndm}{CCSDS 505.0-B-1, 2010}
+\defcitealias{iso11233}{ISO, 2014}
+\defcitealias{iso5725}{ISO, 1994}
+\defcitealias{ecss2008}{ECSS, 2008}
+\defcitealias{iso8601}{ISO, 2004}
+\defcitealias{iso26900}{ISO, 2012}
+\defcitealias{ansi2010}{ANSI\slash AIAA, 2010}
+\defcitealias{aiaa2010}{AIAA, 2010}
+\defcitealias{nasaJason2001}{NASA, 2001}
+\defcitealias{ccsds:odm}{CCSDS 502.0-B-2, 2009}
+\defcitealias{odqn_v13i2}{ODQN, 2009}
+\defcitealias{odqn_v15i3}{ODQN, 2011}
+\defcitealias{pafb2015}{PAFB, 2015}
+\defcitealias{ball2015}{Ball Aerospace, 2015}
+\defcitealias{esa2008}{ESA Council, 2008}
+\defcitealias{doris2015}{IDS website, 2015}
+\defcitealias{bowman2013}{Bowman, 2014}
+\defcitealias{ccsds:cdm}{CCSDS 508.0-B-1, Blue Book, 2013}
+\defcitealias{nanu2013031}{NANU 2013-031}
+\defcitealias{nanu2013035}{NANU 2013-035}
+\defcitealias{nanu2014018}{NANU 2014-018}
+
+
+% Hyphenation
+\hyphenation{NAV-STAR}
+\hyphenation{AN-SI}
+\hyphenation{pre-ces-sion nu-ta-tion}
+\hyphenation{zu-neh-men-de hoch-ge-naue Nut-zer}
+\hyphenation{Ephe-me-ris ephe-me-ri-des}
+\hyphenation{me-cha-nics}
+\hyphenation{as-so-ci-ated}
+\hyphenation{TO-PEX}
+\hyphenation{Po-seid-on}
+\hyphenation{Geo-spatial}
