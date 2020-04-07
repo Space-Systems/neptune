@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.2)
+cmake_minimum_required (VERSION 3.3)
 
 # Name the project NEPTUNE
 project (NEPTUNE Fortran)
@@ -94,8 +94,7 @@ add_subdirectory(src)
 # Create test scenarios
 add_test("ExecutableTest" neptune)
 
-find_package(Doxygen
-			 REQUIRED dot)
+find_package(Doxygen REQUIRED dot)
 
 if (DOXYGEN_FOUND)
 	# note the option ALL which allows to build the docs together with the application
