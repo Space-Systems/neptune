@@ -69,7 +69,8 @@ module libneptune
     !
     !-------------------------------
     public :: init_neptune                                                      ! initialization
-    public :: propagate                                                         ! propagation of state vector
+    public :: propagate                                                         ! propagation of state vector and covariance
+    public :: propagate_set                                                     ! propagation of state vector, covariance and state error transition matrix
 
 contains
 
@@ -450,6 +451,79 @@ contains
                       covar_out, &   ! --> TYP    output covariance matrix
                       flag_reset &   ! <-- LOG    reset flag
                     )
+      implicit none
+
+      !** interface
+      !------------------------------------------------------
+      type(Neptune_class)        ,intent(inout)  :: neptune
+      type(state_t),              intent(in)      :: state_in
+      type(covariance_t),         intent(in)      :: covar_in
+      type(time_t), dimension(2), intent(in)      :: epoch
+      logical,                    intent(in)      :: flag_reset
+
+      type(state_t),              intent(out)     :: state_out
+      type(covariance_t),         intent(out)     :: covar_out
+      !------------------------------------------------------
+      type(covariance_t)                          :: set_in
+      type(covariance_t)                          :: set_out
+
+      call identity_matrix(set_in%elem)
+
+      call propagate_set(neptune,  &
+                        state_in,  &   ! <-- TYP    input state vector (GCRF)
+                        covar_in,  &   ! <-- TYP    input covariance matrix (GCRF)
+                        set_in,    &   ! <-- TYP    input set matrix
+                        epoch,     &   ! <-- TYP    propagation start and end epoch [epoch(1) : start epoch, epoch(2) : end epoch]
+                        state_out, &   ! --> TYP    output state vector
+                        covar_out, &   ! --> TYP    output covariance matrix
+                        set_out,   &   ! --> TYP    output set matrix
+                        flag_reset &   ! <-- LOG    reset flag)
+                      )
+
+  end subroutine propagate
+
+  !========================================================================
+  !
+  !>  @anchor     propagate
+  !!
+  !>  @brief      NEPTUNE propagation routine
+  !<  @author     Vitali Braun
+  !!
+  !>  @date       <ul>
+  !!                <li> 04.07.2013 (documentation started)</li>
+  !!                <li> 30.07.2013 (added correlation matrix handling)</li>
+  !!                <li> 06.02.2014 (added getData functionality)</li>
+  !!                <li> 25.11.2014 (changed 'reset' handling, so that NEPTUNE really stops, if a step can not be passed)</li>
+  !!                <li> 24.01.2016 (added reference frame check for input)</li>
+  !!                <li> 14.06.2016 (backward propagation now working - but testing still needed)</li>
+  !!              </ul>
+  !!
+  !! @details     This routine is called for the propagation of the state
+  !!              vector and the covariance matrix, after NEPTUNE has been
+  !!              initialized by calling init_neptune.
+  !!
+  !> @param[in]   neptune     the neptune class
+  !> @param[in]   state_in    input state vector (GCRF expected, but checked)
+  !> @param[in]   covar_in    input covariance matrix (GCRF expected, but checked)
+  !> @param[in]   epoch       propagation start(1) and end(2) epoch
+  !> @param[out]  state_out   output state vector (GCRF)
+  !> @param[out]  covar_out   covariance output matrix (GCRF)
+  !> @param[in]   flag_reset  resetting the numerical integrator manually
+  !!
+  !> @todo        Get averaging right
+  !!
+  !!----------------------------------------------------
+  subroutine propagate_set(      &
+                      neptune,   &
+                      state_in,  &   ! <-- TYP    input state vector (GCRF)
+                      covar_in,  &   ! <-- TYP    input covariance matrix (GCRF)
+                      set_in,    &   ! <-- TYP    input set matrix
+                      epoch,     &   ! <-- TYP    propagation start and end epoch [epoch(1) : start epoch, epoch(2) : end epoch]
+                      state_out, &   ! --> TYP    output state vector
+                      covar_out, &   ! --> TYP    output covariance matrix
+                      set_out,   &   ! --> TYO    output set matrix
+                      flag_reset &   ! <-- LOG    reset flag
+                    )
 
     implicit none
 
@@ -458,11 +532,13 @@ contains
     type(Neptune_class)        ,intent(inout)  :: neptune
     type(state_t),              intent(in)      :: state_in
     type(covariance_t),         intent(in)      :: covar_in
+    type(covariance_t),         intent(in)      :: set_in
     type(time_t), dimension(2), intent(in)      :: epoch
     logical,                    intent(in)      :: flag_reset
 
     type(state_t),              intent(out)     :: state_out
     type(covariance_t),         intent(out)     :: covar_out
+    type(covariance_t),         intent(out)     :: set_out
     !------------------------------------------------------
 
     character(len=*), parameter         :: csubid = "neptune"
@@ -607,7 +683,8 @@ contains
     !--------------------------------------------------
     if(neptune%numerical_integrator%getCovariancePropagationFlag()) then
 
-      call identity_matrix(cumSet)  ! initial state error transition matrix is the unity matrix
+      cumSet = set_in%elem
+      !call identity_matrix(cumSet)  ! initial state error transition matrix is the unity matrix
       call neptune%numerical_integrator%resetCountSetMatrix()    ! the counter for the number of calls to the getStateTransitionMatrix routine is being reset
 
       !** correlation matrix
@@ -647,6 +724,7 @@ contains
     !** initialise output state
     state_out = state_in
     covar_out = covar_in
+    set_out = set_in
 
     if(neptune%has_to_write_progress()) call write_progress(neptune%get_progress_file_name(), 0.d0, neptune%get_progress_step())
     step_counter = 0
@@ -834,6 +912,7 @@ contains
 
           !** cumulate state transition matrix
           cumSet = matmul(set,cumSet)
+          set_out%elem = cumSet
 
           !** compute new covariance matrix for given time
           covar_out%elem = matmul(matmul(cumSet,covar_in%elem),transpose(cumSet))
@@ -859,6 +938,6 @@ contains
     end if
     return
 
-  end subroutine propagate
+  end subroutine propagate_set
 
 end module libneptune
