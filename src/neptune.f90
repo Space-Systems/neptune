@@ -622,10 +622,10 @@ contains
     ierr = neptune%setNeptuneVar(C_PAR_EARTH_RADIUS, toString(getEarthGeopotentialRadius()))
 
     !** dump all inputs
-    call neptune%dump_input("neptune_dump_file.out")
+    !call neptune%dump_input("neptune_dump_file.out")
 
     ! this only happens, if called with dump flag (checked in the routine)
-    call neptune%write_input_to_dump()
+    !call neptune%write_input_to_dump()
 
     ! prepare output files if requested (checked in the routine)
     call neptune%output%prepare_output(neptune%gravity_model,   &
