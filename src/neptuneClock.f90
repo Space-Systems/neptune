@@ -161,8 +161,6 @@ contains
             end do
             ! Extract the step size
             this%step_size = this%step_epochs_sec(next_i_index)
-            !write (*,*) "current intermediate step size: ", this%step_size
-            !this%cov_step = this%step_epochs_sec(this%intermediate_step_index)
         end if
 
         ! for the covariance step, it can depend on the integration method. For example, the RK4 method requires
@@ -180,7 +178,6 @@ contains
                 this%cov_counter     = this%cov_counter + cov_step
                 this%flag_output_step = .false.
                 call this%update_cov_flags(neptune)
-                !write (*,*) "Only covariance output:", this%cov_counter
             else if(abs(this%cov_counter - this%out_counter) < eps3) then
                 ! simultaneous output and covariance save/update step
                 step                  = min(this%cov_counter, this%out_counter)
@@ -188,15 +185,18 @@ contains
                 this%cov_counter      = this%cov_counter + cov_step
                 this%flag_output_step = .true.
                 call this%update_cov_flags(neptune)
-                !write (*,*) "Simulataneous output:", this%cov_counter, this%out_counter
             else
                 ! only output step
                 step                  = this%out_counter
                 this%out_counter      = this%out_counter + this%step_size
                 this%flag_output_step = .true.
-                this%flag_cov_update  = .false.
-                this%flag_cov_save    = .false.
-                !write (*,*) "Only output:", step
+                if (this%intermediate_steps_flag .and. this%cov_propagation_flag) then
+                    ! Always update the set matrix and covariance to the desired time
+                    call this%update_cov_flags(neptune)
+                else
+                    this%flag_cov_update  = .false.
+                    this%flag_cov_save    = .false.
+                end if
             end if
         else
             if(this%cov_counter > this%out_counter) then
@@ -217,14 +217,17 @@ contains
                 step                  = this%out_counter
                 this%out_counter      = this%out_counter - this%step_size
                 this%flag_output_step = .true.
-                this%flag_cov_update  = .false.
-                this%flag_cov_save    = .false.
+                if (this%intermediate_steps_flag .and. this%cov_propagation_flag) then
+                    ! Always update the set matrix and covariance to the desired time
+                    call this%update_cov_flags(neptune)
+                else
+                    this%flag_cov_update  = .false.
+                    this%flag_cov_save    = .false.
+                end if
             end if
         end if
         ! save the value for later reference (e.g. by has_finished_step)
         this%next_step = step
-
-        !write (*,*) "Actual step:", this%next_step
 
         return
     end function
