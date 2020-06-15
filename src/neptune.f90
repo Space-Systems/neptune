@@ -661,12 +661,13 @@ contains
     !
     !------------------------------------------------------------
     if (size(epochs) > 2) then
+      if (allocated(step_epochs_sec)) deallocate(step_epochs_sec)
+      allocate(step_epochs_sec(size(epochs)-1))
       do i_epoch = 2, size(epochs)
         ! Handle intermediate steps
-        if (allocated(step_epochs_sec)) deallocate(step_epochs_sec)
-        allocate(step_epochs_sec(size(epochs)-1))
-        step_epochs_sec(i_epoch) = (epochs(i_epoch)%mjd-epochs(i_epoch-1)%mjd)*86400.d0 ! in seconds
+        step_epochs_sec(i_epoch-1) = (epochs(i_epoch)%mjd-epochs(i_epoch-1)%mjd)*86400.d0 ! in seconds
       end do
+      !write (*,*) step_epochs_sec
       nep_clock = Clock_class(start_epoch_sec, end_epoch_sec, step_epochs_sec)
     else
       nep_clock = Clock_class(start_epoch_sec, end_epoch_sec)
@@ -777,6 +778,7 @@ contains
 
         if(neptune%getStoreDataFlag()) then
           dtmp = epochs(1)%mjd + prop_counter/86400.d0
+          !write (*,*) "Storing data:", dtmp, prop_counter
           call neptune%storeData(state_out%r, state_out%v, dtmp)
           !** store covariance matrix data if requested
           if(neptune%numerical_integrator%getCovariancePropagationFlag()) then
@@ -792,7 +794,7 @@ contains
 
       if(flag_exit) exit
 
-      request_time = nep_clock%get_next_step(neptune)
+      request_time = nep_clock%get_next_step(neptune,prop_counter)
       
       !====================================================================================
       !
@@ -860,15 +862,6 @@ contains
             if((.not. flag_backward .and. (lastPropCounterSuccess < lastPropCounter)) .or. &
                (      flag_backward .and. (lastPropCounterSuccess > lastPropCounter))) then
               ! This is the usual case when the intergator cannot go on and needs a valid state to restart from.
-              state_out    = last_state_out
-              prop_counter = lastPropCounter
-            else if ((.not. flag_backward .and. (prop_counter > request_time)) .or. &
-                    (       flag_backward .and. (prop_counter < request_time))) then
-              ! This case may happen when the integrator oversteps the requested time
-              !  and usually would start interpolation. Though, due to integration issues
-              !  he never gets to the point of interpolation but sets the prop_counter anyway.
-              !  This leads to an invalid state, which is also written to output at a time,
-              !  which was not even requested.
               state_out    = last_state_out
               prop_counter = lastPropCounter
             else if ((.not. flag_backward .and. (prop_counter > request_time)) .or. &
