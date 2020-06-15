@@ -505,7 +505,7 @@ contains
   !> @param[in]   neptune     the neptune class
   !> @param[in]   state_in    input state vector (GCRF expected, but checked)
   !> @param[in]   covar_in    input covariance matrix (GCRF expected, but checked)
-  !> @param[in]   epoch       propagation start(1) and end(2) epoch
+  !> @param[in]   epochs      propagation start(1) and end(last) epoch
   !> @param[out]  state_out   output state vector (GCRF)
   !> @param[out]  covar_out   covariance output matrix (GCRF)
   !> @param[in]   flag_reset  resetting the numerical integrator manually
@@ -518,7 +518,7 @@ contains
                       state_in,  &   ! <-- TYP    input state vector (GCRF)
                       covar_in,  &   ! <-- TYP    input covariance matrix (GCRF)
                       set_in,    &   ! <-- TYP    input set matrix
-                      epoch,     &   ! <-- TYP    propagation start and end epoch [epoch(1) : start epoch, epoch(2) : end epoch]
+                      epochs,    &   ! <-- TYP    propagation start and end epoch [epoch(1) : start epoch, epoch(last) : end epoch]
                       state_out, &   ! --> TYP    output state vector
                       covar_out, &   ! --> TYP    output covariance matrix
                       set_out,   &   ! --> TYO    output set matrix
@@ -529,11 +529,11 @@ contains
 
     !** interface
     !------------------------------------------------------
-    type(Neptune_class)        ,intent(inout)  :: neptune
+    type(Neptune_class),        intent(inout)   :: neptune
     type(state_t),              intent(in)      :: state_in
     type(covariance_t),         intent(in)      :: covar_in
     type(covariance_t),         intent(in)      :: set_in
-    type(time_t), dimension(2), intent(in)      :: epoch
+    type(time_t), dimension(:), intent(in)      :: epochs
     logical,                    intent(in)      :: flag_reset
 
     type(state_t),              intent(out)     :: state_out
@@ -557,6 +557,7 @@ contains
     real(dp)                :: dtmp                                             ! auxiliary
     real(dp)                :: delta_time                                       ! step size actually used for each propagation step
     real(dp)                :: end_epoch_sec                                    ! end epoch in seconds (MJD)
+    real(dp),dimension(:),allocatable :: step_epochs_sec                        ! intermediate epochs in seconds (MJD)
     real(dp)                :: lastPropCounter                                  ! saving the last prop_counter for which output has taken place
     real(dp)                :: lastPropCounterSuccess                           ! saving the last prop_counter for which a step was successful
     real(dp)                :: prop_counter                                     ! propagation time counter in seconds
@@ -568,7 +569,7 @@ contains
     type(state_t)           :: last_state_out                                   ! saving the last state vector which has been written to output
     type(Clock_class)       :: nep_clock                                        !< scheduling/clock unit to control the stepsize-related actions
     integer                 :: step_counter
-
+    integer                 :: i_epoch
 
     prop_counter = 0.0d0
     propCounterAtReset = 0.0d0
@@ -648,18 +649,28 @@ contains
 
     ! set start and end epoch - we work with an offset here, where
     ! the start epoch is at 0 seconds and the end epoch reflects the propagation span
-    call neptune%setStartEpoch(epoch(1))
+    call neptune%setStartEpoch(epochs(1))
     start_epoch_sec = 0.d0 ! epoch(1)%mjd*86400.d0 ! in seconds
 
-    call neptune%setEndEpoch(epoch(2))
-    end_epoch_sec   = (epoch(2)%mjd-epoch(1)%mjd)*86400.d0 ! in seconds
+    call neptune%setEndEpoch(epochs(size(epochs)))
+    end_epoch_sec   = (epochs(size(epochs))%mjd-epochs(1)%mjd)*86400.d0 ! in seconds
 
     !============================================================
     !
     !   Initialise propagation time counter
     !
     !------------------------------------------------------------
-    nep_clock = Clock_class(start_epoch_sec, end_epoch_sec)
+    if (size(epochs) > 2) then
+      do i_epoch = 2, size(epochs)
+        ! Handle intermediate steps
+        if (allocated(step_epochs_sec)) deallocate(step_epochs_sec)
+        allocate(step_epochs_sec(size(epochs)-1))
+        step_epochs_sec(i_epoch) = (epochs(i_epoch)%mjd-epochs(i_epoch-1)%mjd)*86400.d0 ! in seconds
+      end do
+      nep_clock = Clock_class(start_epoch_sec, end_epoch_sec, step_epochs_sec)
+    else
+      nep_clock = Clock_class(start_epoch_sec, end_epoch_sec)
+    end if
     ! Initialize the counters
     call nep_clock%init_counter(neptune)
 
@@ -670,7 +681,7 @@ contains
     ! Consider backward propagation
     !
     !---------------------------------------------
-    if(epoch(2)%mjd < epoch(1)%mjd) then
+    if(epochs(2)%mjd < epochs(1)%mjd) then
       flag_backward = .true.
     else
       flag_backward = .false.
@@ -765,7 +776,7 @@ contains
         end if
 
         if(neptune%getStoreDataFlag()) then
-          dtmp = epoch(1)%mjd + prop_counter/86400.d0
+          dtmp = epochs(1)%mjd + prop_counter/86400.d0
           call neptune%storeData(state_out%r, state_out%v, dtmp)
           !** store covariance matrix data if requested
           if(neptune%numerical_integrator%getCovariancePropagationFlag()) then
