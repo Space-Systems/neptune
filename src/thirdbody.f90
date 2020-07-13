@@ -100,8 +100,9 @@ contains
 !> @param[out]  acc_thirdbody     acceleration vector in inertial frame
 !!
 !! @details     This routine computes the acceleration in the GCRF due to third body
-!!              gravity perturbations. It uses the SPICE routine SPKPOS to compute the
-!!              position in the GCRF frame (called J2000 in SPICE) for the given time.
+!!              gravity perturbations. It is based on SPICE routine SPKPOS to compute the
+!!              position in the GCRF frame (called J2000 in SPICE) for the given time. However
+!!              the data is interpolated using chebyshev polynomials.
 !!
 !!              \par Overview
 !!
