@@ -1154,7 +1154,7 @@ end subroutine
     type(Thirdbody_class),intent(inout)             :: thirdbody_model          ! Third body model
     type(Tides_class),intent(inout)                 :: tides_model              ! Tides model
     type(Derivatives_class),intent(inout)           :: derivatives_model        ! Derivatives model
-    type(Reduction_type),intent(inout)             :: reduction                ! Reduction
+    type(Reduction_type),intent(inout)              :: reduction                ! Reduction
     real(dp),                 intent(in)            :: rqtime                   ! requested time
 
     real(dp),                 intent(inout)         :: currtime                 ! current time
@@ -1383,22 +1383,6 @@ end subroutine
         vel(1:3) = this%lastvel(1:3) + this%stepsize*this%diff(1:3,1)
         pos(1:3) = this%lastpos(1:3) + this%stepsize*this%lastvel(1:3) + stepsize2*this%diff(1:3,1)*0.5d0
 
-!        write(*,*) "XXXXX this%lastpos = ", this%lastpos
-!        write(*,*) "XXXXX this%lastvel = ", this%lastvel
-!        write(*,*) "XXXXX diff = ", this%diff(:,1)
-!        write(*,*) "XXXXX pos = ", pos
-        !read(*,*)
-        ! advance time
-
-!        write(*,*) "XXXXX currtime", currtime
-!        write(*,*) "XXXXX this%stepsize", this%stepsize
-!        write(*,*) "XXXXX again", again
-!        write(*,*) "XXXXX num", num
-!        write(*,*) "XXXXX this%fail", this%fail
-!        write(*,*) "XXXXX errd", errd, eps
-!        write(*,*) "XXXXX this%errs", this%errs, eps
-
-
         currtime = currtime + this%stepsize
 
         ! evaluate
@@ -1454,8 +1438,6 @@ end subroutine
         this%errd  = abs( stepsize2 * ( 1.d0/3.d0 ) ) * terrd
         this%errs  = abs( this%stepsize * ( 1.d0/2.d0 ) ) * terrs
 
-!        if (ISNAN(this%errd) .or.  ISNAN(this%errs) .or. &
-!                this%errd > this%eps .or. this%errs > this%eps) then
         if (this%errd > this%eps .or. this%errs > this%eps) then
           ! set everything back and try again with half step
           again = .true.
@@ -1699,34 +1681,24 @@ end subroutine
       terrd = 0.0d0
 
       do i=1,3
-
         ! get new differences
         newdiff(i,1) = accel(i)
-
         do m=2,this%k+1
-
           newdiff(i,m) = newdiff(i,m-1) - this%diff(i,m-1)
-
           if(this%correctSrp .and. this%flag_srp) then
             newsrpdiff(i,m) = newdiff(i,m-1) - srpdiff(i,m-1)
-
             if(ieee_is_nan(newsrpdiff(i,m))) then
               newsrpdiff(i,m) = 0.d0
             end if
-
           end if
-
         enddo
 
         ! corrector
         pos(i) = pos(i) + stepsize2 * ( g(2,this%k+1) + ratio*gp(2,this%k+1) ) * newdiff(i,this%k+1)
         vel(i) = vel(i) + this%stepsize * g(1,this%k+1) * newdiff(i,this%k+1)
 
-
         ! get error estimate
-        !wts(i) = abs(this%lastvel(i)) * this%releps + this%abseps !/ VB (10-APR-2015): It should be 'abs(vel)' here !!?
         wts(i) = abs(vel(i)) * this%releps + this%abseps
-        !wtd(i) = abs(this%lastpos(i)) * this%releps + this%abseps !/ VB (10-APR-2015): It should be 'abs(pos)' here !!?
         wtd(i) = abs(pos(i)) * this%releps + this%abseps
         terrs  = terrs + (newdiff(i,this%k+1) / wts(i))**2
         terrd  = terrd + (newdiff(i,this%k+1) / wtd(i))**2
