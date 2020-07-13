@@ -567,10 +567,15 @@ contains
     real(dp)                :: start_epoch_sec                                  ! start epoch in seconds (MJD)
     type(kepler_t)          :: kep                                              ! mean kepler elements for correlation matrix computation
     type(state_t)           :: last_state_out                                   ! saving the last state vector which has been written to output
-    type(Clock_class)       :: nep_clock                                        !< scheduling/clock unit to control the stepsize-related actions
+    type(Clock_class)       :: nep_clock                                        ! scheduling/clock unit to control the stepsize-related actions
     integer                 :: step_counter
     integer                 :: i_epoch
+    logical                 :: suppressed_output                                ! Indicates that output and storage should not be triggered due to an intermediate call to the numerical integrator
+    logical                 :: intermediate_integrator_call                     ! Indicates that an intermediate call to the integrator is performed
+    real(dp)                :: manoeuvre_change_epoch                           ! Is the start or end epoch of a manoeuvre
+    real(dp)                :: restored_request_time                            ! Requested time before the intermediate step got necessary
 
+    restored_request_time = 0.d0
     prop_counter = 0.0d0
     propCounterAtReset = 0.0d0
     lastPropCounterSuccess = 0.0d0
@@ -740,6 +745,7 @@ contains
 
     if(neptune%has_to_write_progress()) call write_progress(neptune%get_progress_file_name(), 0.d0, neptune%get_progress_step())
     step_counter = 0
+    suppressed_output = .false.
     do
       step_counter = step_counter + 1
       ! Check exit clause
@@ -750,7 +756,9 @@ contains
       ! Output if requested
       !
       !---------------------------------------------
-      if(nep_clock%has_to_write_output() .or. flag_exit) then
+      ! The output is suppressed when an intermediate step is needed 
+      ! (e.g. for start or end of a manoeuvre, which needs an exact start and end epoch and a reset of the integrator)
+      if((nep_clock%has_to_write_output() .and. .not. suppressed_output) .or. flag_exit) then
         ! make sure, that the final result is also written to output
         if(neptune%output%get_output_switch()) then
           call neptune%output%output(neptune%gravity_model, &
@@ -778,9 +786,8 @@ contains
 
         if(neptune%getStoreDataFlag()) then
           dtmp = epochs(1)%mjd + prop_counter/86400.d0
-          !write (*,*) "Storing data:", dtmp, prop_counter
           call neptune%storeData(state_out%r, state_out%v, dtmp)
-          !** store covariance matrix data if requested
+          ! store covariance matrix data if requested
           if(neptune%numerical_integrator%getCovariancePropagationFlag()) then
             call neptune%storeSetData(cumSet, dtmp)
             call neptune%storeCovData(covar_out%elem, dtmp)
@@ -794,7 +801,37 @@ contains
 
       if(flag_exit) exit
 
-      request_time = nep_clock%get_next_step(neptune,prop_counter)
+      ! Check if the previous call was an intermediate integrator call (due to a manoeuvre start or end)
+      if (intermediate_integrator_call) then
+        ! ... if so we will restore the original request time
+        request_time = restored_request_time
+      else
+        ! No previous intermediate call - we can just proceed as planned
+        request_time = nep_clock%get_next_step(neptune,prop_counter)
+        ! Save the current requested time in case we determine that an intermediate call must be done due to an immenant manoeuvre start or end 
+        restored_request_time = request_time
+      end if
+
+      ! Check whether there is a manoeuvre change (start or end)
+      suppressed_output = .false.
+      intermediate_integrator_call = .false.
+      if (neptune%derivatives_model%getPertSwitch(PERT_MANEUVERS)) then
+        ! Get the next manoeuvre change epoch
+        manoeuvre_change_epoch = (neptune%manoeuvres_model%get_next_manoeuvre_change_epoch(epochs(1)%mjd + prop_counter/86400.d0) - epochs(1)%mjd) * 86400.d0
+        ! Check whether the manoeuvre change is more immenent than the step proposed
+        if (.not. flag_backward .and. (manoeuvre_change_epoch < request_time .and. manoeuvre_change_epoch > prop_counter) &
+          .or. flag_backward .and. (manoeuvre_change_epoch > request_time .and. manoeuvre_change_epoch < prop_counter)) then
+          if (abs(manoeuvre_change_epoch - request_time) > epsilon(1.d0)) then
+            ! The manoeuvre_change_epoch does not coincide with a storage and output epoch - surpress the output!
+            suppressed_output = .true.
+            call message(' - Suppressing intermediate integrator output ', LOG_AND_STDOUT)
+          end if
+          ! Override the request time with the up coming manoeuvre start or end epoch
+          request_time = manoeuvre_change_epoch
+          intermediate_integrator_call = .true.
+          call message(' - Adding intermediate integrator call at '//toString(request_time)//' s', LOG_AND_STDOUT)
+        end if
+      end if
       
       !====================================================================================
       !
@@ -802,20 +839,6 @@ contains
       !
       !--------------------------------------------------------------------------------
       do
-        !write (*,*) "Calling integrator again", prop_counter/86400.d0, request_time/86400.d0, delta_time
-
-       !if(abs(epoch(1)%mjd - 55276.805555555678d0) < eps9) then
-       !write(*,*) "<CALLING VARSTORMCOW>"
-       !write(*,*) "..."
-       !write(*,*) "r = ", state_out%r
-       !write(*,*) "time = ", prop_counter/86400.d0, request_time/86400.d0
-       !write(*,*) "reset = ", reset
-       !write(*,*) "...."
-       !write(*,*) "going to varstormcow at ", (request_time/86400.d0-53125.d0)*1440.d0, "(", (epoch(2)%mjd-53125.d0)*1440.d0, "), current time being: ", &
-       !              (propCounter/86400.d0-53125.d0)*1440.d0
-       !write(*,*) "position vector : ", state_out%r
-       !read(*,*)
-       !end if
 
         call neptune%numerical_integrator%integrateStep(         &
                             neptune%gravity_model,               &              ! <->  TYPE  Gravity model
@@ -835,6 +858,7 @@ contains
                             reset,                               &              ! <--> INT   reset flag
                             delta_time                           &              ! -->  DBL   propagated time (s)
                           )
+        
         ! progress output immediately after integration step
         if(neptune%has_to_write_progress()) then
             dtmp = abs(prop_counter - start_epoch_sec)/abs(end_epoch_sec - start_epoch_sec)
@@ -848,7 +872,6 @@ contains
 
         if(reset == 1) then     ! in case of a reset the last output state has to be re-established,
                                 ! as the original state_out is overwritten after each call
-          !print*, 'resetting...'
           nresets            = nresets + 1
           propCounterAtReset = prop_counter
 
@@ -881,7 +904,12 @@ contains
           lastPropCounterSuccess = prop_counter
         end if
 
-        if(nep_clock%has_finished_step(prop_counter)) exit
+        ! Exit the integration loop when the desired time is reached
+        if (intermediate_integrator_call) then
+          if (abs(prop_counter - request_time) < epsilon(1.0d0)) exit
+        else
+          if(nep_clock%has_finished_step(prop_counter)) exit
+        end if
 
       end do
       !---------------------------------------------------------------------------------------------------------

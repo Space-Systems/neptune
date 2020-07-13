@@ -114,6 +114,7 @@ module maneuvers
         procedure :: get_manoeuvre_data
         procedure :: get_number_of_manoeuvres
         procedure :: get_maneuver_acceleration
+        procedure :: get_next_manoeuvre_change_epoch
 
         procedure, private :: read_maneuvre_file
         procedure, private :: init_maneuver_sequence
@@ -1067,6 +1068,44 @@ contains
     return
 
   end function get_current_index
+
+!=============================================================================
+!
+!> @anchor      get_next_manoeuvre_change_epoch
+!!
+!! @brief       Get the start or end epoch of the next manoeuvre within the mnv_sequence array
+!! @author      Christopher Kebschull
+!!
+!! @param[in]   mjd   current MJD
+!!
+!! @date        <ul>
+!!                <li> 13.07.2020: initial design</li>
+!!              </ul>
+!!
+!-----------------------------------------------------------------------------
+  real(dp) function get_next_manoeuvre_change_epoch(this, mjd)
+
+    class(Manoeuvres_class) :: this
+    real(dp), intent(in)    :: mjd                                              ! current MJD
+
+    integer :: k    ! loop counter
+
+    get_next_manoeuvre_change_epoch = 0.d0
+
+    ! loop through mnv_sequence array to bracket mjd
+    do k = 1, size(this%mnv_sequence)
+
+      if( mjd < this%mnv_sequence(k)%mjd_start) then
+        get_next_manoeuvre_change_epoch = this%mnv_sequence(k)%mjd_start
+        return
+      else if(mjd < this%mnv_sequence(k)%mjd_end) then
+        get_next_manoeuvre_change_epoch = this%mnv_sequence(k)%mjd_end
+        return
+      end if
+
+    end do
+
+  end function
 
 
 !=============================================================================
