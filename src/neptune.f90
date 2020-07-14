@@ -746,6 +746,8 @@ contains
     if(neptune%has_to_write_progress()) call write_progress(neptune%get_progress_file_name(), 0.d0, neptune%get_progress_step())
     step_counter = 0
     suppressed_output = .false.
+    intermediate_integrator_call = .false.
+    restored_request_time = request_time
     do
       step_counter = step_counter + 1
       ! Check exit clause
