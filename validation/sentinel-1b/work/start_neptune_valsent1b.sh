@@ -7,6 +7,8 @@ if [[ ! -d "data" ]]; then
   ln -sf ../../../work/data
 fi
 #
+ln -sf ../../../bin/neptune-valsent1b
+#
 # Download solar and geomagnetic activity data, when the files are older than 1 day
 if [[ `find "data/fap_day.dat" -mtime +24` ]]; then
   wget -q https://static.sdo.esoc.esa.int/SOLMAG/fap_day.dat --directory-prefix=./data
