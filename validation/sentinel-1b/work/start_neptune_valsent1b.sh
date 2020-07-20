@@ -11,12 +11,16 @@ ln -sf ../../../bin/neptune-valsent1b
 #
 # Download solar and geomagnetic activity data, when the files are older than 1 day
 if [[ `find "data/fap_day.dat" -mtime +24` ]]; then
-  wget -q https://static.sdo.esoc.esa.int/SOLMAG/fap_day.dat --directory-prefix=./data
-  wget -q https://static.sdo.esoc.esa.int/SOLMAG/fap_mon.dat --directory-prefix=./data
+  wget -N https://static.sdo.esoc.esa.int/SOLMAG/fap_day.dat --directory-prefix=./data
+  wget -N https://static.sdo.esoc.esa.int/SOLMAG/fap_mon.dat --directory-prefix=./data
 fi
 if [[ `find "data/sw19571001.txt" -mtime +24` ]]; then
-  wget -q https://celestrak.com/SpaceData/SW-All.txt --directory-prefix=./data
+  wget -N https://celestrak.com/SpaceData/SW-All.txt --directory-prefix=./data
   mv ./data//SW-All.txt ./data/sw19571001.txt
+fi
+if [[ `find "data/eop19620101.txt" -mtime +24` ]]; then
+  wget -N https://celestrak.com/SpaceData/EOP-All.txt --directory-prefix=./data
+  mv ./data//EOP-All.txt ./data/eop19620101.txt
 fi
 #
 # Create the poeData directory if it does not exist and retrieve the sentinel poe data
