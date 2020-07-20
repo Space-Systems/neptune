@@ -1,0 +1,27 @@
+#-----<ILR/NEPTUNE>------------------------------------------------------------
+#
+#   NEPTUNE -- Maneuver Specification File
+#
+#------------------------------------------------------------------------------
+#
+#  Input to be provided:
+#
+#   -Date:      Date in ISO format YYYY-MM-DDThh:mm:ss of maneuver start. If
+#               left empty, the start of the maneuver is the last provided
+#               date in the former lines, maneuver begin is derived from the 
+#               duration given in line above.
+#   -Duration:  Maneuver duration in seconds
+#   -a_u/v/w:   Acceleration in satellite frame (UVW) in km/s**2
+#
+#-----------------------------------------------------------------------------
+#
+#    NOTE: make sure that there are no blank lines in the data 
+#         (escape with '#' if required)
+#
+#-----------------------------------------------------------------------------
+#         Date           Duration    a_u   a_v   a_w     
+#__[YYYY-MM-DDThh:mm:ss]____[s]______[*]___[*]___[*]___
+    2019-06-26T21:40:41     23.875   -0.21367128E-08     0.34196316E-06   0.24668746E-07   
+    2019-06-26T22:29:45     14.125   -0.14149311E-08    -0.37489161E-06   0.26093520E-07    
+#    2019-06-26T21:40:41     24.1     -0.21367128D-08    0.34196316D-06   0.24668746D-07    
+#    2019-06-26T21:29:45     14.1     -0.14149311D-08   -0.37489161D-06   0.26093520D-07
