@@ -95,13 +95,13 @@ subroutine readPOE(reduction_model, epoch, stateGCRF, npoe)
                     osv_detected = .false.
                     if (npoe < 2) then
                         ! Make sure that duplicate epoch entries are ignored
-                        call reduction_model%earthFixed2inertial(state%r, state%v, state%epoch%mjd ,stateGCRF(npoe)%r, stateGCRF(npoe)%v)
                         npoe = npoe + 1
+                        call reduction_model%earthFixed2inertial(state%r, state%v, state%epoch%mjd ,stateGCRF(npoe)%r, stateGCRF(npoe)%v)
                         stateGCRF(npoe)%epoch = state%epoch
                     else if (state%epoch%mjd > stateGCRF(npoe)%epoch%mjd) then
                         ! Make sure that duplicate epoch entries are ignored
-                        call reduction_model%earthFixed2inertial(state%r, state%v, state%epoch%mjd ,stateGCRF(npoe)%r, stateGCRF(npoe)%v)
                         npoe = npoe + 1
+                        call reduction_model%earthFixed2inertial(state%r, state%v, state%epoch%mjd ,stateGCRF(npoe)%r, stateGCRF(npoe)%v)
                         stateGCRF(npoe)%epoch = state%epoch
                     end if
                 endif
