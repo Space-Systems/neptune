@@ -69,7 +69,8 @@ module libneptune
     !
     !-------------------------------
     public :: init_neptune                                                      ! initialization
-    public :: propagate                                                         ! propagation of state vector
+    public :: propagate                                                         ! propagation of state vector and covariance
+    public :: propagate_set                                                     ! propagation of state vector, covariance and state error transition matrix
 
 contains
 
@@ -450,19 +451,94 @@ contains
                       covar_out, &   ! --> TYP    output covariance matrix
                       flag_reset &   ! <-- LOG    reset flag
                     )
+      implicit none
+
+      !** interface
+      !------------------------------------------------------
+      type(Neptune_class)        ,intent(inout)  :: neptune
+      type(state_t),              intent(in)      :: state_in
+      type(covariance_t),         intent(in)      :: covar_in
+      type(time_t), dimension(2), intent(in)      :: epoch
+      logical,                    intent(in)      :: flag_reset
+
+      type(state_t),              intent(out)     :: state_out
+      type(covariance_t),         intent(out)     :: covar_out
+      !------------------------------------------------------
+      type(covariance_t)                          :: set_in
+      type(covariance_t)                          :: set_out
+
+      call identity_matrix(set_in%elem)
+
+      call propagate_set(neptune,  &
+                        state_in,  &   ! <-- TYP    input state vector (GCRF)
+                        covar_in,  &   ! <-- TYP    input covariance matrix (GCRF)
+                        set_in,    &   ! <-- TYP    input set matrix
+                        epoch,     &   ! <-- TYP    propagation start and end epoch [epoch(1) : start epoch, epoch(2) : end epoch]
+                        state_out, &   ! --> TYP    output state vector
+                        covar_out, &   ! --> TYP    output covariance matrix
+                        set_out,   &   ! --> TYP    output set matrix
+                        flag_reset &   ! <-- LOG    reset flag)
+                      )
+
+  end subroutine propagate
+
+  !========================================================================
+  !
+  !>  @anchor     propagate
+  !!
+  !>  @brief      NEPTUNE propagation routine
+  !<  @author     Vitali Braun
+  !!
+  !>  @date       <ul>
+  !!                <li> 04.07.2013 (documentation started)</li>
+  !!                <li> 30.07.2013 (added correlation matrix handling)</li>
+  !!                <li> 06.02.2014 (added getData functionality)</li>
+  !!                <li> 25.11.2014 (changed 'reset' handling, so that NEPTUNE really stops, if a step can not be passed)</li>
+  !!                <li> 24.01.2016 (added reference frame check for input)</li>
+  !!                <li> 14.06.2016 (backward propagation now working - but testing still needed)</li>
+  !!              </ul>
+  !!
+  !! @details     This routine is called for the propagation of the state
+  !!              vector and the covariance matrix, after NEPTUNE has been
+  !!              initialized by calling init_neptune.
+  !!
+  !> @param[in]   neptune     the neptune class
+  !> @param[in]   state_in    input state vector (GCRF expected, but checked)
+  !> @param[in]   covar_in    input covariance matrix (GCRF expected, but checked)
+  !> @param[in]   epochs      propagation start(1) and end(last) epoch
+  !> @param[out]  state_out   output state vector (GCRF)
+  !> @param[out]  covar_out   covariance output matrix (GCRF)
+  !> @param[in]   flag_reset  resetting the numerical integrator manually
+  !!
+  !> @todo        Get averaging right
+  !!
+  !!----------------------------------------------------
+  subroutine propagate_set(      &
+                      neptune,   &
+                      state_in,  &   ! <-- TYP    input state vector (GCRF)
+                      covar_in,  &   ! <-- TYP    input covariance matrix (GCRF)
+                      set_in,    &   ! <-- TYP    input set matrix
+                      epochs,    &   ! <-- TYP    propagation start and end epoch [epoch(1) : start epoch, epoch(last) : end epoch]
+                      state_out, &   ! --> TYP    output state vector
+                      covar_out, &   ! --> TYP    output covariance matrix
+                      set_out,   &   ! --> TYO    output set matrix
+                      flag_reset &   ! <-- LOG    reset flag
+                    )
 
     implicit none
 
     !** interface
     !------------------------------------------------------
-    type(Neptune_class)        ,intent(inout)  :: neptune
+    type(Neptune_class),        intent(inout)   :: neptune
     type(state_t),              intent(in)      :: state_in
     type(covariance_t),         intent(in)      :: covar_in
-    type(time_t), dimension(2), intent(in)      :: epoch
+    type(covariance_t),         intent(in)      :: set_in
+    type(time_t), dimension(:), intent(in)      :: epochs
     logical,                    intent(in)      :: flag_reset
 
     type(state_t),              intent(out)     :: state_out
     type(covariance_t),         intent(out)     :: covar_out
+    type(covariance_t),         intent(out)     :: set_out
     !------------------------------------------------------
 
     character(len=*), parameter         :: csubid = "neptune"
@@ -481,6 +557,7 @@ contains
     real(dp)                :: dtmp                                             ! auxiliary
     real(dp)                :: delta_time                                       ! step size actually used for each propagation step
     real(dp)                :: end_epoch_sec                                    ! end epoch in seconds (MJD)
+    real(dp),dimension(:),allocatable :: step_epochs_sec                        ! intermediate epochs in seconds (MJD)
     real(dp)                :: lastPropCounter                                  ! saving the last prop_counter for which output has taken place
     real(dp)                :: lastPropCounterSuccess                           ! saving the last prop_counter for which a step was successful
     real(dp)                :: prop_counter                                     ! propagation time counter in seconds
@@ -490,10 +567,15 @@ contains
     real(dp)                :: start_epoch_sec                                  ! start epoch in seconds (MJD)
     type(kepler_t)          :: kep                                              ! mean kepler elements for correlation matrix computation
     type(state_t)           :: last_state_out                                   ! saving the last state vector which has been written to output
-    type(Clock_class)       :: nep_clock                                        !< scheduling/clock unit to control the stepsize-related actions
+    type(Clock_class)       :: nep_clock                                        ! scheduling/clock unit to control the stepsize-related actions
     integer                 :: step_counter
+    integer                 :: i_epoch
+    logical                 :: suppressed_output                                ! Indicates that output and storage should not be triggered due to an intermediate call to the numerical integrator
+    logical                 :: intermediate_integrator_call                     ! Indicates that an intermediate call to the integrator is performed
+    real(dp)                :: manoeuvre_change_epoch                           ! Is the start or end epoch of a manoeuvre
+    real(dp)                :: restored_request_time                            ! Requested time before the intermediate step got necessary
 
-
+    restored_request_time = 0.d0
     prop_counter = 0.0d0
     propCounterAtReset = 0.0d0
     lastPropCounterSuccess = 0.0d0
@@ -546,10 +628,10 @@ contains
     ierr = neptune%setNeptuneVar(C_PAR_EARTH_RADIUS, toString(getEarthGeopotentialRadius()))
 
     !** dump all inputs
-    call neptune%dump_input("neptune_dump_file.out")
+    !call neptune%dump_input("neptune_dump_file.out")
 
     ! this only happens, if called with dump flag (checked in the routine)
-    call neptune%write_input_to_dump()
+    !call neptune%write_input_to_dump()
 
     ! prepare output files if requested (checked in the routine)
     call neptune%output%prepare_output(neptune%gravity_model,   &
@@ -572,18 +654,29 @@ contains
 
     ! set start and end epoch - we work with an offset here, where
     ! the start epoch is at 0 seconds and the end epoch reflects the propagation span
-    call neptune%setStartEpoch(epoch(1))
+    call neptune%setStartEpoch(epochs(1))
     start_epoch_sec = 0.d0 ! epoch(1)%mjd*86400.d0 ! in seconds
 
-    call neptune%setEndEpoch(epoch(2))
-    end_epoch_sec   = (epoch(2)%mjd-epoch(1)%mjd)*86400.d0 ! in seconds
+    call neptune%setEndEpoch(epochs(size(epochs)))
+    end_epoch_sec   = (epochs(size(epochs))%mjd-epochs(1)%mjd)*86400.d0 ! in seconds
 
     !============================================================
     !
     !   Initialise propagation time counter
     !
     !------------------------------------------------------------
-    nep_clock = Clock_class(start_epoch_sec, end_epoch_sec)
+    if (size(epochs) > 2) then
+      if (allocated(step_epochs_sec)) deallocate(step_epochs_sec)
+      allocate(step_epochs_sec(size(epochs)-1))
+      do i_epoch = 2, size(epochs)
+        ! Handle intermediate steps
+        step_epochs_sec(i_epoch-1) = (epochs(i_epoch)%mjd-epochs(i_epoch-1)%mjd)*86400.d0 ! in seconds
+      end do
+      !write (*,*) step_epochs_sec
+      nep_clock = Clock_class(start_epoch_sec, end_epoch_sec, step_epochs_sec)
+    else
+      nep_clock = Clock_class(start_epoch_sec, end_epoch_sec)
+    end if
     ! Initialize the counters
     call nep_clock%init_counter(neptune)
 
@@ -594,7 +687,7 @@ contains
     ! Consider backward propagation
     !
     !---------------------------------------------
-    if(epoch(2)%mjd < epoch(1)%mjd) then
+    if(epochs(2)%mjd < epochs(1)%mjd) then
       flag_backward = .true.
     else
       flag_backward = .false.
@@ -607,7 +700,8 @@ contains
     !--------------------------------------------------
     if(neptune%numerical_integrator%getCovariancePropagationFlag()) then
 
-      call identity_matrix(cumSet)  ! initial state error transition matrix is the unity matrix
+      cumSet = set_in%elem
+      !call identity_matrix(cumSet)  ! initial state error transition matrix is the unity matrix
       call neptune%numerical_integrator%resetCountSetMatrix()    ! the counter for the number of calls to the getStateTransitionMatrix routine is being reset
 
       !** correlation matrix
@@ -647,9 +741,13 @@ contains
     !** initialise output state
     state_out = state_in
     covar_out = covar_in
+    set_out = set_in
 
     if(neptune%has_to_write_progress()) call write_progress(neptune%get_progress_file_name(), 0.d0, neptune%get_progress_step())
     step_counter = 0
+    suppressed_output = .false.
+    intermediate_integrator_call = .false.
+    restored_request_time = request_time
     do
       step_counter = step_counter + 1
       ! Check exit clause
@@ -660,7 +758,9 @@ contains
       ! Output if requested
       !
       !---------------------------------------------
-      if(nep_clock%has_to_write_output() .or. flag_exit) then
+      ! The output is suppressed when an intermediate step is needed 
+      ! (e.g. for start or end of a manoeuvre, which needs an exact start and end epoch and a reset of the integrator)
+      if((nep_clock%has_to_write_output() .and. .not. suppressed_output) .or. flag_exit) then
         ! make sure, that the final result is also written to output
         if(neptune%output%get_output_switch()) then
           call neptune%output%output(neptune%gravity_model, &
@@ -687,9 +787,9 @@ contains
         end if
 
         if(neptune%getStoreDataFlag()) then
-          dtmp = epoch(1)%mjd + prop_counter/86400.d0
+          dtmp = epochs(1)%mjd + prop_counter/86400.d0
           call neptune%storeData(state_out%r, state_out%v, dtmp)
-          !** store covariance matrix data if requested
+          ! store covariance matrix data if requested
           if(neptune%numerical_integrator%getCovariancePropagationFlag()) then
             call neptune%storeSetData(cumSet, dtmp)
             call neptune%storeCovData(covar_out%elem, dtmp)
@@ -703,7 +803,37 @@ contains
 
       if(flag_exit) exit
 
-      request_time = nep_clock%get_next_step(neptune)
+      ! Check if the previous call was an intermediate integrator call (due to a manoeuvre start or end)
+      if (intermediate_integrator_call) then
+        ! ... if so we will restore the original request time
+        request_time = restored_request_time
+      else
+        ! No previous intermediate call - we can just proceed as planned
+        request_time = nep_clock%get_next_step(neptune,prop_counter)
+        ! Save the current requested time in case we determine that an intermediate call must be done due to an immenant manoeuvre start or end 
+        restored_request_time = request_time
+      end if
+
+      ! Check whether there is a manoeuvre change (start or end)
+      suppressed_output = .false.
+      intermediate_integrator_call = .false.
+      if (neptune%derivatives_model%getPertSwitch(PERT_MANEUVERS)) then
+        ! Get the next manoeuvre change epoch
+        manoeuvre_change_epoch = (neptune%manoeuvres_model%get_next_manoeuvre_change_epoch(epochs(1)%mjd + prop_counter/86400.d0) - epochs(1)%mjd) * 86400.d0
+        ! Check whether the manoeuvre change is more immenent than the step proposed
+        if (.not. flag_backward .and. (manoeuvre_change_epoch < request_time .and. manoeuvre_change_epoch > prop_counter) &
+          .or. flag_backward .and. (manoeuvre_change_epoch > request_time .and. manoeuvre_change_epoch < prop_counter)) then
+          if (abs(manoeuvre_change_epoch - request_time) > epsilon(1.d0)) then
+            ! The manoeuvre_change_epoch does not coincide with a storage and output epoch - surpress the output!
+            suppressed_output = .true.
+            call message(' - Suppressing intermediate integrator output ', LOG_AND_STDOUT)
+          end if
+          ! Override the request time with the up coming manoeuvre start or end epoch
+          request_time = manoeuvre_change_epoch
+          intermediate_integrator_call = .true.
+          call message(' - Adding intermediate integrator call at '//toString(request_time)//' s', LOG_AND_STDOUT)
+        end if
+      end if
       
       !====================================================================================
       !
@@ -711,20 +841,6 @@ contains
       !
       !--------------------------------------------------------------------------------
       do
-        !write (*,*) "Calling integrator again", prop_counter/86400.d0, request_time/86400.d0, delta_time
-
-       !if(abs(epoch(1)%mjd - 55276.805555555678d0) < eps9) then
-       !write(*,*) "<CALLING VARSTORMCOW>"
-       !write(*,*) "..."
-       !write(*,*) "r = ", state_out%r
-       !write(*,*) "time = ", prop_counter/86400.d0, request_time/86400.d0
-       !write(*,*) "reset = ", reset
-       !write(*,*) "...."
-       !write(*,*) "going to varstormcow at ", (request_time/86400.d0-53125.d0)*1440.d0, "(", (epoch(2)%mjd-53125.d0)*1440.d0, "), current time being: ", &
-       !              (propCounter/86400.d0-53125.d0)*1440.d0
-       !write(*,*) "position vector : ", state_out%r
-       !read(*,*)
-       !end if
 
         call neptune%numerical_integrator%integrateStep(         &
                             neptune%gravity_model,               &              ! <->  TYPE  Gravity model
@@ -744,6 +860,7 @@ contains
                             reset,                               &              ! <--> INT   reset flag
                             delta_time                           &              ! -->  DBL   propagated time (s)
                           )
+        
         ! progress output immediately after integration step
         if(neptune%has_to_write_progress()) then
             dtmp = abs(prop_counter - start_epoch_sec)/abs(end_epoch_sec - start_epoch_sec)
@@ -757,7 +874,6 @@ contains
 
         if(reset == 1) then     ! in case of a reset the last output state has to be re-established,
                                 ! as the original state_out is overwritten after each call
-          !print*, 'resetting...'
           nresets            = nresets + 1
           propCounterAtReset = prop_counter
 
@@ -782,15 +898,6 @@ contains
               !  which was not even requested.
               state_out    = last_state_out
               prop_counter = lastPropCounter
-            else if ((.not. flag_backward .and. (prop_counter > request_time)) .or. &
-                    (       flag_backward .and. (prop_counter < request_time))) then
-              ! This case may happen when the integrator oversteps the requested time
-              !  and usually would start interpolation. Though, due to integration issues
-              !  he never gets to the point of interpolation but sets the prop_counter anyway.
-              !  This leads to an invalid state, which is also written to output at a time,
-              !  which was not even requested.
-              state_out    = last_state_out
-              prop_counter = lastPropCounter
             end if
           end if
         else if((.not. flag_backward .and. (prop_counter > propCounterAtReset)) .or. &
@@ -799,7 +906,12 @@ contains
           lastPropCounterSuccess = prop_counter
         end if
 
-        if(nep_clock%has_finished_step(prop_counter)) exit
+        ! Exit the integration loop when the desired time is reached
+        if (intermediate_integrator_call) then
+          if (abs(prop_counter - request_time) < epsilon(1.0d0)) exit
+        else
+          if(nep_clock%has_finished_step(prop_counter)) exit
+        end if
 
       end do
       !---------------------------------------------------------------------------------------------------------
@@ -834,6 +946,7 @@ contains
 
           !** cumulate state transition matrix
           cumSet = matmul(set,cumSet)
+          set_out%elem = cumSet
 
           !** compute new covariance matrix for given time
           covar_out%elem = matmul(matmul(cumSet,covar_in%elem),transpose(cumSet))
@@ -859,6 +972,6 @@ contains
     end if
     return
 
-  end subroutine propagate
+  end subroutine propagate_set
 
 end module libneptune

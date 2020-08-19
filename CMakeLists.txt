@@ -88,8 +88,8 @@ find_library(LIBOPIFORTRAN OPI-Fortran lib)
 # Build NEPTUNE
 add_subdirectory(src)
 
-# Build NEPTUNE-Validation
-#add_subdirectory(validation)
+# Build validation executables
+add_subdirectory(validation)
 
 # Create test scenarios
 add_test("ExecutableTest" neptune)

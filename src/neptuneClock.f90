@@ -40,6 +40,8 @@ module neptuneClock
         logical  :: flag_cov_update                                             !< is .true. during covariance matrix update/integration steps
         logical  :: flag_cov_save                                               !< is .true. when an intermediate step for the covariance needs to be saved (like for RK4)
         logical  :: cov_propagation_flag                                        !< is .true. when covariance matrix is propagated
+        real(dp),dimension(:),allocatable  :: step_epochs_sec                   !< intermediate epochs (in seconds)
+        logical  :: intermediate_steps_flag                                     !< is .true. when intermediate steps are to be take (requested by user)
 
     contains
         procedure :: init_counter
@@ -70,13 +72,16 @@ contains
     !!  @author     Christopher Kebschull
     !!  @date       <ul>
     !!                  <li>ChK: 24.12.2017 (initial implementation)</li>
+    !!                  <li>ChK: 13.06.2020 (Add intemediate steps support)</li>
     !!              </ul>
     !!  @anchor     constructor_time
     !!
     ! --------------------------------------------------------------------
-    type(Clock_class) function constructor_time(start_epoch_sec, end_epoch_sec)
-        real(dp),intent(in)     :: start_epoch_sec                              !< start time (in seconds)
-        real(dp),intent(in)     :: end_epoch_sec                                !< end time (in seconds)
+    type(Clock_class) function constructor_time(start_epoch_sec, end_epoch_sec, step_epochs_sec)
+        real(dp),intent(in)             :: start_epoch_sec                      !< start time (in seconds)
+        real(dp),intent(in)             :: end_epoch_sec                        !< end time (in seconds)
+        real(dp),dimension(:),optional  :: step_epochs_sec                      ! intermediate epochs in seconds (MJD)
+
 
         constructor_time%start_time                     = start_epoch_sec
         constructor_time%end_time                       = end_epoch_sec
@@ -92,7 +97,7 @@ contains
         constructor_time%flag_output_step               = .false.               !< is .true. during output steps
         constructor_time%flag_cov_update                = .false.               !< is .true. during covariance matrix update/integration steps
         constructor_time%flag_cov_save                  = .false.               !< is .true. when an intermediate step for the covariance needs to be saved (like for RK4)
-
+        constructor_time%intermediate_steps_flag        = .false.
 
         !=====================================================
         !
@@ -103,6 +108,16 @@ contains
           call constructor_time%switch_backward_propagation
         else
           call constructor_time%switch_forward_propagation
+        end if
+
+        !=====================================================
+        !
+        ! Consider requested intermediate propagation steps
+        !
+        !---------------------------------------------
+        if (present(step_epochs_sec)) then
+          constructor_time%step_epochs_sec = step_epochs_sec
+          constructor_time%intermediate_steps_flag = .true.
         end if
         
     end function constructor_time
@@ -118,13 +133,35 @@ contains
     !!  @anchor     get_next_step
     !!
     ! --------------------------------------------------------------------
-    function get_next_step(this,neptune) result(step)
+    function get_next_step(this,neptune,current_time) result(step)
         class(Clock_class)                  :: this
         type(Neptune_class),intent(inout)   :: neptune
+        real(dp)           ,intent(in)      :: current_time
 
         real(dp)                            :: step
         real(dp), parameter                 :: eps3 = 1.d-3
         real(dp)                            :: cov_step                         !< covariance matrix integration step size / s
+        integer                             :: i_index                          !< intermediate step index
+        integer                             :: next_i_index                     !< intermediate step index
+        real(dp)                            :: cumulated_steps
+
+        ! When we are in intermediate steps mode we update the step_size with every request
+        if (this%intermediate_steps_flag) then
+            cumulated_steps = 0.d0
+            ! Determine on which time step we are working
+            do i_index = 1, size(this%step_epochs_sec)
+                cumulated_steps = cumulated_steps + this%step_epochs_sec(i_index)
+                if (cumulated_steps > current_time) then
+                    next_i_index = i_index
+                    if (i_index < size(this%step_epochs_sec)) then
+                        next_i_index = i_index + 1
+                    end if
+                    exit
+                end if
+            end do
+            ! Extract the step size
+            this%step_size = this%step_epochs_sec(next_i_index)
+        end if
 
         ! for the covariance step, it can depend on the integration method. For example, the RK4 method requires
         ! half steps to be saved
@@ -153,8 +190,13 @@ contains
                 step                  = this%out_counter
                 this%out_counter      = this%out_counter + this%step_size
                 this%flag_output_step = .true.
-                this%flag_cov_update  = .false.
-                this%flag_cov_save    = .false.
+                if (this%intermediate_steps_flag .and. this%cov_propagation_flag) then
+                    ! Always update the set matrix and covariance to the desired time
+                    call this%update_cov_flags(neptune)
+                else
+                    this%flag_cov_update  = .false.
+                    this%flag_cov_save    = .false.
+                end if
             end if
         else
             if(this%cov_counter > this%out_counter) then
@@ -175,8 +217,13 @@ contains
                 step                  = this%out_counter
                 this%out_counter      = this%out_counter - this%step_size
                 this%flag_output_step = .true.
-                this%flag_cov_update  = .false.
-                this%flag_cov_save    = .false.
+                if (this%intermediate_steps_flag .and. this%cov_propagation_flag) then
+                    ! Always update the set matrix and covariance to the desired time
+                    call this%update_cov_flags(neptune)
+                else
+                    this%flag_cov_update  = .false.
+                    this%flag_cov_save    = .false.
+                end if
             end if
         end if
         ! save the value for later reference (e.g. by has_finished_step)
@@ -315,21 +362,31 @@ contains
         !** step size / output write counter
         !-------------------------------------------------------
         if(neptune%output%get_output_switch()) then
-            if(neptune%getStoreDataFlag()) then
+            if (this%intermediate_steps_flag) then
+                ! First step for intermediate steps is defined by the user
+                this%step_size = this%step_epochs_sec(1)
+            else if(neptune%getStoreDataFlag()) then
                 this%step_size = dble(neptune%getStep())
             else
                 this%step_size = dble(neptune%get_output_step()) ! in seconds
             end if
 
             this%flag_output_step = .true.
+
             if(this%forward) then
                 this%out_counter = this%start_time + this%step_size
             else
                 this%out_counter = this%start_time - this%step_size
             end if
+            
         else
             if(neptune%getStoreDataFlag()) then
-                this%step_size   = dble(neptune%getStep())
+                if (this%intermediate_steps_flag) then
+                    ! First step for intermediate steps is defined by the user
+                    this%step_size = this%step_epochs_sec(1)
+                else 
+                    this%step_size   = dble(neptune%getStep())
+                end if
                 if(this%forward) then
                     this%out_counter = this%start_time + this%step_size
                 else

@@ -1,0 +1,65 @@
+#----<OKAPI>------------------------------------------------------
+#
+#    Sentinel 1 validation tool
+#
+#-----------------------------------------------------------------
+#
+#    Input file
+#
+#-----------------------------------------------------------------
+#
+  sentinel-1b    Run ID
+#
+#---------------------------------------------------------
+#
+# SATELLITE SPECS https://earth.esa.int/documents/10174/1567860/Sentinel-1+Mission+Operations+Concept_2.pdf
+   2151.964  Mass (kg)
+      6.2    Cross-section related to drag (m**2)
+     32.233  Cross-section related to SRP  (m**2)
+      2.2    Drag coefficient
+      1.2    SRP coefficient
+#
+#---------------------------------------------------------
+#
+# YYYY-MM-DDTHH:MM:SS   POE-Data-Epochs
+  2019-06-22T18:00:00   Start
+  2019-07-02T18:00:00   End
+#
+#---------------------------------------------------------
+#
+# YYYY-MM-DDTHH:MM:SS   Propagation Epochs
+  2019-06-22T18:00:00   Start
+  2019-07-02T18:00:00   End
+#
+#---------------------------------------------------------
+#
+# Perturbations (ON/OFF, integer number for degree of geopotential)
+#
+  70   Geopotential degree
+  ON   Athmosphere
+  ON   Horizontal wind
+  ON   3rd Body Sun
+  ON   3rd Body Moon
+  ON   SRP
+  ON   Solid Tides
+  OFF   Ocean Tides
+  ON   Maneuvers
+  ON   Albedo
+#
+#----------------------------------------------------------
+# 
+#   Geopotential model to be used (if geopotential perturbation /= 0):
+#     1 = EGM96
+#     2 = EGM2008
+#     3 = EIGEN-GL04C
+#
+   1    
+#
+#----------------------------------------------------------
+#
+#  Numerical integration parameters
+#
+  1.d-12    Störmer-Cowell relative tolerance
+  1.d-13    Strömer-Cowell absolute tolerance
+#
+#----------------------------------------------------------
