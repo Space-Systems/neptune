@@ -932,6 +932,8 @@ subroutine rdinp(                &
 
   else if(input_type == INPUT_TEME) then
 
+    ! At this point EOPs have not been initialized yet - let's do this now
+    call neptune%reduction%initEOP(neptune%getDataPath())
     stateTEME = state
     call neptune%reduction%teme2eci(stateTEME%r, stateTEME%v, (/0.d0,0.d0,0.d0/), & ! no accelerations..
                   epoch(1)%mjd, state%r, state%v, dtmp3)
