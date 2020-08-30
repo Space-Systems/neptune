@@ -37,9 +37,8 @@ program neptune_sa
 
   use slam_astro
   use derivatives,              only: PERT_SRP
-  use slam_error_handling,      only: getLatestError, hasFailed, getLogfileChannel, setLogfileName, getLogfileName, &
-                                 initErrorHandler, ERRORS, setLogVerbosity, setCliVerbosity, setLogfileChannel, printTrace
-  use neptune_error_handling,   only: getNeptuneErrorMessage, E_MIN_ALTITUDE
+  use neptune_error_handling,   only: getNeptuneErrorMessage, E_MIN_ALTITUDE, getLatestError, hasFailed, getLogfileChannel, & 
+                                      setLogfileName, getLogfileName, initErrorHandler, ERRORS, setLogVerbosity, setCliVerbosity, setLogfileChannel, printTrace
   use slam_io,                  only: LOG_AND_STDOUT, openFile, STREAM, SEQUENTIAL, SWITCHED_OFF, IN_UNFORMATTED, closeFile, message
   use libneptune,               only: init_neptune, propagate
   use neptuneClass,             only: Neptune_class

@@ -172,7 +172,7 @@ subroutine setNeptuneError(code, err_type, par)
     else
         call getNeptuneErrorMessage(code, errorMessage)
     end if
-    call setError(E_SPECIAL, err_type, par=par, errorMessage=errorMessage)
+    call setError(code, err_type, par=par, errorMessage=errorMessage)
     return
 
 end subroutine setNeptuneError
