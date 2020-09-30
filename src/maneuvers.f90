@@ -76,8 +76,8 @@ module maneuvers
     public :: mnvPhase_t
     !-----------------------------------
 
-    integer, parameter :: MANEUVER_STACK_SIZE     = 40                          ! number of maneuvers the initial array is capable of storing
-    integer, parameter :: MANEUVER_STACK_SIZE_MAX = 200                         ! maximum number of maneuvers which can be handled
+    integer, parameter :: MANEUVER_STACK_SIZE     = 4000                        ! number of maneuvers the initial array is capable of storing
+    integer, parameter :: MANEUVER_STACK_SIZE_MAX = 20000                       ! maximum number of maneuvers which can be handled
     integer, parameter :: MAX_MANEUVER_PHASES     = 50                          ! maximum number of maneuver phases which can be handled per maneuver
 
     integer, parameter :: NO_TRANSITION = 0
