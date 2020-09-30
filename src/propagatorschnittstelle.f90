@@ -102,50 +102,50 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
 
 
   !** manoeuvre --> should be temp, this is a little bit an overkill
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_1", 0.0)
-  call OPI_Module_createProperty(propagator, "man_duration_1", 0.0)
+  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_1", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_duration_1", 0.0D0)
   call OPI_Module_createProperty(propagator, "man_ref_frame_1", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_1", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a2_1", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a3_1", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_1", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_1", 0.0)
+  call OPI_Module_createProperty(propagator, "man_a1_1", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_a2_1", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_a3_1", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_1", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_1", 0.0D0)
 
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_2", 0.0)
-  call OPI_Module_createProperty(propagator, "man_duration_2", 0.0)
+  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_2", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_duration_2", 0.0D0)
   call OPI_Module_createProperty(propagator, "man_ref_frame_2", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_2", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a2_2", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a3_2", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_2", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_2", 0.0)
+  call OPI_Module_createProperty(propagator, "man_a1_2", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_a2_2", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_a3_2", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_2", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_2", 0.0D0)
 
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_3", 0.0)
-  call OPI_Module_createProperty(propagator, "man_duration_3", 0.0)
+  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_3", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_duration_3", 0.0D0)
   call OPI_Module_createProperty(propagator, "man_ref_frame_3", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_3", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a2_3", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a3_3", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_3", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_3", 0.0)
+  call OPI_Module_createProperty(propagator, "man_a1_3", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_a2_3", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_a3_3", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_3", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_3", 0.0D0)
 
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_4", 0.0)
-  call OPI_Module_createProperty(propagator, "man_duration_4", 0.0)
+  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_4", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_duration_4", 0.0D0)
   call OPI_Module_createProperty(propagator, "man_ref_frame_4", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_4", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a2_4", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a3_4", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_4", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_4", 0.0)
+  call OPI_Module_createProperty(propagator, "man_a1_4", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_a2_4", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_a3_4", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_4", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_4", 0.0D0)
 
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_5", 0.0)
-  call OPI_Module_createProperty(propagator, "man_duration_5", 0.0)
+  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_5", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_duration_5", 0.0D0)
   call OPI_Module_createProperty(propagator, "man_ref_frame_5", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_5", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a2_5", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a3_5", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_5", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_5", 0.0)
+  call OPI_Module_createProperty(propagator, "man_a1_5", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_a2_5", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_a3_5", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_5", 0.0D0)
+  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_5", 0.0D0)
 
 end subroutine
 
@@ -209,6 +209,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
     type(OPI_Vector3), dimension(:), pointer                :: object_position
     type(OPI_Vector3), dimension(:), pointer                :: object_velocity
     type(OPI_Covariance), dimension(:), pointer             :: object_covariance
+    type(OPI_Epoch), dimension(:), pointer                  :: object_epoch
 
     !** states
     type(state_t)               :: initial_state                                ! initial state of the object to be propagated (ECI)
@@ -431,7 +432,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
         endif
 
         !** constant ap value (long term propagation)
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"const_ap_value")        
+        write(temp_string,*) OPI_Module_getPropertyString(propagator,"const_ap_value")
         ierr = neptune_instance%setNeptuneVar("OPT_AP_FORECAST", trim(temp_string))
         !** check error
         if (ierr .ne. 0) then
@@ -903,6 +904,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
     object_velocity => OPI_Population_getVelocity(data)
     object_covariance => OPI_Population_getCovariance(data)
     object_properties => OPI_Population_getObjectProperties(data)
+    object_epoch => OPI_Population_getEpoch(data)
 
     if (create_cheby) then
         bytes_pointer => OPI_Population_getBytes(data)
@@ -1204,7 +1206,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             if (getLatestError() .eq. E_MIN_ALTITUDE) then
 
                !** awesome. we only reentered, therefore:
-               object_orbit(iobject)%eol = propagation_epoch(1)%jd  !** <-- this is not very correct. Here actually should stand the decay date, which is not updated in NEPTUNE!
+               object_epoch(iobject)%end_of_life = propagation_epoch(1)%jd  !** <-- this is not very correct. Here actually should stand the decay date, which is not updated in NEPTUNE!
 
                !** reset error handling
                call resetError()
@@ -1264,7 +1266,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
           else
 
             !** no re-entry, eol is 0.d0
-            object_orbit(iobject)%eol  = 0.d0
+            object_epoch(iobject)%end_of_life  = 0.d0
 
           endif
 
@@ -1417,7 +1419,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             interpol_ephemeris(:,1) = interpol_epoch(:)
 
             ! call the interpolation, once for every position
-            if (object_orbit(iobject)%eol .eq. 0.d0) then
+            if (object_epoch(iobject)%end_of_life .eq. 0.d0) then
 
               do l = 1,6
                 interpol_ephemeris(:,2) = interpol_state(:,l)
