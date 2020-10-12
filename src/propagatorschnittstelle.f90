@@ -1459,24 +1459,31 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
 
           do j = 1, number_of_states
 
+            ! Extract state vector from NEPTUNE API
             temp_state = neptune_instance%getNeptuneData(j)
-            temp_covariance = neptune_instance%getNeptuneCovarianceData(j)
-            !** check, in what frame the covariance was provided
-            write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_ref_frame")
-            if ( trim(adjustl(temp_string)) == "UVW" ) then
-                ! Convert UVW covariance into ECI covariance
-                call reduction_model%getJacobianEci2uvw(temp_state%r,temp_state%v,jacobi) ! convert to UVW
-                slam_error = t%check_slam_error()
-                if (t%has_to_return()) return
-                if (slam_error) then
-                    call resetError()
-                end if
-                covariance_matrix_UVW = matmul(matmul(jacobi,temp_covariance%elem),transpose(jacobi))
-                temp_covariance%elem = covariance_matrix_UVW
-            end if
             ephemeris(j, 1, iobject) = temp_state%epoch%mjd
             ephemeris(j, 2:4, iobject) = temp_state%r(1:3)
             ephemeris(j, 5:7, iobject) = temp_state%v(1:3)
+
+            ! Extract covariance from NEPTUNE API
+            if (propagate_covariance) then
+                temp_covariance = neptune_instance%getNeptuneCovarianceData(j)
+                !** check, in what frame the covariance was provided
+                write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_ref_frame")
+                if ( trim(adjustl(temp_string)) == "UVW" ) then
+                    ! Convert UVW covariance into ECI covariance
+                    call reduction_model%getJacobianEci2uvw(temp_state%r,temp_state%v,jacobi) ! convert to UVW
+                    slam_error = t%check_slam_error()
+                    if (t%has_to_return()) return
+                    if (slam_error) then
+                        call resetError()
+                    end if
+                    covariance_matrix_UVW = matmul(matmul(jacobi,temp_covariance%elem),transpose(jacobi))
+                    temp_covariance%elem = covariance_matrix_UVW
+                end if
+            else
+                temp_covariance%elem = initial_covariance%elem
+            end if
             ephemeris(j, 8, iobject) = temp_covariance%elem(1,1)
             ephemeris(j, 9, iobject) = temp_covariance%elem(2,1)
             ephemeris(j,10, iobject) = temp_covariance%elem(2,2)
@@ -1498,7 +1505,6 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             ephemeris(j,26, iobject) = temp_covariance%elem(6,4)
             ephemeris(j,27, iobject) = temp_covariance%elem(6,5)
             ephemeris(j,28, iobject) = temp_covariance%elem(6,6)
-            write(99,*) ephemeris(j,1:7, iobject)
 
           end do
         endif
