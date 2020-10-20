@@ -674,6 +674,7 @@ contains
       rho = this%getDensityExponential(altitude)
     else if(this%nmodel == MSIS2000) then
       rho = this%getDensityMSIS2000(altitude, lat_gd, lon, time_mjd)
+    else if(this%nmodel == JB2008)
     end if
 
     this%last_rho      = rho

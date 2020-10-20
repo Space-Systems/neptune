@@ -10,6 +10,7 @@ set(SRC_FILES
     gravity.f90
     nrlmsise00Data.f90
     nrlmsise00Class.f90
+    JB2008.for
     atmosphere.f90
     thirdbody.f90
     radiation.f90
