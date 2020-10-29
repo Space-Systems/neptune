@@ -45,14 +45,10 @@ $ mkdir build; \
 This will retrieve the projects [Orbital Propagation Interface (OPI-2015)](https://github.com/ILR/OPI) and [libslam](https://github.com/IRAS/libslam), build and install them and do the same with NEPTUNE itself.
 In the bin directory you will find neptune-sa, which is the stand-alone executable.
 In addition there are:
-* neptune-valers1,
-* neptune-valers2,
-* neptune-valgps,
-* neptune-valice,
-* neptune-valjas,
+* neptune-valsent1b
 * openmp-test-sa.
 
-While the first five are validation executables enabling the comparison of NEPTUNE results against measurements,
+While the first is a validation executables enabling the comparison of NEPTUNE results against measurements,
 the last executable is a test to show that parallel execution using OpenMP works.
 
 #### CMake Options
