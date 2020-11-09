@@ -47,6 +47,7 @@ module maneuvers
         real(dp) :: mjd_start                                                   ! MJD of phase start
         real(dp) :: mjd_end                                                     ! MJD of phase end
         real(dp), dimension(3) :: acc                                           ! acceleration vector in UVW frame / km/s**2
+        real(dp) :: thrust_efficiency                                           ! Efficiency of the thrust
 
     end type mnvPhase_t
 
@@ -114,7 +115,7 @@ module maneuvers
         procedure :: get_manoeuvre_data
         procedure :: get_number_of_manoeuvres
         procedure :: get_maneuver_acceleration
-        procedure :: get_next_manoeuvre_change_epoch
+        procedure :: get_upcoming_manoeuvre_change_epoch
 
         procedure, private :: read_maneuvre_file
         procedure, private :: init_maneuver_sequence
@@ -346,7 +347,7 @@ contains
       if(index(cbuf,'-') /= 0 .and. index(cbuf,':') /= 0) then ! a date tag is available, if a '-' and a ':' are found
 
         i = i + 1
-        read(cbuf,*) dateString, duration, (this%manv(i)%phase(1)%acc(j), j=1,3)
+        read(cbuf,*) dateString, duration, (this%manv(i)%phase(1)%acc(j), j=1,3), this%manv(i)%phase(1)%thrust_efficiency
 
         !** convert we to km/s -- UPDATE: not required, as thrust is also given in kg*m/s**2, which cancels out to kg/s after division...
         !manv(i)%phase(1)%we = manv(i)%phase(1)%we/1.d3
@@ -366,7 +367,7 @@ contains
 
       else if(flag_current_maneuver) then ! read new phase of current maneuver
 
-        read(cbuf,*) duration, (this%manv(i)%phase(kphs)%acc(j), j=1,3)
+        read(cbuf,*) duration, (this%manv(i)%phase(kphs)%acc(j), j=1,3), this%manv(i)%phase(1)%thrust_efficiency
 
         ! compute dates
         this%manv(i)%phase(kphs)%mjd_start = this%manv(i)%phase(kphs-1)%mjd_end
@@ -591,53 +592,71 @@ contains
 
     if (allocated(this%mnv_sequence)) deallocate(this%mnv_sequence)
 
-    allocate(this%mnv_sequence(2*sum(number_phases(1:size(this%manv)))+size(this%manv)))  ! enough elements to account for transitions
-                                                                                ! between thrust levels (cubic hermite spline, later on)
-    k = 0
+    allocate(this%mnv_sequence(size(this%manv)))  ! enough elements to account for transitions
 
+    k = 1
     do i=1,size(this%manv)
 
-
       do j=1,this%manv(i)%nphases
-
-        k = k + 2                                                               ! +2, as between each maneuver phase, also a transition phase will be added
         this%mnv_sequence(k)%midx        = i
         this%mnv_sequence(k)%pidx        = j
-        this%mnv_sequence(k)%mjd_start   = this%manv(i)%phase(j)%mjd_start + 0.5d0*transDay
-        this%mnv_sequence(k)%mjd_end     = this%manv(i)%phase(j)%mjd_end   - 0.5d0*transDay
+        this%mnv_sequence(k)%mjd_start   = this%manv(i)%phase(j)%mjd_start
+        this%mnv_sequence(k)%mjd_end     = this%manv(i)%phase(j)%mjd_end
         this%mnv_sequence(k)%trans       = NO_TRANSITION
 
-        !** transition phase
-        this%mnv_sequence(k-1)%mjd_start = this%mnv_sequence(k)%mjd_start - transDay
-        this%mnv_sequence(k-1)%mjd_end   = this%mnv_sequence(k)%mjd_start
-        this%mnv_sequence(k-1)%midx      = i
-        this%mnv_sequence(k-1)%pidx      = j
-
-        if(j == 1) then
-
-          this%mnv_sequence(k-1)%trans = TRANS_START  ! begin of maneuver
-
-        else if(j <= this%manv(i)%nphases) then
-
-          this%mnv_sequence(k-1)%trans = TRANS_PHASE  ! transition between two phases
-
-        end if
-
-        if(j == this%manv(i)%nphases) then   ! last phase: add transition interval at the end
-
-          this%mnv_sequence(k+1)%mjd_start  = this%manv(i)%phase(j)%mjd_end - 0.5d0*transDay
-          this%mnv_sequence(k+1)%mjd_end    = this%mnv_sequence(k+1)%mjd_start + transDay
-          this%mnv_sequence(k+1)%midx       = i
-          this%mnv_sequence(k+1)%pidx       = j
-          this%mnv_sequence(k+1)%trans      = TRANS_END
-
-        end if
+        k = k + 1     ! +1, as between each maneuver phase, also a transition phase will be added later on (see below)
 
       end do
 
-      k = k + 1     ! +1, as between each maneuver phase, also a transition phase will be added later on (see below)
-
     end do
+
+    ! allocate(this%mnv_sequence(2*sum(number_phases(1:size(this%manv)))+size(this%manv)))  ! enough elements to account for transitions
+    !                                                                             ! between thrust levels (cubic hermite spline, later on)
+    ! k = 0
+
+    ! do i=1,size(this%manv)
+
+
+    !   do j=1,this%manv(i)%nphases
+
+    !     k = k + 2                                                               ! +2, as between each maneuver phase, also a transition phase will be added
+    !     this%mnv_sequence(k)%midx        = i
+    !     this%mnv_sequence(k)%pidx        = j
+    !     this%mnv_sequence(k)%mjd_start   = this%manv(i)%phase(j)%mjd_start + 0.5d0*transDay
+    !     this%mnv_sequence(k)%mjd_end     = this%manv(i)%phase(j)%mjd_end   - 0.5d0*transDay
+    !     this%mnv_sequence(k)%trans       = NO_TRANSITION
+
+    !     !** transition phase
+    !     this%mnv_sequence(k-1)%mjd_start = this%mnv_sequence(k)%mjd_start - transDay
+    !     this%mnv_sequence(k-1)%mjd_end   = this%mnv_sequence(k)%mjd_start
+    !     this%mnv_sequence(k-1)%midx      = i
+    !     this%mnv_sequence(k-1)%pidx      = j
+
+    !     if(j == 1) then
+
+    !       this%mnv_sequence(k-1)%trans = TRANS_START  ! begin of maneuver
+
+    !     else if(j <= this%manv(i)%nphases) then
+
+    !       this%mnv_sequence(k-1)%trans = TRANS_PHASE  ! transition between two phases
+
+    !     end if
+
+    !     if(j == this%manv(i)%nphases) then   ! last phase: add transition interval at the end
+
+    !       this%mnv_sequence(k+1)%mjd_start  = this%manv(i)%phase(j)%mjd_end - 0.5d0*transDay
+    !       this%mnv_sequence(k+1)%mjd_end    = this%mnv_sequence(k+1)%mjd_start + transDay
+    !       this%mnv_sequence(k+1)%midx       = i
+    !       this%mnv_sequence(k+1)%pidx       = j
+    !       this%mnv_sequence(k+1)%trans      = TRANS_END
+
+    !     end if
+
+    !   end do
+
+    !   k = k + 1     ! +1, as between each maneuver phase, also a transition phase will be added later on (see below)
+
+    ! end do
 
     !** final step: sort maneuver sequence
 !    do
@@ -893,7 +912,7 @@ contains
     ! 3)  Update satellite's mass in order to compute current acceleration (stored in module variable mass_new)
     !call updateMass()
 
-    !write(*,*) time_mjd, mag(acc_uvw)
+    write(*,*) time_mjd, mag(acc_uvw), v_gcrf
 
     ! 4)  Finally compute acceleration
 
@@ -981,33 +1000,36 @@ contains
 
     else
 
-      if(this%mnv_sequence(idx)%trans == NO_TRANSITION) then  ! constant thrust in this phase
+      ! if(this%mnv_sequence(idx)%trans == NO_TRANSITION) then  ! constant thrust in this phase
 
-        get_current_acc(1:3) = this%manv(this%mnv_sequence(idx)%midx)%phase(this%mnv_sequence(idx)%pidx)%acc(1:3)
+      !   get_current_acc(1:3) = this%manv(this%mnv_sequence(idx)%midx)%phase(this%mnv_sequence(idx)%pidx)%acc(1:3)
 
-      else
+      ! else
 
-        if(this%mnv_sequence(idx)%trans == TRANS_START) then   ! cubic hermite interpolation for maneuver start
+      !   if(this%mnv_sequence(idx)%trans == TRANS_START) then   ! cubic hermite interpolation for maneuver start
 
-          y1 = 0.d0
-          y2(1:3) = this%manv(this%mnv_sequence(idx)%midx)%phase(this%mnv_sequence(idx)%pidx)%acc(1:3)
+      !     y1 = 0.d0
+      !     y2(1:3) = this%manv(this%mnv_sequence(idx)%midx)%phase(this%mnv_sequence(idx)%pidx)%acc(1:3)
 
-        else if(this%mnv_sequence(idx)%trans == TRANS_PHASE) then ! cubic hermite interpolation between phases
+      !   else if(this%mnv_sequence(idx)%trans == TRANS_PHASE) then ! cubic hermite interpolation between phases
 
-          y2(1:3) = this%manv(this%mnv_sequence(idx)%midx)%phase(this%mnv_sequence(idx)%pidx)%acc(1:3)
-          y1(1:3) = this%manv(this%mnv_sequence(idx-1)%midx)%phase(this%mnv_sequence(idx-1)%pidx)%acc(1:3)
+      !     y2(1:3) = this%manv(this%mnv_sequence(idx)%midx)%phase(this%mnv_sequence(idx)%pidx)%acc(1:3)
+      !     y1(1:3) = this%manv(this%mnv_sequence(idx-1)%midx)%phase(this%mnv_sequence(idx-1)%pidx)%acc(1:3)
 
-        else if(this%mnv_sequence(idx)%trans == TRANS_END) then ! cubic hermite interpolation for maneuver end
+      !   else if(this%mnv_sequence(idx)%trans == TRANS_END) then ! cubic hermite interpolation for maneuver end
 
-          y1(1:3) = this%manv(this%mnv_sequence(idx)%midx)%phase(this%mnv_sequence(idx)%pidx)%acc(1:3)
-          y2(1:3) = 0.d0
+      !     y1(1:3) = this%manv(this%mnv_sequence(idx)%midx)%phase(this%mnv_sequence(idx)%pidx)%acc(1:3)
+      !     y2(1:3) = 0.d0
 
-        end if
+      !   end if
 
-        ttemp = (time_mjd - this%mnv_sequence(idx)%mjd_start)/transDay
-        get_current_acc(1:3) = (2.d0*ttemp**3.d0 - 3.d0*ttemp**2.d0 + 1.d0)*y1(1:3) + (3.d0*ttemp**2.d0 - 2.d0*ttemp**3.d0)*y2(1:3)
+      !   ttemp = (time_mjd - this%mnv_sequence(idx)%mjd_start)/transDay
+      !   get_current_acc(1:3) = (2.d0*ttemp**3.d0 - 3.d0*ttemp**2.d0 + 1.d0)*y1(1:3) + (3.d0*ttemp**2.d0 - 2.d0*ttemp**3.d0)*y2(1:3)
 
-      end if
+      ! end if
+
+      get_current_acc(1:3) = this%manv(this%mnv_sequence(idx)%midx)%phase(this%mnv_sequence(idx)%pidx)%acc(1:3) &
+                                * this%manv(this%mnv_sequence(idx)%midx)%phase(this%mnv_sequence(idx)%pidx)%thrust_efficiency
 
     end if
 
@@ -1039,7 +1061,7 @@ contains
     ! loop through mnv_sequence array to bracket mjd
     do k = 1, size(this%mnv_sequence)
 
-      if(k == size(this%mnv_sequence) .and. mjd > this%mnv_sequence(k)%mjd_start .and. mjd < this%mnv_sequence(k)%mjd_end) then
+      if(k == size(this%mnv_sequence) .and. mjd >= this%mnv_sequence(k)%mjd_start .and. mjd < this%mnv_sequence(k)%mjd_end) then
         get_current_index = k
         return
       else if(mjd < this%mnv_sequence(k)%mjd_start) then
@@ -1059,7 +1081,7 @@ contains
     else  ! somewhere in between of all maneuvers...
 
       get_current_index = k-1
-      if((mjd > this%mnv_sequence(k-1)%mjd_end) .and. (mjd < this%mnv_sequence(k)%mjd_start)) then ! in between of two maneuvers
+      if((mjd > this%mnv_sequence(k-1)%mjd_end) .and. (mjd <= this%mnv_sequence(k)%mjd_start)) then ! in between of two maneuvers
         get_current_index = -(get_current_index + 1)  ! '+1' between phases, the negative index gives the number of the subsequent phase!
       end if
 
@@ -1071,7 +1093,7 @@ contains
 
 !=============================================================================
 !
-!> @anchor      get_next_manoeuvre_change_epoch
+!> @anchor      get_upcoming_manoeuvre_change_epoch
 !!
 !! @brief       Get the start or end epoch of the next manoeuvre within the mnv_sequence array
 !! @author      Christopher Kebschull
@@ -1083,23 +1105,23 @@ contains
 !!              </ul>
 !!
 !-----------------------------------------------------------------------------
-  real(dp) function get_next_manoeuvre_change_epoch(this, mjd)
+  real(dp) function get_upcoming_manoeuvre_change_epoch(this, mjd)
 
     class(Manoeuvres_class) :: this
     real(dp), intent(in)    :: mjd                                              ! current MJD
 
     integer :: k    ! loop counter
 
-    get_next_manoeuvre_change_epoch = 0.d0
+    get_upcoming_manoeuvre_change_epoch = 0.d0
 
     ! loop through mnv_sequence array to bracket mjd
     do k = 1, size(this%mnv_sequence)
 
       if( mjd < this%mnv_sequence(k)%mjd_start) then
-        get_next_manoeuvre_change_epoch = this%mnv_sequence(k)%mjd_start
+        get_upcoming_manoeuvre_change_epoch = this%mnv_sequence(k)%mjd_start
         return
       else if(mjd < this%mnv_sequence(k)%mjd_end) then
-        get_next_manoeuvre_change_epoch = this%mnv_sequence(k)%mjd_end
+        get_upcoming_manoeuvre_change_epoch = this%mnv_sequence(k)%mjd_end
         return
       end if
 
