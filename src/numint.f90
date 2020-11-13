@@ -151,7 +151,7 @@ module numint
         procedure,public :: setSrpCorrect
         procedure,public :: set_start_epoch
         !** others
-        procedure,public :: integrateStep
+        procedure,public  :: integrateStep
         procedure,private :: varstormcow
         procedure,private :: srpCorrection
 
@@ -1581,9 +1581,8 @@ end function
       this%stepsize  = this%stepsize * this%r
 
       ! Force a step size to meet e.g. changes in acceleration => maneuvers
-      if ((rqtime > this%inttime + this%stepsize) .and. force_no_interpolation) then
+      if ((rqtime < (this%inttime + this%stepsize)) .and. force_no_interpolation) then
         this%stepsize = rqtime - this%inttime
-        write (*,*) "Resizing time step to ", this%stepsize
       end if
 
       stepsize2 = this%stepsize * this%stepsize
@@ -1808,9 +1807,7 @@ end function
                                   vel,                                          & ! <-- DBL() current velocity vector
                                   this%start_epoch%mjd*sec_per_day+ currtime,   & ! <-- DBL   current time / sec
                                   this%stepsize,                                & ! <-- DBL   current stepsize / sec
-                   !               steps,                                       & ! <-- DBL() stepsize history
                                   T,                                            & ! <-- DBL() values of T-function
-                   !               fshadow,                                     & ! <-- DBL() shadow function
                                   theta,                                        & ! <-- DBL() angles theta
                                   alpha_e,                                      & ! <-- DBL() angles alpha earth
                                   alpha_s,                                      & ! <-- DBL() angles alpha sun

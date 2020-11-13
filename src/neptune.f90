@@ -818,6 +818,7 @@ contains
 
       ! Check whether there is a manoeuvre change (start or end)
       force_no_interpolation = .false.
+      neptune%manoeuvres_model%ignore_maneuver_start = .false.
       suppressed_output = .false.
       intermediate_integrator_call = .false.
       if (neptune%derivatives_model%getPertSwitch(PERT_MANEUVERS)) then
@@ -830,7 +831,7 @@ contains
           !force_no_interpolation = .true.
           ! reset also the count of subroutine calls to the integrator
           call neptune%numerical_integrator%resetCountIntegrator()
-          call message(' - Performing reset of intergator for upcoming maneuver '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
+          call message(' - Performing reset of intergator for upcoming maneuver '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
         end if
 
         ! Get the next manoeuvre change epoch
@@ -844,23 +845,24 @@ contains
             if (abs(manoeuvre_change_counter - request_time) > epsilon(1.d0)) then
               ! The manoeuvre_change_counter does not coincide with a storage and output epoch - surpress the output!
               suppressed_output = .true.
-              call message(' - Suppressing intermediate integrator output ', LOG_AND_STDOUT)
+              call message(' - Suppressing intermediate integrator output ', LOGFILE)
             end if
             ! Override the request time with the up coming manoeuvre start or end epoch
             request_time = manoeuvre_change_counter
             intermediate_integrator_call = .true.
             force_no_interpolation = .true.
-            call message(' - Adding intermediate integrator call for planned maneuver at '//toString(epochs(1)%mjd + request_time/86400.d0)//' ('//toString(request_time)//')', LOG_AND_STDOUT)
+            neptune%manoeuvres_model%ignore_maneuver_start = .true.
+            call message(' - Adding intermediate integrator call for planned maneuver at '//toString(epochs(1)%mjd + request_time/86400.d0)//' ('//toString(request_time)//')', LOGFILE)
           end if
 
           ! Reset when the timestep of the integrator is greater than
-          if (.not. flag_backward .and. (manoeuvre_change_counter < prop_counter + neptune%numerical_integrator%get_current_step_size() .and. manoeuvre_change_counter > prop_counter) &
-          .or. flag_backward .and. (manoeuvre_change_counter > prop_counter - neptune%numerical_integrator%get_current_step_size() .and. manoeuvre_change_counter < prop_counter)) then
+          if (.not. flag_backward .and. (manoeuvre_change_counter < (prop_counter + neptune%numerical_integrator%get_current_step_size()) .and. manoeuvre_change_counter > prop_counter) &
+          .or. flag_backward .and. (manoeuvre_change_counter > (prop_counter - neptune%numerical_integrator%get_current_step_size()) .and. manoeuvre_change_counter < prop_counter)) then
             reset = 1
             !force_no_interpolation = .true.
             ! reset also the count of subroutine calls to the integrator
             call neptune%numerical_integrator%resetCountIntegrator()
-            call message(' - Performing reset of intergator for upcoming maneuver due to time step size '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
+            call message(' - Performing reset of intergator for upcoming maneuver due to time step size '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
           end if
 
         end if

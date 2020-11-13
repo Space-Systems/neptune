@@ -29,7 +29,7 @@ module maneuvers
                                     E_MANEUVER_INIT, setNeptuneError
   use slam_error_handling,    only: isControlled, hasToReturn, hasFailed, FATAL, WARNING, REMARK, &
                                     E_ALLOCATION, checkIn, checkOut, E_OUT_OF_BOUNDS
-  use slam_math,              only: mag
+  use slam_math,              only: mag, eps9
   use slam_reduction_class,   only: Reduction_type
   use slam_time,              only: time_t, tokenizeDate, sec_per_day
 
@@ -99,6 +99,10 @@ module maneuvers
         type(maneuver_t),    dimension(:), allocatable :: manv                  ! maneuver data structure
         type(mnv_sequence_t), dimension(:), allocatable :: mnv_sequence         ! structure, which points at the first maneuver phase for index 1,
                                                                                 ! the second one for index 2, etc.
+        logical :: ignore_maneuver_start                                        ! This shall be true, when the last step of a non maneuver interval
+                                                                                !   reaches a maneuver. The maneuver shall be ignored to not create
+                                                                                !   an integration problem. This should flip to false, when the next
+                                                                                !   integration interval starts with exact this maneuver.
     contains
 
         procedure :: init_maneuvers_file
@@ -146,6 +150,7 @@ contains
     type(Manoeuvres_class) function constructor()
         constructor%man_initialized = .false.                                    ! initialization flag
         constructor%flag_no_data   = .false.
+        constructor%ignore_maneuver_start = .false.
         constructor%man_file_name = "neptune.mnv"
     end function constructor
 
@@ -912,7 +917,7 @@ contains
     ! 3)  Update satellite's mass in order to compute current acceleration (stored in module variable mass_new)
     !call updateMass()
 
-    write(*,*) time_mjd, mag(acc_uvw), v_gcrf
+    !write(*,*) time_mjd, mag(acc_uvw), v_gcrf
 
     ! 4)  Finally compute acceleration
 
@@ -1058,34 +1063,47 @@ contains
 
     integer :: k    ! loop counter
 
+    get_current_index = -1
+
     ! loop through mnv_sequence array to bracket mjd
     do k = 1, size(this%mnv_sequence)
 
-      if(k == size(this%mnv_sequence) .and. mjd >= this%mnv_sequence(k)%mjd_start .and. mjd < this%mnv_sequence(k)%mjd_end) then
-        get_current_index = k
-        return
-      else if(mjd < this%mnv_sequence(k)%mjd_start) then
-        exit
+      if (this%ignore_maneuver_start) then
+        if((mjd > this%mnv_sequence(k)%mjd_start) &
+            .and. (mjd <= this%mnv_sequence(k)%mjd_end)) then
+          get_current_index = k
+          return
+        else if(mjd < this%mnv_sequence(k)%mjd_start) then
+          exit
+        end if
+      else
+        if(mjd >= this%mnv_sequence(k)%mjd_start &
+            .and. mjd < this%mnv_sequence(k)%mjd_end) then
+          get_current_index = k
+          return
+        else if(mjd < this%mnv_sequence(k)%mjd_start) then
+          exit
+        end if
       end if
 
     end do
 
-    if(k == 1) then
+    ! if(k == 1) then
 
-      get_current_index = -1  ! prior to first maneuver
+    !   get_current_index = -1  ! prior to first maneuver
 
-    else if(k > size(this%mnv_sequence)) then
+    ! else if(k > size(this%mnv_sequence)) then
 
-      get_current_index =  0  ! after last maneuver phase
+    !   get_current_index =  0  ! after last maneuver phase
 
-    else  ! somewhere in between of all maneuvers...
+    ! else  ! somewhere in between of all maneuvers...
 
-      get_current_index = k-1
-      if((mjd > this%mnv_sequence(k-1)%mjd_end) .and. (mjd <= this%mnv_sequence(k)%mjd_start)) then ! in between of two maneuvers
-        get_current_index = -(get_current_index + 1)  ! '+1' between phases, the negative index gives the number of the subsequent phase!
-      end if
+    !   get_current_index = k-1
+    !   if((mjd > this%mnv_sequence(k-1)%mjd_end) .and. (mjd <= this%mnv_sequence(k)%mjd_start)) then ! in between of two maneuvers
+    !     get_current_index = -(get_current_index + 1)  ! '+1' between phases, the negative index gives the number of the subsequent phase!
+    !   end if
 
-    end if
+    ! end if
 
     return
 
