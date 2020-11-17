@@ -1119,13 +1119,13 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             initial_covariance%elem(6,6) = object_covariance(iobject)%k6_k6
             covariance_matrix_UVW = initial_covariance%elem
 
-            write(99,*) "Initial Covariance (as delivered) in km and km/s"
-            write(99,'(6(F15.8,1X))') initial_covariance%elem(:,1)
-            write(99,'(6(F15.8,1X))') initial_covariance%elem(:,2)
-            write(99,'(6(F15.8,1X))') initial_covariance%elem(:,3)
-            write(99,'(6(F15.8,1X))') initial_covariance%elem(:,4)
-            write(99,'(6(F15.8,1X))') initial_covariance%elem(:,5)
-            write(99,'(6(F15.8,1X))') initial_covariance%elem(:,6)
+            !write(*,*) "Initial Covariance (as delivered) in km and km/s"
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,1)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,2)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,3)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,4)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,5)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,6)
 
             !** check, in what frame the covariance was provided
             write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_ref_frame")
@@ -1152,17 +1152,17 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
 
                 covariance_matrix_ECI = matmul(matmul(invJacobi,covariance_matrix_UVW),transpose(invJacobi))
                 initial_covariance%elem = covariance_matrix_ECI
-                write(99,*) "Initial covariance (in RTN) in km and km/s"
+                !write(*,*) "Initial covariance (in RTN) in km and km/s"
             else
-                write(99,*) "Initial covariance (in GCRF) in km and km/s"
+                !write(*,*) "Initial covariance (in GCRF) in km and km/s"
             endif
 
-            write(99,'(6(F15.8,1X))') initial_covariance%elem(:,1)
-            write(99,'(6(F15.8,1X))') initial_covariance%elem(:,2)
-            write(99,'(6(F15.8,1X))') initial_covariance%elem(:,3)
-            write(99,'(6(F15.8,1X))') initial_covariance%elem(:,4)
-            write(99,'(6(F15.8,1X))') initial_covariance%elem(:,5)
-            write(99,'(6(F15.8,1X))') initial_covariance%elem(:,6)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,1)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,2)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,3)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,4)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,5)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,6)
         else
             write (99,*) "No covariance to propagate"
 
@@ -1365,13 +1365,13 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             object_covariance(iobject)%k6_k5 = propagated_covariance%elem(6,5)
             object_covariance(iobject)%k6_k6 = propagated_covariance%elem(6,6)
 
-            write(99,*) "New Covariance (UVW) in km and km/s"
-            write(99,'(6(F15.8,1X))') propagated_covariance%elem(:,1)
-            write(99,'(6(F15.8,1X))') propagated_covariance%elem(:,2)
-            write(99,'(6(F15.8,1X))') propagated_covariance%elem(:,3)
-            write(99,'(6(F15.8,1X))') propagated_covariance%elem(:,4)
-            write(99,'(6(F15.8,1X))') propagated_covariance%elem(:,5)
-            write(99,'(6(F15.8,1X))') propagated_covariance%elem(:,6)
+            !write(*,*) "New Covariance (UVW) in km and km/s"
+            !write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,1)
+            !write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,2)
+            !write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,3)
+            !write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,4)
+            !write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,5)
+            !write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,6)
         end if
 
         if (create_cheby) then
