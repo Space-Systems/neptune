@@ -15,6 +15,7 @@ logfile
 *.bbl
 *.gz
 *.toc
+*.mod
 _minted-neptune/
 **/build*/
 **/lib
