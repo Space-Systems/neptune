@@ -27,6 +27,7 @@ To build NEPTUNE you will need:
 * doxygen (only for the source code documentation)
 * graphviz (only for the source code documentation)
 * latex (only for editing the technical documentation)
+  * On Ubuntu 18.04 LTS this works: `apt install texlive texlive-lang-german texlive-latex-extra texlive-tubs texlive-science`
 
 To get started execute the build script:
 ```
