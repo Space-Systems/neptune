@@ -199,7 +199,6 @@ contains
                 end if
             end if
             if ((step) > this%end_time) then
-                write (99,*) "Re-scaling last step", current_time, step, this%end_time, this%start_time
                 step = (this%end_time - this%start_time)
             end if
         else
