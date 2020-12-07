@@ -119,7 +119,7 @@ contains
           constructor_time%step_epochs_sec = step_epochs_sec
           constructor_time%intermediate_steps_flag = .true.
         end if
-        
+
     end function constructor_time
 
     ! ====================================================================
@@ -198,6 +198,10 @@ contains
                     this%flag_cov_save    = .false.
                 end if
             end if
+            if ((step) > this%end_time) then
+                write (99,*) "Re-scaling last step", current_time, step, this%end_time, this%start_time
+                step = (this%end_time - this%start_time)
+            end if
         else
             if(this%cov_counter > this%out_counter) then
                 ! only covariance save/update step
@@ -224,6 +228,9 @@ contains
                     this%flag_cov_update  = .false.
                     this%flag_cov_save    = .false.
                 end if
+            end if
+            if ((step) < this%end_time) then
+                step = (this%start_time - this%end_time)
             end if
         end if
         ! save the value for later reference (e.g. by has_finished_step)
@@ -378,13 +385,13 @@ contains
             else
                 this%out_counter = this%start_time - this%step_size
             end if
-            
+
         else
             if(neptune%getStoreDataFlag()) then
                 if (this%intermediate_steps_flag) then
                     ! First step for intermediate steps is defined by the user
                     this%step_size = this%step_epochs_sec(1)
-                else 
+                else
                     this%step_size   = dble(neptune%getStep())
                 end if
                 if(this%forward) then
