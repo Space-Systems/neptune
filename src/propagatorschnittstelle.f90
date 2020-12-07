@@ -1164,7 +1164,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,5)
             !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,6)
         else
-            write (99,*) "No covariance to propagate"
+            !write (99,*) "No covariance to propagate"
 
         end if
 
@@ -1469,6 +1469,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             ephemeris(j, 1, iobject) = temp_state%epoch%mjd
             ephemeris(j, 2:4, iobject) = temp_state%r(1:3)
             ephemeris(j, 5:7, iobject) = temp_state%v(1:3)
+            !write (99,*) temp_state%epoch%mjd, temp_state%r(1:3), temp_state%v(1:3)
 
             ! Extract covariance from NEPTUNE API
             if (propagate_covariance) then
@@ -1512,6 +1513,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             ephemeris(j,28, iobject) = temp_covariance%elem(6,6)
 
           end do
+          !write (99,*) propagation_epoch(2)%mjd, propagated_state%r(1:3), propagated_state%v(1:3)
         endif
 
     end do
