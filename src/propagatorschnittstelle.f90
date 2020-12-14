@@ -890,6 +890,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
         maneuvers(i)%phase(1)%mjd_start = temp_maneuver_array(i,1)
         maneuvers(i)%phase(1)%mjd_end = temp_maneuver_array(i,1) + temp_maneuver_array(i,2)/86400.d0
         maneuvers(i)%phase(1)%acc(:) = temp_maneuver_array(i,3:5)
+        maneuvers(i)%phase(1)%thrust_efficiency = abs(1.d0 - temp_maneuver_array(i,6))
 
         !** dunno how to use the uncertainties yet
 
