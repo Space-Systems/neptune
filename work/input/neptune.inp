@@ -121,8 +121,9 @@
 #   Atmosphere model to be used
 #     1 = Exponential
 #     2 = NRLMSISE-00
+#     3 = JB2008
 #
-  2
+  3
 #
 #   Use only a subset of spherical harmonics of the geopotential
 #     - First set switch to '1', then provide harmonics in the

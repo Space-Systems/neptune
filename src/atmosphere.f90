@@ -50,7 +50,7 @@ module atmosphere
                                     gd2mjd, mjd2gd, getDateTimeNow
     use nrlmsise00Class,        only: Nrlmsise00_class, nrlmsise_flags
     use hwm07Class,             only: Hwm07_class
-
+    use JB2008module
     implicit none
 
     private
@@ -62,13 +62,14 @@ module atmosphere
 
     integer,public,parameter :: n_supported_sga_file_types = 2                  ! Number of different supported data file types for solar and geomagnetic activity
 
+    integer,public,parameter :: JB08    = 3
     integer,public,parameter :: MSIS2000    = 2
     integer,public,parameter :: EXPONENTIAL = 1
-    integer,public,parameter :: n_supported_models      = 2                     ! Number of supported atmosphere models
+    integer,public,parameter :: n_supported_models      = 3                     ! Number of supported atmosphere models
     integer,public,parameter :: n_supported_wind_models = 1                     ! Number of supported horizontal wind models
 
     ! Model names
-    character(len=*), dimension(n_supported_models),      parameter :: modelName     = (/"Exponential","NRLMSISE-00"/)
+    character(len=*), dimension(n_supported_models),      parameter :: modelName     = (/"Exponential","NRLMSISE-00","JacBow-2008"/)
     character(len=*), dimension(n_supported_wind_models), parameter :: windModelName = (/"HWM07"/)
     character(len=*),public,parameter,dimension(n_supported_sga_file_types) :: fileIdent    = (/"CssiS", &
                                                                                          "d/mm/"/)          ! characteristic identifiers of sga data file
@@ -188,6 +189,7 @@ module atmosphere
         procedure :: getSgaDataFileType
         procedure :: getDensityExponential
         procedure :: getDensityMSIS2000
+        procedure :: getDensityJB2008
 
     end type
 
@@ -407,6 +409,13 @@ contains
     mjd_end   = date_end%mjd + 1.d0
 
     if(sgaDataType == FILE_FAPDAY .and. this%nmodel == MSIS2000) then           ! F10.7 81-day centered will be required, but ESA daily data provides last 81-day data only,
+                                                                                ! so 41 additional days are required for a shift later on
+      mjd_start = mjd_start - 81.d0                                             ! in order to compute F10.7 last 81-day averages
+      mjd_end   = mjd_end   + 41.d0
+
+    end if
+
+    if(sgaDataType == FILE_FAPDAY .and. this%nmodel == JB08) then           ! F10.7 81-day centered will be required, but ESA daily data provides last 81-day data only,
                                                                                 ! so 41 additional days are required for a shift later on
       mjd_start = mjd_start - 81.d0                                             ! in order to compute F10.7 last 81-day averages
       mjd_end   = mjd_end   + 41.d0
@@ -674,7 +683,9 @@ contains
       rho = this%getDensityExponential(altitude)
     else if(this%nmodel == MSIS2000) then
       rho = this%getDensityMSIS2000(altitude, lat_gd, lon, time_mjd)
-    else if(this%nmodel == JB2008)
+    else if(this%nmodel == JB08) then
+      rho = this%getDensityJB2008(altitude, lat_gd, lon, time_mjd)
+      write(*,*) "Using JB2008 now"
     end if
 
     this%last_rho      = rho
@@ -948,6 +959,224 @@ contains
     return
 
   end function getDensityExponential
+
+  !!------------------------------------------------------------------------------------------------
+  !
+  !> @anchor      getDensityJB2008
+  !!
+  !> @brief       Gets the density from the JB2008 atmosphere model
+  !> @author      Daniel Lück
+  !!
+  !> @date        <ul>
+  !!                <li> 18.12.2020 (initial design, to implement new atmosphere model)</li>
+  !!              </ul>
+  !!
+  !> @param[in]   altitude          geodetic altitude / km
+  !> @param[in]   latitude          geodetic latitude / rad
+  !> @param[in]   longitude         longitude / rad
+  !> @param[in]   time_mjd          MJD
+  !!
+  !> @return      Rho - the atmospheric density / kg/km**3
+  !!
+  !> @details     This routine returns the density (in kg/km**3) from the JB2008 model
+  !!              for the passed altitude and the MJD.
+  !!
+  !!------------------------------------------------------------------------------------------------
+  real(dp) function getDensityJB2008(this, altitude, latitude, longitude, time_mjd) result(rho)
+    use nrlmsise00Class,        only: nrlmsise_flags,nrlmsise_input,nrlmsise_output
+    use JB2008module
+    
+
+    implicit none
+
+    class(Atmosphere_class) :: this
+    real(dp), intent(in)    :: altitude
+    real(dp), intent(in)    :: time_mjd
+    real(dp), intent(in)    :: latitude
+    real(dp), intent(in)    :: longitude
+
+    real(dp)                :: lat_gd
+    real(dp)                :: lon
+    type(nrlmsise_input)    :: input
+    type(nrlmsise_flags)    :: flags
+    type(nrlmsise_output)   :: output
+
+    integer                 :: ap_pointer                                       ! Ap pointer
+    integer                 :: hour                                             ! hour
+    integer                 :: i                                                ! loop counter
+    integer                 :: idate                                            ! date in YYDDD format for MSIS atmosphere model
+    integer                 :: year                                             ! date in YY format for MSIS atmosphere model
+    integer                 :: doy                                              ! date in DDD format for MSIS atmosphere model
+    integer                 :: idx
+    integer                 :: mass                                             ! mass number
+    integer                 :: offset                                           ! index offset in space weather data array
+
+    real(dp), dimension(7)  :: ap                                               ! planetary amplitude Ap
+    real(dp)                :: loc_solar_time                                   ! local solar time (hrs.)
+    real(dp)                :: sec                                              ! seconds of day
+    real(dp)                :: test1, test2
+
+
+
+    test1 = 0.0
+    test2 = 1.0
+    
+    test1 = XGRAV(test2)
+    !** convert to time format YYDDD with DDD being the day of the year
+    idate = mjd2yyddd(time_mjd)
+    ! Get only day of year, as years are ignored anyhow
+    year = int(idate / 1d3)
+    doy = idate - (year * 1d3)
+
+    lat_gd = latitude*rad2deg
+    lon    = longitude*rad2deg
+
+    !** get seconds of day
+    sec  = mjd2daySeconds(time_mjd)
+    hour = int(sec/3600.d0)
+
+    !** get local solar time (in hrs.)
+    loc_solar_time = getLocalSolarTime(time_mjd, lon)
+
+    !** find index in space weather data for current date
+    idx = int(time_mjd - int(sga_data(1)%mjd)) + 1
+
+    !** build ap array
+    !------------------------------------------
+    ap_pointer = int(hour/3.d0) + 1
+    offset     = 0
+
+    ! (1) DAILY AP
+    ap(1) = 0.d0
+
+    do i = 1,8
+      ap(1) = ap(1) + sga_data(idx)%ap(i)
+    end do
+
+    ap(1) = ap(1)/8.d0
+
+    ! (2) 3 HR AP INDEX FOR CURRENT TIME
+    ap(2) = sga_data(idx)%ap(ap_pointer)
+
+    do i=3,5  ! (3,4,5) 3 HR AP INDEX FOR 3 HR, 6 HR and 9 HR BEFORE CURRENT TIME
+      ap_pointer = ap_pointer - 1
+      if(ap_pointer < 1) then
+        ap_pointer = 8
+        offset     = offset + 1
+      end if
+      ap(i) = sga_data(idx - offset)%ap(ap_pointer)
+    end do
+
+    ! (6) AVERAGE OF EIGHT 3 HR AP INDICES FROM 12 TO 33 HRS PRIOR
+    !     TO CURRENT TIME
+    ap(6) = 0.d0
+
+    do i=1,8
+      ap_pointer = ap_pointer - 1
+      if(ap_pointer < 1) then
+        ap_pointer = 8
+        offset     = offset + 1
+      end if
+      ap(6) = ap(6) + sga_data(idx-offset)%ap(ap_pointer)
+    end do
+
+    ap(6) = ap(6)/8.d0
+
+    ! (7) AVERAGE OF EIGHT 3 HR AP INDICES FROM 36 TO 57 HRS PRIOR
+    !     TO CURRENT TIME
+    ap(7) = 0.d0
+
+    do i=1,8
+      ap_pointer = ap_pointer - 1
+      if(ap_pointer < 1) then
+        ap_pointer = 8
+        offset     = offset + 1
+      end if
+      ap(7) = ap(7) + sga_data(idx-offset)%ap(ap_pointer)
+    end do
+
+    ap(7) = ap(7)/8.d0
+
+    !** set switch sw(9) = 1 in order to be compliant with the MSIS
+    !   description
+    !----------------------
+    !sw(:)   = 1.d0
+    !sw(9)  = -1.d0
+    !sw(15) = 1.d0
+    !call tselec(sw)
+    flags%switches(0:23) = 1.d0
+    flags%switches(0) =-1.d0
+    flags%switches(9) =-1.d0
+    call this%nrlmsise00_model%tselec(flags)
+    !---------------------
+
+    mass = 48 ! all components...
+
+    if(altitude <= 500.d0) then
+       !call gtd7 (idate,real(sec),real(altitude),real(lat_gd),real(lon),real(loc_solar_time), &
+       !           real(sga_data(idx)%f81ctr),real(sga_data(idx-1)%f107),real(ap), &
+       !           mass,sp_density,temp)
+
+        input%year      = 0                             ! year, currently ignored
+        input%doy       = doy                           ! day of year
+        input%sec       = sec                           ! seconds in day (UT)
+        input%alt       = altitude                      ! altitude in kilometers
+        input%g_lat     = lat_gd                        ! geodetic latitude
+        input%g_long    = lon                           ! geodetic longitude
+        input%lst       = loc_solar_time                ! local apparent solar time (hours), see note below
+        input%f107A     = sga_data(idx)%f81ctr     ! 81 day average of F10.7 flux (centered on doy)
+        input%f107      = sga_data(idx-1)%f107     ! daily F10.7 flux for previous day
+        input%ap        = ap(1)                         ! magnetic index(daily)
+        input%ap_a%a(0:6) = ap(1:7)
+
+        call this%nrlmsise00_model%gtd7(input,flags,output)
+
+    else
+      ! For atmospheric drag calculations at altitudes above 500 km,
+      ! call SUBROUTINE GTD7D to compute the "effective total mass
+      ! density" by including contributions from "anomalous oxygen."
+      !call gtd7d (idate,real(sec),real(altitude),real(lat_gd),real(lon),real(loc_solar_time), &
+      !             real(sga_data(idx)%f81ctr),real(sga_data(idx-1)%f107),real(ap), &
+      !             mass,sp_density,temp)
+
+        input%year      = 0                                     ! year, currently ignored
+        input%doy       = doy                                   ! day of year
+        input%sec       = real(sec)                             ! seconds in day (UT)
+        input%alt       = real(altitude)                        ! altitude in kilometers
+        input%g_lat     = real(lat_gd)                          ! geodetic latitude
+        input%g_long    = real(lon)                             ! geodetic longitude
+        input%lst       = real(loc_solar_time)                  ! local apparent solar time (hours), see note below
+        input%f107A     = real(sga_data(idx)%f81ctr)       ! 81 day average of F10.7 flux (centered on doy)
+        input%f107      = real(sga_data(idx-1)%f107)       ! daily F10.7 flux for previous day
+        input%ap        = real(ap(1))                           ! magnetic index(daily)
+        input%ap_a%a(0:6) = real(ap(1:7))
+
+        call this%nrlmsise00_model%gtd7d(input,flags,output)
+
+    end if
+
+    !** compute density in kg/km**3
+    !rho = dble(sp_density(6))*1.d12
+    rho = dble(output%d(5))*1.d12
+
+    ! call JB2008(time_mjd, &
+    !             sun,      &
+    !             sat,      &
+    !             f10,      &
+    !             f10b,     &
+    !             s10,      &
+    !             s10b,     &
+    !             xm10,     &
+    !             xm10b,    &
+    !             y10,      &
+    !             y10b,     &
+    !             dstdtc,   &
+    !             temp,     &
+    !             rho)
+
+    return
+
+  end function getDensityJB2008
 
   !==============================================================
   !
@@ -1313,6 +1542,8 @@ contains
     currentModel = this%nmodel ! save current model
 
     select case(imodel)
+      case(JB08)
+        this%nmodel = JB08
       case(MSIS2000)
         this%nmodel = MSIS2000
       case(EXPONENTIAL)
@@ -2987,6 +3218,12 @@ contains
     !
     !-------------------------------------------------
     if(this%nmodel == MSIS2000) then
+
+      sga_data(:)%f81ctr = eoshift(sga_data(:)%f81ctr, 40)
+
+    end if
+
+    if(this%nmodel == JB08) then
 
       sga_data(:)%f81ctr = eoshift(sga_data(:)%f81ctr, 40)
 
