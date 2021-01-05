@@ -636,6 +636,7 @@ contains
                                        r,                   &  ! <-- DBL(3) radius vector in GCRF
                                        v,                   &  ! <-- DBL(3) velocity vector in GCRF
                                        r_itrf,              &  ! <-- DBL(3) radius vector in ITRF
+                                       v_itrf,              & ! <-- DBL(3) velocity vector in ITRF
                                        time_mjd,            &  ! <-- DBL    current time (MJD)
                                        acc_atmosphere       &  ! --> DBL(3) acceleration vector in inertial frame
                                     )

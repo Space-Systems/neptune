@@ -32,7 +32,7 @@ module atmosphere
 
     use slam_types,             only: dp, sp
     use slam_astro,             only: EGM96, getEarthRotation
-    use slam_astro_conversions, only: getGeodeticLatLon
+    use slam_astro_conversions, only: getGeodeticLatLon, getRadiusLatLon
     use neptune_error_handling, only: setNeptuneError, E_SGA_INPUT, E_SGA_UNSUPPORTED_TYPE, E_SGA_TIME_TAG, E_SGA_UNSUPPORTED_VERSION, &
                                     E_SGA_NO_VERSION, E_SGA_MISSING, E_MIN_ALTITUDE, E_ATMOSPHERE_INIT, getNeptuneErrorMessage
     use slam_error_handling,    only: isControlled, hasToReturn, hasFailed, FATAL, WARNING, REMARK, &
@@ -40,7 +40,7 @@ module atmosphere
     !use gravity,                only: setCurrentAltitude
     use gravity,                only: Gravity_class
     use slam_io,                only: openFile, closeFile, SEQUENTIAL, IN_FORMATTED, cdelimit, LOG_AND_STDOUT, message
-    use slam_math,              only: eps9, eps15, mag, rad2deg, deg2rad, outerproduct, identity_matrix, infinite, undefined
+    use slam_math,              only: eps9, eps15, mag, rad2deg, deg2rad, outerproduct, identity_matrix, infinite, undefined, pi
     use slam_interpolation,     only: lagrange_interpolation
     use slam_reduction_class,   only: Reduction_type
     use satellite,              only: Satellite_class, ID_ATMOSPHERE
@@ -520,6 +520,7 @@ contains
                              r_gcrf,            &  ! <-- DBL(3) radius vector in GCRF
                              v_gcrf,            &  ! <-- DBL(3) velocity vector in GCRF
                              r_itrf,            &  ! <-- DBL(3) radius vector in ITRF
+                             v_itrf,            & ! <-- DBL(3) velocity vector in ITRF
                              time_mjd,          &  ! <-- DBL    current time MJD
                              acc_atmosphere     &  ! --> DBL(3) acceleration vector in inertial frame
                                       )
@@ -537,6 +538,7 @@ contains
     real(dp), dimension(3), intent(in)      :: r_gcrf
     real(dp), dimension(3), intent(in)      :: v_gcrf
     real(dp), dimension(3), intent(in)      :: r_itrf
+    real(dp), dimension(3), intent(in)      :: v_itrf
     real(dp),               intent(in)      :: time_mjd
 
     real(dp), dimension(3), intent(out) :: acc_atmosphere
@@ -561,7 +563,7 @@ contains
     end if
 
     !** get atmospheric density
-    rho = this%getAtmosphericDensity(gravity_model,r_itrf, time_mjd)
+    rho = this%getAtmosphericDensity(gravity_model, r_gcrf, v_gcrf, r_itrf, v_itrf, time_mjd)
 
     if(hasFailed()) return
 
@@ -627,24 +629,33 @@ contains
 !!              for the passed radius vector and the MJD.
 !!
 !!------------------------------------------------------------------------------------------------
-  real(dp) function getAtmosphericDensity(this, gravity_model, r_itrf, time_mjd) result(rho)
+  real(dp) function getAtmosphericDensity(this, gravity_model, r_gcrf, v_gcrf, r_itrf, v_itrf, time_mjd) result(rho)
 
     implicit none
 
     class(Atmosphere_class)            :: this
     type(Gravity_class),intent(inout)  :: gravity_model
+    real(dp), dimension(3), intent(in) :: r_gcrf
+    real(dp), dimension(3), intent(in) :: v_gcrf
     real(dp), dimension(3), intent(in) :: r_itrf
+    real(dp), dimension(3), intent(in) :: v_itrf   
     real(dp),               intent(in) :: time_mjd
 
     character(len=*), parameter :: csubid =  "getAtmosphericDensity"
+    
     integer  :: ierr                                                            ! error flag
     real(dp) :: altitude                                                        ! geodetic altitude (km)
+    real(dp) :: height 
 
     real(dp) :: lat_gd                                                          ! geodetic latitude (rad)
-    real(dp) :: lon                                                             ! geodetic longitude (rad)
+    real(dp) :: lon_gd                                                          ! geodetic longitude (rad)
+
+    real(dp) :: lat_gc                                                          ! geocentric latitude (rad)
+    real(dp) :: lon_gc                                                          ! geocentric longitude (rad)
+    real(dp) :: right_ascension                                                 ! right ascension of satellite position (not RAAN!)
+    real(dp) :: rabs                                                            ! magnitude of radius (km)
 
     real(dp), dimension(3)       :: tmp_r
-
     this%last_r = -1.d0
     this%last_time_mjd = -1.
     this%last_rho = -1.d0
@@ -669,7 +680,19 @@ contains
     end if
 
     !** get current geocentric latitude and longitude
-    call getGeodeticLatLon(r_itrf, altitude, lat_gd, lon)
+    call getGeodeticLatLon(r_itrf, altitude, lat_gd, lon_gd)
+    call getRadiusLatLon(r_itrf, v_itrf, rabs, lat_gc, lon_gc)
+
+    ! Calculate Right Ascension of Position (Vallado Algorithm 25):
+    if(r_gcrf(2) > 0.0 ) then
+      right_ascension = acos(r_gcrf(1)/sqrt(r_gcrf(1)**2+r_gcrf(2)**2))
+    else
+      right_ascension = 2*pi - acos(r_gcrf(1)/sqrt(r_gcrf(1)**2+r_gcrf(2)**2))
+    end if
+    height = altitude !rabs - 6371.0
+    ! write(*,*) lat_gd, lat_gc
+    ! write(*,*) lon_gd, lon_gc
+   
 
     !** check whether altitude is below re-entry altitude limit
     if(altitude < this%p_altitude_min) then
@@ -682,10 +705,9 @@ contains
     if(this%nmodel == EXPONENTIAL) then
       rho = this%getDensityExponential(altitude)
     else if(this%nmodel == MSIS2000) then
-      rho = this%getDensityMSIS2000(altitude, lat_gd, lon, time_mjd)
+      rho = this%getDensityMSIS2000(altitude, lat_gd, lon_gd, time_mjd)
     else if(this%nmodel == JB08) then
-      rho = this%getDensityJB2008(altitude, lat_gd, lon, time_mjd)
-      write(*,*) "Using JB2008 now"
+      rho = this%getDensityJB2008(height, lat_gc, right_ascension, time_mjd)
     end if
 
     this%last_rho      = rho
@@ -891,6 +913,7 @@ contains
     !** compute density in kg/km**3
     !rho = dble(sp_density(6))*1.d12
     rho = dble(output%d(5))*1.d12
+    write(*,*) rho
 
     return
 
@@ -982,7 +1005,7 @@ contains
   !!              for the passed altitude and the MJD.
   !!
   !!------------------------------------------------------------------------------------------------
-  real(dp) function getDensityJB2008(this, altitude, latitude, longitude, time_mjd) result(rho)
+  real(dp) function getDensityJB2008(this, altitude, latitude, right_ascension, time_mjd) result(rho)
     use nrlmsise00Class,        only: nrlmsise_flags,nrlmsise_input,nrlmsise_output
     use JB2008module
     
@@ -993,7 +1016,7 @@ contains
     real(dp), intent(in)    :: altitude
     real(dp), intent(in)    :: time_mjd
     real(dp), intent(in)    :: latitude
-    real(dp), intent(in)    :: longitude
+    real(dp), intent(in)    :: right_ascension
 
     real(dp)                :: lat_gd
     real(dp)                :: lon
@@ -1014,22 +1037,41 @@ contains
     real(dp), dimension(7)  :: ap                                               ! planetary amplitude Ap
     real(dp)                :: loc_solar_time                                   ! local solar time (hrs.)
     real(dp)                :: sec                                              ! seconds of day
-    real(dp)                :: test1, test2
+    real(dp), dimension(2)  :: sun
+    real(dp), dimension(3)  :: sat
+    real(dp)                :: f10
+    real(dp)                :: f10b
+    real(dp)                :: s10
+    real(dp)                :: s10b
+    real(dp)                :: xm10
+    real(dp)                :: xm10b
+    real(dp)                :: y10
+    real(dp)                :: y10b
+    real(dp)                :: dstdtc
+    real(dp), dimension(2)  :: temp
 
+    real(dp)                :: n, L_sun, g_sun, lambda_sun, epsilon_sun, ascension_sun, declination_sun
 
-
-    test1 = 0.0
-    test2 = 1.0
-    
-    test1 = XGRAV(test2)
+   
     !** convert to time format YYDDD with DDD being the day of the year
     idate = mjd2yyddd(time_mjd)
     ! Get only day of year, as years are ignored anyhow
     year = int(idate / 1d3)
     doy = idate - (year * 1d3)
 
+    n = time_mjd - 51544.5
+    L_sun = 280.460 + 0.9856474*n
+    g_sun = 357.528 + 0.9856003*n
+    lambda_sun = L_sun + 1.915*sin(g_sun) + 0.020*sin(2*g_sun)
+    epsilon_sun = 23.439 - 0.0000004*n
+    ascension_sun = atan2(cos(epsilon_sun)*sin(lambda_sun), cos(lambda_sun))
+    declination_sun = asin(sin(epsilon_sun)*sin(lambda_sun))
+
+    sun(1) = ascension_sun
+    sun(2) = declination_sun
+
     lat_gd = latitude*rad2deg
-    lon    = longitude*rad2deg
+    lon    = right_ascension*rad2deg
 
     !** get seconds of day
     sec  = mjd2daySeconds(time_mjd)
@@ -1129,7 +1171,7 @@ contains
         input%ap        = ap(1)                         ! magnetic index(daily)
         input%ap_a%a(0:6) = ap(1:7)
 
-        call this%nrlmsise00_model%gtd7(input,flags,output)
+        !call this%nrlmsise00_model%gtd7(input,flags,output)
 
     else
       ! For atmospheric drag calculations at altitudes above 500 km,
@@ -1151,29 +1193,43 @@ contains
         input%ap        = real(ap(1))                           ! magnetic index(daily)
         input%ap_a%a(0:6) = real(ap(1:7))
 
-        call this%nrlmsise00_model%gtd7d(input,flags,output)
 
     end if
 
     !** compute density in kg/km**3
     !rho = dble(sp_density(6))*1.d12
-    rho = dble(output%d(5))*1.d12
+    
+    
+    sat(1) = right_ascension
+    sat(2) = latitude
+    sat(3) = altitude
+    f10 = input%f107
+    f10b = input%f107A
+    s10 = input%f107
+    s10b = input%f107A
+    xm10 = input%f107
+    xm10b = input%f107A
+    y10 = input%f107
+    y10b = input%f107A
+    dstdtc = input%f107
 
-    ! call JB2008(time_mjd, &
-    !             sun,      &
-    !             sat,      &
-    !             f10,      &
-    !             f10b,     &
-    !             s10,      &
-    !             s10b,     &
-    !             xm10,     &
-    !             xm10b,    &
-    !             y10,      &
-    !             y10b,     &
-    !             dstdtc,   &
-    !             temp,     &
-    !             rho)
-
+    call JB2008(time_mjd, &
+                sun,      &
+                sat,      &
+                f10,      &
+                f10b,     &
+                s10,      &
+                s10b,     &
+                xm10,     &
+                xm10b,    &
+                y10,      &
+                y10b,     &
+                dstdtc,   &
+                temp,     &
+                rho)
+    rho = rho * 1.d9
+    write(*,*) rho
+    
     return
 
   end function getDensityJB2008
@@ -1423,6 +1479,7 @@ contains
     real(dp)                 :: crossSection  ! satellite cross section
     real(dp), dimension(3,3) :: mati          ! identity matrix
     real(dp), dimension(3)   :: r_itrf        ! radius vector in ITRF
+    real(dp), dimension(3)   :: v_itrf        ! radius vector in ITRF   
     real(dp), dimension(3,3) :: rotTIRS       ! rotation matrix to convert from GCRF to TIRS
     real(dp)                 :: vabs          ! magnitude of v_rel
     real(dp), dimension(3)   :: v_rel         ! relative velocity in GCRF
@@ -1457,10 +1514,10 @@ contains
     crossSection = satellite_model%getObjectCrossSection(solarsystem_model, reduction, time_mjd, r_gcrf, v_rel)
 
     !** get r_itrf
-    call reduction%inertial2earthFixed(r_gcrf, time_mjd, r_itrf)
+    call reduction%inertial2earthFixed_rv(r_gcrf, v_gcrf, time_mjd, r_itrf, v_itrf)
 
     !** get density
-    this%rho = this%getAtmosphericDensity(gravity_model,r_itrf, time_mjd)
+    this%rho = this%getAtmosphericDensity(gravity_model, r_gcrf, v_gcrf, r_itrf, v_itrf, time_mjd)
     if(hasFailed()) return
 
     call identity_matrix(mati)

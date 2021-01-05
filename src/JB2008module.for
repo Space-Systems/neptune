@@ -593,7 +593,6 @@ C***********************************************************************
 C     Evaluates Equation (8)
 
       IMPLICIT REAL*8(A-H,O-Z)
-      WRITE(*,*) "You are in jb2008module now"
       XGRAV = 9.80665D0/(1.D0 + Z/6356.766D0)**2
       RETURN
       END

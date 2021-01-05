@@ -1374,6 +1374,7 @@ contains
                                               state_out%r,      & ! <-- DBL(3) radius vector in GCRF
                                               state_out%v,      & ! <-- DBL(3) velocity vector in GCRF
                                               r_itrf,           & ! <-- DBL(3) radius vector in ITRF
+                                              v_itrf,           & ! <-- DBL(3) velocity vector in ITRF
                                               epoch%mjd,        & ! <-- DBL    time MJD
                                               acc_out           & ! --> DBL(3) acceleration vector in inertial frame
                                             )
@@ -1574,7 +1575,7 @@ contains
               end if
 
               !** get atmospheric density
-              rho = atmosphere_model%getAtmosphericDensity(gravity_model, r_itrf, epoch%mjd)*1.d-12 ! in g/cm**3
+              rho = atmosphere_model%getAtmosphericDensity(gravity_model, state_out%r, state_out%v, r_itrf, v_itrf, epoch%mjd)*1.d-12 ! in g/cm**3
 
               !** get relative velocity (considering wind IF selected)
               v_rel = atmosphere_model%getRelativeVelocity(reduction, state_out%r, state_out%v, epoch%mjd)
