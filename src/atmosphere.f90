@@ -4,6 +4,7 @@
 !!
 !> @author      Vitali Braun (VB)
 !> @author      Christopher Kebschull (CHK)
+!> @author      Daniel Lück (DLU)
 !!
 !> @date        <ul>
 !!                <li>VB:  17.01.2013 (initial design)</li>
@@ -16,6 +17,7 @@
 !!                <li>CHK: 26.12.2017 (transformed to atmopshere class)
 !!                <li>CHK: 05.01.2018 (Moved variables with save statements to Atmosphere class)
 !!                <li>CHK: 16.02.2018 (Moving to object-oriented nrlmsise-00 implementation)
+!!                <li>DLU: 12.01.2021 (Added JB2008 atmosphere model)</li>
 !!              </ul>
 !!
 !> @details     This module contains parameters, subroutines and functions required for Earth's
@@ -76,7 +78,7 @@ module atmosphere
     character(len=*),public,parameter,dimension(n_supported_sga_file_types) :: suppSgaFiles = (/"CSSI (v1.2)", &
                                                                                          "ESA daily  "/)    ! supported solmag data files
 
-    ! Solar and geomagnetic activity (SGA) type
+    ! Solar and geomagnetic activity (SGA) type for Nrmmsise
     type sga_t
 
         real(dp) :: mjd                                                         ! Modified julian day of SGA
@@ -86,8 +88,27 @@ module atmosphere
 
     end type sga_t
 
-    ! Solar and geomagnetic activity (SGA) data array
+    ! Solar and geomagnetic activity (SGA) data array for Nrmmsise
     type(sga_t), dimension(:), allocatable :: sga_data                          ! Containing solar and geomagnetic activity data (SGA)
+
+    ! Solar and geomagnetic activity (SGA) type for Nrmmsise
+    type sgajb08_t
+
+        real(dp) :: mjd                                                         ! Modified julian day of SGA
+        integer, dimension(24) :: dtc                                           ! 1hr temperature change from dtcfile
+        real(dp) :: f10b_jb                                                     ! F10.7 index, 81-day centered
+        real(dp) :: f10_jb                                                      ! F10.7 index
+        real(dp) :: s10b_jb                                                     ! EUV Index, 81-day centered
+        real(dp) :: s10_jb                                                      ! EUV index
+        real(dp) :: m10b_jb                                                     ! MG2 index, 81-day centered
+        real(dp) :: m10_jb                                                      ! MG2 index
+        real(dp) :: y10b_jb                                                     ! x-ray and lya index, 81-day centered
+        real(dp) :: y10_jb                                                      ! x-ray and lya index
+
+    end type sgajb08_t
+
+    ! Solar and geomagnetic activity (SGA) data array for Nrmmsise
+    type(sgajb08_t), dimension(:), allocatable :: sgajb08_data                          ! Containing solar and geomagnetic activity data (SGA)
 
     ! The atmospheric model class (type defintion)
     type, public :: Atmosphere_class
@@ -148,6 +169,7 @@ module atmosphere
     contains
         procedure :: initAtmosphere
         procedure :: readCssiDataFile
+        procedure :: readJB2008data
         procedure :: readFapDayDataFile
         procedure :: readFapMonDataFile
         procedure :: parseCSSIDataLine
@@ -258,7 +280,7 @@ contains
 
         call this%hwm07_model%destroy()
         if (allocated(sga_data)) deallocate(sga_data)
-
+        if (allocated(sgajb08_data)) deallocate(sgajb08_data)
     end subroutine destroy
 
 !==========================================================================
@@ -418,8 +440,8 @@ contains
     if(sgaDataType == FILE_FAPDAY .and. this%nmodel == JB08) then           ! F10.7 81-day centered will be required, but ESA daily data provides last 81-day data only,
                                                                                 ! so 41 additional days are required for a shift later on
       mjd_start = mjd_start - 81.d0                                             ! in order to compute F10.7 last 81-day averages
-      mjd_end   = mjd_end   + 41.d0
-
+      !mjd_end   = mjd_end   + 41.d0
+      mjd_end = 59155.0
     end if
 
     !** allocate SGA array according to number of days... (+60 to account mainly for monthly predictions, requiring more input to read for interpolation
@@ -430,6 +452,11 @@ contains
       deallocate(sga_data)
     end if
     allocate(sga_data(idays))
+
+    if(allocated(sgajb08_data)) then
+      deallocate(sgajb08_data)
+    end if
+    allocate(sgajb08_data(idays))
     !---------------------------------------------------
 
     !** now start reading data into the allocated sga_data array depending on type of file
@@ -443,6 +470,11 @@ contains
         if(hasFailed()) return
     end select
 
+    !** Read solar and geomagnetic data for JB2008
+    !----------------------------------------------------------------------------------
+    if(sgaDataType == FILE_FAPDAY .and. this%nmodel == JB08) then 
+      call this%readJB2008data(mjd_start, mjd_end)
+    end if
     !** IF wind is considered, open horizontal wind data files
     !----------------------------------------------------------------------------------
     if(this%considerWind) then
@@ -645,7 +677,7 @@ contains
     
     integer  :: ierr                                                            ! error flag
     real(dp) :: altitude                                                        ! geodetic altitude (km)
-    real(dp) :: height 
+    real(dp) :: height                                                          ! geocentric altitude (km)
 
     real(dp) :: lat_gd                                                          ! geodetic latitude (rad)
     real(dp) :: lon_gd                                                          ! geodetic longitude (rad)
@@ -689,9 +721,9 @@ contains
     else
       right_ascension = 2*pi - acos(r_gcrf(1)/sqrt(r_gcrf(1)**2+r_gcrf(2)**2))
     end if
-    height = altitude !rabs - 6371.0
-    ! write(*,*) lat_gd, lat_gc
-    ! write(*,*) lon_gd, lon_gc
+
+    ! height = rabs - 6371.0 !height not clearly defined in jb2008 this is for geocentric height
+    
    
 
     !** check whether altitude is below re-entry altitude limit
@@ -707,7 +739,7 @@ contains
     else if(this%nmodel == MSIS2000) then
       rho = this%getDensityMSIS2000(altitude, lat_gd, lon_gd, time_mjd)
     else if(this%nmodel == JB08) then
-      rho = this%getDensityJB2008(height, lat_gc, right_ascension, time_mjd)
+      rho = this%getDensityJB2008(altitude, lat_gc, right_ascension, time_mjd)
     end if
 
     this%last_rho      = rho
@@ -909,11 +941,11 @@ contains
         call this%nrlmsise00_model%gtd7d(input,flags,output)
 
     end if
-
     !** compute density in kg/km**3
     !rho = dble(sp_density(6))*1.d12
     rho = dble(output%d(5))*1.d12
-    write(*,*) rho
+    !write(*,*) time_mjd, longitude, latitude, altitude
+    
 
     return
 
@@ -994,9 +1026,9 @@ contains
   !!                <li> 18.12.2020 (initial design, to implement new atmosphere model)</li>
   !!              </ul>
   !!
-  !> @param[in]   altitude          geodetic altitude / km
-  !> @param[in]   latitude          geodetic latitude / rad
-  !> @param[in]   longitude         longitude / rad
+  !> @param[in]   altitude          geodetic altitude / km    althought this might also be geocentric
+  !> @param[in]   latitude          geocenric latitude / rad
+  !> @param[in]   right ascension   right ascension / rad
   !> @param[in]   time_mjd          MJD
   !!
   !> @return      Rho - the atmospheric density / kg/km**3
@@ -1018,200 +1050,115 @@ contains
     real(dp), intent(in)    :: latitude
     real(dp), intent(in)    :: right_ascension
 
-    real(dp)                :: lat_gd
-    real(dp)                :: lon
-    type(nrlmsise_input)    :: input
-    type(nrlmsise_flags)    :: flags
-    type(nrlmsise_output)   :: output
-
-    integer                 :: ap_pointer                                       ! Ap pointer
-    integer                 :: hour                                             ! hour
-    integer                 :: i                                                ! loop counter
-    integer                 :: idate                                            ! date in YYDDD format for MSIS atmosphere model
-    integer                 :: year                                             ! date in YY format for MSIS atmosphere model
-    integer                 :: doy                                              ! date in DDD format for MSIS atmosphere model
     integer                 :: idx
-    integer                 :: mass                                             ! mass number
-    integer                 :: offset                                           ! index offset in space weather data array
 
-    real(dp), dimension(7)  :: ap                                               ! planetary amplitude Ap
-    real(dp)                :: loc_solar_time                                   ! local solar time (hrs.)
-    real(dp)                :: sec                                              ! seconds of day
-    real(dp), dimension(2)  :: sun
-    real(dp), dimension(3)  :: sat
-    real(dp)                :: f10
-    real(dp)                :: f10b
-    real(dp)                :: s10
-    real(dp)                :: s10b
-    real(dp)                :: xm10
-    real(dp)                :: xm10b
-    real(dp)                :: y10
-    real(dp)                :: y10b
-    real(dp)                :: dstdtc
-    real(dp), dimension(2)  :: temp
+    real(dp), dimension(2)  :: sun              ! position of the sun
+    real(dp), dimension(3)  :: sat              ! position of the sun
+    real(dp)                :: f10              ! f10 solar value
+    real(dp)                :: f10b             ! f10 solar value averaged over 81 days
+    real(dp)                :: s10              ! see f10/f10b
+    real(dp)                :: s10b             ! see f10/f10b
+    real(dp)                :: m10              ! see f10/f10b
+    real(dp)                :: m10b             ! see f10/f10b
+    real(dp)                :: y10              ! see f10/f10b
+    real(dp)                :: y10b             ! see f10/f10b
+    real(dp)                :: dstdtc           ! temperature change through geomagnetic activity
+    real(dp), dimension(2)  :: temp             ! jb2008 output temperature
 
-    real(dp)                :: n, L_sun, g_sun, lambda_sun, epsilon_sun, ascension_sun, declination_sun
-
+    ! Parameters to calculate sun position
+    real(dp)                :: solras
+    real(dp)                :: soldec
+    real(dp)                :: solan
+    real(dp)                :: SIN1L
+    real(dp)                :: SIN2L
+    real(dp)                :: SIN4L
+    real(dp)                :: eps
+    real(dp)                :: eclon
+    real(dp)                :: TANHALFEPS1
+    real(dp)                :: TANHALFEPS2
+    real(dp)                :: TANHALFEPS4
+    real(dp)                :: solon
+    real(dp)                :: d2000
    
-    !** convert to time format YYDDD with DDD being the day of the year
-    idate = mjd2yyddd(time_mjd)
-    ! Get only day of year, as years are ignored anyhow
-    year = int(idate / 1d3)
-    doy = idate - (year * 1d3)
+    ! calculate position of the sun (taken from JB08DRVY2k.for)
 
-    n = time_mjd - 51544.5
-    L_sun = 280.460 + 0.9856474*n
-    g_sun = 357.528 + 0.9856003*n
-    lambda_sun = L_sun + 1.915*sin(g_sun) + 0.020*sin(2*g_sun)
-    epsilon_sun = 23.439 - 0.0000004*n
-    ascension_sun = atan2(cos(epsilon_sun)*sin(lambda_sun), cos(lambda_sun))
-    declination_sun = asin(sin(epsilon_sun)*sin(lambda_sun))
+    d2000 = time_mjd - 51544.5D0
+    solan = 357.528D0 + 0.9856003 * d2000
+    solan = solan*deg2rad
+    solon = 280.460D0 + 0.9856474 * d2000
+    solon = DMOD(solon,360.D0)
+    IF (SOLON .LT. 0.D0) THEN
+      SOLON = SOLON + 360.D0
+    END IF
 
-    sun(1) = ascension_sun
-    sun(2) = declination_sun
+    ECLON = SOLON + 1.915D0 * DSIN(SOLAN) + 0.02D0 * DSIN(2.D0*SOLAN)
+    ECLON = ECLON * deg2rad
 
-    lat_gd = latitude*rad2deg
-    lon    = right_ascension*rad2deg
 
-    !** get seconds of day
-    sec  = mjd2daySeconds(time_mjd)
-    hour = int(sec/3600.d0)
+    EPS   = 23.439D0 - 0.0000004 * D2000
+    EPS   = EPS * deg2rad
 
-    !** get local solar time (in hrs.)
-    loc_solar_time = getLocalSolarTime(time_mjd, lon)
+
+    SIN1L = DSIN(1.D0 * ECLON)
+    SIN2L = DSIN(2.D0 * ECLON)
+    SIN4L = DSIN(4.D0 * ECLON)
+
+
+    TANHALFEPS1 = DTAN(0.5 * EPS)
+    TANHALFEPS2 = TANHALFEPS1 * TANHALFEPS1
+    TANHALFEPS4 = TANHALFEPS2 * TANHALFEPS2
+
+
+
+    SOLRAS = ECLON - TANHALFEPS2 * SIN2L + 0.5 * TANHALFEPS4 * SIN4L
+
+    IF (SOLRAS .LT. 0.D0) THEN
+      SOLRAS = SOLRAS + 2*pi
+    ELSEIF (SOLRAS .GT. 2*pi) THEN
+      SOLRAS = SOLRAS - 2*pi
+    END IF
+
+    SOLDEC = DASIN(DSIN(EPS) * SIN1L)
+
+    sun(1) = solras
+    sun(2) = soldec
+
 
     !** find index in space weather data for current date
-    idx = int(time_mjd - int(sga_data(1)%mjd)) + 1
+    idx = int(time_mjd - int(sgajb08_data(1)%mjd)) + 1
 
-    !** build ap array
-    !------------------------------------------
-    ap_pointer = int(hour/3.d0) + 1
-    offset     = 0
+    f10 = sgajb08_data(idx-1)%f10_jb
+    f10b = sgajb08_data(idx-1)%f10b_jb
+    s10 = sgajb08_data(idx-1)%s10_jb
+    s10b = sgajb08_data(idx-1)%s10b_jb
+    m10 = sgajb08_data(idx-2)%m10_jb
+    m10b = sgajb08_data(idx-2)%m10b_jb
+    y10 = sgajb08_data(idx-5)%y10_jb
+    y10b = sgajb08_data(idx-5)%y10b_jb
 
-    ! (1) DAILY AP
-    ap(1) = 0.d0
-
-    do i = 1,8
-      ap(1) = ap(1) + sga_data(idx)%ap(i)
-    end do
-
-    ap(1) = ap(1)/8.d0
-
-    ! (2) 3 HR AP INDEX FOR CURRENT TIME
-    ap(2) = sga_data(idx)%ap(ap_pointer)
-
-    do i=3,5  ! (3,4,5) 3 HR AP INDEX FOR 3 HR, 6 HR and 9 HR BEFORE CURRENT TIME
-      ap_pointer = ap_pointer - 1
-      if(ap_pointer < 1) then
-        ap_pointer = 8
-        offset     = offset + 1
-      end if
-      ap(i) = sga_data(idx - offset)%ap(ap_pointer)
-    end do
-
-    ! (6) AVERAGE OF EIGHT 3 HR AP INDICES FROM 12 TO 33 HRS PRIOR
-    !     TO CURRENT TIME
-    ap(6) = 0.d0
-
-    do i=1,8
-      ap_pointer = ap_pointer - 1
-      if(ap_pointer < 1) then
-        ap_pointer = 8
-        offset     = offset + 1
-      end if
-      ap(6) = ap(6) + sga_data(idx-offset)%ap(ap_pointer)
-    end do
-
-    ap(6) = ap(6)/8.d0
-
-    ! (7) AVERAGE OF EIGHT 3 HR AP INDICES FROM 36 TO 57 HRS PRIOR
-    !     TO CURRENT TIME
-    ap(7) = 0.d0
-
-    do i=1,8
-      ap_pointer = ap_pointer - 1
-      if(ap_pointer < 1) then
-        ap_pointer = 8
-        offset     = offset + 1
-      end if
-      ap(7) = ap(7) + sga_data(idx-offset)%ap(ap_pointer)
-    end do
-
-    ap(7) = ap(7)/8.d0
-
-    !** set switch sw(9) = 1 in order to be compliant with the MSIS
-    !   description
-    !----------------------
-    !sw(:)   = 1.d0
-    !sw(9)  = -1.d0
-    !sw(15) = 1.d0
-    !call tselec(sw)
-    flags%switches(0:23) = 1.d0
-    flags%switches(0) =-1.d0
-    flags%switches(9) =-1.d0
-    call this%nrlmsise00_model%tselec(flags)
-    !---------------------
-
-    mass = 48 ! all components...
-
-    if(altitude <= 500.d0) then
-       !call gtd7 (idate,real(sec),real(altitude),real(lat_gd),real(lon),real(loc_solar_time), &
-       !           real(sga_data(idx)%f81ctr),real(sga_data(idx-1)%f107),real(ap), &
-       !           mass,sp_density,temp)
-
-        input%year      = 0                             ! year, currently ignored
-        input%doy       = doy                           ! day of year
-        input%sec       = sec                           ! seconds in day (UT)
-        input%alt       = altitude                      ! altitude in kilometers
-        input%g_lat     = lat_gd                        ! geodetic latitude
-        input%g_long    = lon                           ! geodetic longitude
-        input%lst       = loc_solar_time                ! local apparent solar time (hours), see note below
-        input%f107A     = sga_data(idx)%f81ctr     ! 81 day average of F10.7 flux (centered on doy)
-        input%f107      = sga_data(idx-1)%f107     ! daily F10.7 flux for previous day
-        input%ap        = ap(1)                         ! magnetic index(daily)
-        input%ap_a%a(0:6) = ap(1:7)
-
-        !call this%nrlmsise00_model%gtd7(input,flags,output)
-
-    else
-      ! For atmospheric drag calculations at altitudes above 500 km,
-      ! call SUBROUTINE GTD7D to compute the "effective total mass
-      ! density" by including contributions from "anomalous oxygen."
-      !call gtd7d (idate,real(sec),real(altitude),real(lat_gd),real(lon),real(loc_solar_time), &
-      !             real(sga_data(idx)%f81ctr),real(sga_data(idx-1)%f107),real(ap), &
-      !             mass,sp_density,temp)
-
-        input%year      = 0                                     ! year, currently ignored
-        input%doy       = doy                                   ! day of year
-        input%sec       = real(sec)                             ! seconds in day (UT)
-        input%alt       = real(altitude)                        ! altitude in kilometers
-        input%g_lat     = real(lat_gd)                          ! geodetic latitude
-        input%g_long    = real(lon)                             ! geodetic longitude
-        input%lst       = real(loc_solar_time)                  ! local apparent solar time (hours), see note below
-        input%f107A     = real(sga_data(idx)%f81ctr)       ! 81 day average of F10.7 flux (centered on doy)
-        input%f107      = real(sga_data(idx-1)%f107)       ! daily F10.7 flux for previous day
-        input%ap        = real(ap(1))                           ! magnetic index(daily)
-        input%ap_a%a(0:6) = real(ap(1:7))
-
-
-    end if
-
-    !** compute density in kg/km**3
-    !rho = dble(sp_density(6))*1.d12
-    
+    if (f10.LT.40..OR.f10b.LT.40.) then
+      f10  = 0.
+      f10b = 0.
+    endif
+    if (s10.LT.40..OR.s10b.LT.40.) then
+      s10  = 0.
+      s10b = 0.
+    endif
+    if (m10.LT.40..OR.s10b.LT.40.) then
+      m10  = 0.
+      m10b = 0.
+    endif
+    if (y10.LT.40..OR.y10b.LT.40.) then
+      y10  = 0.
+      y10b = 0.
+    endif
     
     sat(1) = right_ascension
     sat(2) = latitude
     sat(3) = altitude
-    f10 = input%f107
-    f10b = input%f107A
-    s10 = input%f107
-    s10b = input%f107A
-    xm10 = input%f107
-    xm10b = input%f107A
-    y10 = input%f107
-    y10b = input%f107A
-    dstdtc = input%f107
+    
+    
+    dstdtc = sgajb08_data(idx)%dtc(1+int(24*(time_mjd-int(time_mjd))))
 
     call JB2008(time_mjd, &
                 sun,      &
@@ -1220,15 +1167,16 @@ contains
                 f10b,     &
                 s10,      &
                 s10b,     &
-                xm10,     &
-                xm10b,    &
+                m10,     &
+                m10b,    &
                 y10,      &
                 y10b,     &
                 dstdtc,   &
                 temp,     &
                 rho)
     rho = rho * 1.d9
-    write(*,*) rho
+
+    
     
     return
 
@@ -2310,6 +2258,83 @@ contains
     kp2ap = convArray(idx)
 
   end function kp2ap
+
+!=============================================================================
+!
+!> @anchor      readJB2008data
+!!
+!! @brief       Reading solar and geomagnetic activity data from CSSI data file
+!! @author      Daniel Lück (DLU)
+!!
+!! @date        <ul>
+!!                <li> 07.01.2021 (DLU: initial design)</li>
+!!              </ul>
+!!
+!!
+!! @details     This routine reads solar and geomagnetic activity files for JB2008
+!!
+!> @todo        This will crash if a wrong date is used
+!!------------------------------------------------------------------------------------------------
+
+  subroutine readJB2008data(  this,      &
+                              mjd_start, &  ! --> DBL     MJD of first SGA data entry
+                              mjd_end    &  ! --> DBL     MJD of last SGA entry
+                            )
+
+    !** interface
+    !-------------------------------------------
+    class(Atmosphere_class)             :: this
+    real(dp), intent(in)                :: mjd_start
+    real(dp), intent(in)                :: mjd_end
+    !-------------------------------------------
+
+    real(dp)        :: JD_start
+    real(dp)        :: JD_end
+    real(dp)        :: JD_temp
+    integer         :: year_sol, year_mag
+    integer         :: doy_sol, doy_mag 
+    type(sgajb08_t) :: tempsga         ! auxiliary
+    integer         ::  i
+    character(len=3) :: buffer
+
+    write(*,*) '- Reading JB2008 files...'
+
+    JD_start = mjd_start + 2400000.5
+    JD_end = mjd_end + 2400000.5
+    
+    open(24,FILE='../work/data/SOLFSMY.TXT',ACCESS='SEQUENTIAL',STATUS='OLD')
+    open(25,FILE='../work/data/DTCFILE.TXT',ACCESS='SEQUENTIAL',STATUS='OLD')
+    
+    !call setNeptuneError(E_SGA_TIME_TAG, WARNING, (/"N/A"/))
+
+    do i = 1, 4
+      read (24,*)
+    end do
+
+    JD_temp = 0.0
+    do while(JD_temp < mjd_start+2399999.5)
+      READ (24,*) year_sol,doy_sol, JD_temp
+    end do
+    year_mag = 0
+    doy_mag = 0
+    do while(.not.(year_mag==year_sol .and. doy_mag==doy_sol))
+      READ (25,*) buffer, year_mag, doy_mag      
+    end do
+
+    i = 1
+    do while(JD_temp < mjd_end+2400000.5)
+      READ (24,*) year_sol, doy_sol, JD_temp, tempsga%f10_jb, tempsga%f10b_jb, tempsga%s10_jb, &
+        tempsga%s10b_jb, tempsga%m10_jb,tempsga%m10b_jb,tempsga%y10_jb,tempsga%y10b_jb
+      READ (25,*) buffer, year_mag, doy_mag, tempsga%dtc
+      tempsga%mjd = JD_temp - 2400000.5
+      sgajb08_data(i) = tempsga
+      i = i+1
+    end do
+    close(24)
+    close(25)
+    return
+
+  end subroutine readJB2008data
 
 !===============================================================================
 !

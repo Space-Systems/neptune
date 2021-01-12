@@ -56,7 +56,7 @@
 #     - julian day:     XXXXXXX.XX...              (no blanks)
 #
   2016 07 20 00 31 50.00   2440980.0    Begin date
-  2016 07 25 00 31 50.00   2441345.0    End date
+  2016 08 03 00 31 50.00   2441345.0    End date
 #
 #------------------------------------------------------------------------------
 #
@@ -210,8 +210,8 @@
 #
   1           cartesian state vector             vs. time
   1           osculating kepler elements         vs. time
-  0           geodetic lat., lon. and altitude   vs. time
-  0           total atmospheric density          vs. time
+  1           geodetic lat., lon. and altitude   vs. time
+  1           total atmospheric density          vs. time
 #
   0           variances (ECI, diagonal elements) vs. time
   1           variances (UVW, diagonal elements) vs. time
