@@ -1,7 +1,7 @@
 ## NEPTUNE
 NPI Ephemeris Propagation Tool with Uncertainty Extrapolation is a state of the art numerical orbit propagator. It allows the extrapolation of a state vector and the associated uncertainty forward and backward in time. It regards perturbative forces using
   * gravitational  potential models: EIGEN-GL04C, EGM2008 or EGM96,
-  * atmospheric drag based on NRLMSISE-00 model, or simple power law,
+  * atmospheric drag based on NRLMSISE-00 model, JB2008 model, or simple power law,
   * 3rd body models (Sun & Moon),
   * solar radiation model,
   * Earth albedo model,
