@@ -441,7 +441,7 @@ contains
                                                                                 ! so 41 additional days are required for a shift later on
       mjd_start = mjd_start - 81.d0                                             ! in order to compute F10.7 last 81-day averages
       !mjd_end   = mjd_end   + 41.d0
-      mjd_end = 59155.0
+      mjd_end = 59155.0                                                     ! Currently only data up to 3.11.2020 available
     end if
 
     !** allocate SGA array according to number of days... (+60 to account mainly for monthly predictions, requiring more input to read for interpolation
@@ -660,6 +660,8 @@ contains
 !> @details     This routine returns the density (in kg/km**3) from the selected atmosphere model
 !!              for the passed radius vector and the MJD.
 !!
+!> @todo        JB2008 data only go up to 03.11.2020 after that NRLMSISE-00 is used (this is hardcoded)
+!!  
 !!------------------------------------------------------------------------------------------------
   real(dp) function getAtmosphericDensity(this, gravity_model, r_gcrf, v_gcrf, r_itrf, v_itrf, time_mjd) result(rho)
 
@@ -739,7 +741,12 @@ contains
     else if(this%nmodel == MSIS2000) then
       rho = this%getDensityMSIS2000(altitude, lat_gd, lon_gd, time_mjd)
     else if(this%nmodel == JB08) then
-      rho = this%getDensityJB2008(altitude, lat_gc, right_ascension, time_mjd)
+      if(time_mjd < 59155) then                                                       ! JB2008 data currently only available until 03.11.2020
+        rho = this%getDensityJB2008(altitude, lat_gc, right_ascension, time_mjd)
+      else
+        write(*,*) "- NO JB2008 DATA AVAILABLE AFTER 03.11.2020, USING NRLMSISE-00 NOW!"
+        rho = this%getDensityMSIS2000(altitude, lat_gd, lon_gd, time_mjd)
+      end if
     end if
 
     this%last_rho      = rho
@@ -1026,7 +1033,7 @@ contains
   !!                <li> 18.12.2020 (initial design, to implement new atmosphere model)</li>
   !!              </ul>
   !!
-  !> @param[in]   altitude          geodetic altitude / km    althought this might also be geocentric
+  !> @param[in]   altitude          geodetic altitude / km    (althought this might also be geocentric)
   !> @param[in]   latitude          geocenric latitude / rad
   !> @param[in]   right ascension   right ascension / rad
   !> @param[in]   time_mjd          MJD
@@ -1066,17 +1073,17 @@ contains
     real(dp), dimension(2)  :: temp             ! jb2008 output temperature
 
     ! Parameters to calculate sun position
-    real(dp)                :: solras
-    real(dp)                :: soldec
+    real(dp)                :: solras           ! right ascension of the sun
+    real(dp)                :: soldec           ! declination of the sun
     real(dp)                :: solan
-    real(dp)                :: SIN1L
-    real(dp)                :: SIN2L
-    real(dp)                :: SIN4L
+    real(dp)                :: sin1l
+    real(dp)                :: sin2l
+    real(dp)                :: sin4l
     real(dp)                :: eps
     real(dp)                :: eclon
-    real(dp)                :: TANHALFEPS1
-    real(dp)                :: TANHALFEPS2
-    real(dp)                :: TANHALFEPS4
+    real(dp)                :: tanhalfeps1
+    real(dp)                :: tanhalfeps2
+    real(dp)                :: tanhalfeps4
     real(dp)                :: solon
     real(dp)                :: d2000
    
@@ -1086,39 +1093,40 @@ contains
     solan = 357.528D0 + 0.9856003 * d2000
     solan = solan*deg2rad
     solon = 280.460D0 + 0.9856474 * d2000
-    solon = DMOD(solon,360.D0)
-    IF (SOLON .LT. 0.D0) THEN
-      SOLON = SOLON + 360.D0
-    END IF
+    solon = dmod(solon,360.D0)
 
-    ECLON = SOLON + 1.915D0 * DSIN(SOLAN) + 0.02D0 * DSIN(2.D0*SOLAN)
-    ECLON = ECLON * deg2rad
+    if (solon .LT. 0.D0) then
+      solon = solon + 360.D0
+    endif
 
-
-    EPS   = 23.439D0 - 0.0000004 * D2000
-    EPS   = EPS * deg2rad
+    eclon = solon + 1.915D0 * dsin(solan) + 0.02D0 * dsin(2.D0*solan)
+    eclon = eclon * deg2rad
 
 
-    SIN1L = DSIN(1.D0 * ECLON)
-    SIN2L = DSIN(2.D0 * ECLON)
-    SIN4L = DSIN(4.D0 * ECLON)
+    eps   = 23.439D0 - 0.0000004 * D2000
+    eps   = eps * deg2rad
 
 
-    TANHALFEPS1 = DTAN(0.5 * EPS)
-    TANHALFEPS2 = TANHALFEPS1 * TANHALFEPS1
-    TANHALFEPS4 = TANHALFEPS2 * TANHALFEPS2
+    sin1l = dsin(1.D0 * eclon)
+    sin2l = dsin(2.D0 * eclon)
+    sin4l = dsin(4.D0 * eclon)
+
+
+    tanhalfeps1 = dtan(0.5 * eps)
+    tanhalfeps2 = tanhalfeps1 * tanhalfeps1
+    tanhalfeps4 = tanhalfeps2 * tanhalfeps2
 
 
 
-    SOLRAS = ECLON - TANHALFEPS2 * SIN2L + 0.5 * TANHALFEPS4 * SIN4L
+    solras = eclon - tanhalfeps2 * sin2l + 0.5 * tanhalfeps4 * sin4l
 
-    IF (SOLRAS .LT. 0.D0) THEN
-      SOLRAS = SOLRAS + 2*pi
-    ELSEIF (SOLRAS .GT. 2*pi) THEN
-      SOLRAS = SOLRAS - 2*pi
-    END IF
+    if (solras .LT. 0.D0) then
+      solras = solras + 2*pi
+    elseif (solras .GT. 2*pi) then
+      solras = solras - 2*pi
+    end if
 
-    SOLDEC = DASIN(DSIN(EPS) * SIN1L)
+    soldec = dasin(dsin(eps) * sin1l)
 
     sun(1) = solras
     sun(2) = soldec
@@ -2293,17 +2301,17 @@ contains
     real(dp)        :: JD_temp
     integer         :: year_sol, year_mag
     integer         :: doy_sol, doy_mag 
-    type(sgajb08_t) :: tempsga         ! auxiliary
+    type(sgajb08_t) :: tempsga            ! auxiliary
     integer         ::  i
-    character(len=3) :: buffer
+    character(len=3):: buffer
 
     write(*,*) '- Reading JB2008 files...'
 
     JD_start = mjd_start + 2400000.5
     JD_end = mjd_end + 2400000.5
     
-    open(24,FILE='../work/data/SOLFSMY.TXT',ACCESS='SEQUENTIAL',STATUS='OLD')
-    open(25,FILE='../work/data/DTCFILE.TXT',ACCESS='SEQUENTIAL',STATUS='OLD')
+    open(24,file='../work/data/SOLFSMY.TXT',access='sequential',status='old')
+    open(25,file='../work/data/DTCFILE.TXT',access='sequential',status='old')
     
     !call setNeptuneError(E_SGA_TIME_TAG, WARNING, (/"N/A"/))
 
@@ -2313,19 +2321,22 @@ contains
 
     JD_temp = 0.0
     do while(JD_temp < mjd_start+2399999.5)
-      READ (24,*) year_sol,doy_sol, JD_temp
+      read (24,*) year_sol,doy_sol, JD_temp
     end do
     year_mag = 0
     doy_mag = 0
     do while(.not.(year_mag==year_sol .and. doy_mag==doy_sol))
-      READ (25,*) buffer, year_mag, doy_mag      
+      read (25,*) buffer, year_mag, doy_mag      
     end do
 
     i = 1
     do while(JD_temp < mjd_end+2400000.5)
-      READ (24,*) year_sol, doy_sol, JD_temp, tempsga%f10_jb, tempsga%f10b_jb, tempsga%s10_jb, &
+
+      read (24,*) year_sol, doy_sol, JD_temp, tempsga%f10_jb, tempsga%f10b_jb, tempsga%s10_jb, &
         tempsga%s10b_jb, tempsga%m10_jb,tempsga%m10b_jb,tempsga%y10_jb,tempsga%y10b_jb
-      READ (25,*) buffer, year_mag, doy_mag, tempsga%dtc
+
+      read (25,*) buffer, year_mag, doy_mag, tempsga%dtc
+
       tempsga%mjd = JD_temp - 2400000.5
       sgajb08_data(i) = tempsga
       i = i+1
