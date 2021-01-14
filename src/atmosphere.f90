@@ -1135,6 +1135,7 @@ contains
     !** find index in space weather data for current date
     idx = int(time_mjd - int(sgajb08_data(1)%mjd)) + 1
 
+    ! set solar parameters
     f10 = sgajb08_data(idx-1)%f10_jb
     f10b = sgajb08_data(idx-1)%f10b_jb
     s10 = sgajb08_data(idx-1)%s10_jb
@@ -1161,13 +1162,15 @@ contains
       y10b = 0.
     endif
     
+    ! set satellite position
     sat(1) = right_ascension
     sat(2) = latitude
     sat(3) = altitude
     
-    
+    ! set delta T caused by geomagnetic activity
     dstdtc = sgajb08_data(idx)%dtc(1+int(24*(time_mjd-int(time_mjd))))
 
+    ! call atmosphere model
     call JB2008(time_mjd, &
                 sun,      &
                 sat,      &
@@ -1183,9 +1186,7 @@ contains
                 temp,     &
                 rho)
     rho = rho * 1.d9
-
-    
-    
+  
     return
 
   end function getDensityJB2008
@@ -2302,7 +2303,7 @@ contains
     integer         :: year_sol, year_mag
     integer         :: doy_sol, doy_mag 
     type(sgajb08_t) :: tempsga            ! auxiliary
-    integer         ::  i
+    integer         :: i
     character(len=3):: buffer
 
     write(*,*) '- Reading JB2008 files...'
@@ -2313,8 +2314,6 @@ contains
     open(24,file='../work/data/SOLFSMY.TXT',access='sequential',status='old')
     open(25,file='../work/data/DTCFILE.TXT',access='sequential',status='old')
     
-    !call setNeptuneError(E_SGA_TIME_TAG, WARNING, (/"N/A"/))
-
     do i = 1, 4
       read (24,*)
     end do
