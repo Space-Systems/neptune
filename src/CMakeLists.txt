@@ -25,6 +25,7 @@ set(SRC_FILES
     reentry.f90
     rdinp.f90
     neptune.f90
+    JB2008module.for
 )
 
 # Build the neptune library based on the given source files
