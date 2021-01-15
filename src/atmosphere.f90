@@ -35,8 +35,10 @@ module atmosphere
     use slam_types,             only: dp, sp
     use slam_astro,             only: EGM96, getEarthRotation
     use slam_astro_conversions, only: getGeodeticLatLon, getRadiusLatLon
-    use neptune_error_handling, only: setNeptuneError, E_SGA_INPUT, E_SGA_UNSUPPORTED_TYPE, E_SGA_TIME_TAG, E_SGA_UNSUPPORTED_VERSION, &
-                                    E_SGA_NO_VERSION, E_SGA_MISSING, E_MIN_ALTITUDE, E_ATMOSPHERE_INIT, getNeptuneErrorMessage
+    use neptune_error_handling, only: setNeptuneError, E_SGA_INPUT, E_SGA_UNSUPPORTED_TYPE, E_SGA_TIME_TAG, &
+                                    E_SGA_UNSUPPORTED_VERSION, &
+                                    E_SGA_NO_VERSION, E_SGA_MISSING, E_MIN_ALTITUDE, E_ATMOSPHERE_INIT, &
+                                    getNeptuneErrorMessage
     use slam_error_handling,    only: isControlled, hasToReturn, hasFailed, FATAL, WARNING, REMARK, &
                                     E_UNKNOWN_PARAMETER, E_SPECIAL, checkIn, checkOut
     !use gravity,                only: setCurrentAltitude
@@ -59,24 +61,23 @@ module atmosphere
 
     integer,public,parameter :: FILE_CSSI   = 1
     integer,public,parameter :: FILE_FAPDAY = 2
+    integer,public,parameter :: FILE_JB08   = 3
     integer,public,parameter :: DAILY       = 1
     integer,public,parameter :: MONTHLY     = 2
 
-    integer,public,parameter :: n_supported_sga_file_types = 2                  ! Number of different supported data file types for solar and geomagnetic activity
+    integer,public,parameter :: n_supported_sga_file_types = 3                  ! Number of different supported data file types for solar and geomagnetic activity
 
-    integer,public,parameter :: JB08    = 3
+    integer,public,parameter :: JB08        = 3
     integer,public,parameter :: MSIS2000    = 2
     integer,public,parameter :: EXPONENTIAL = 1
     integer,public,parameter :: n_supported_models      = 3                     ! Number of supported atmosphere models
     integer,public,parameter :: n_supported_wind_models = 1                     ! Number of supported horizontal wind models
 
     ! Model names
-    character(len=*), dimension(n_supported_models),      parameter :: modelName     = (/"Exponential","NRLMSISE-00","JacBow-2008"/)
+    character(len=*), dimension(n_supported_models),      parameter :: modelName     = (/"Exponential","NRLMSISE-00","JB2008     "/)
     character(len=*), dimension(n_supported_wind_models), parameter :: windModelName = (/"HWM07"/)
-    character(len=*),public,parameter,dimension(n_supported_sga_file_types) :: fileIdent    = (/"CssiS", &
-                                                                                         "d/mm/"/)          ! characteristic identifiers of sga data file
-    character(len=*),public,parameter,dimension(n_supported_sga_file_types) :: suppSgaFiles = (/"CSSI (v1.2)", &
-                                                                                         "ESA daily  "/)    ! supported solmag data files
+    character(len=*),public,parameter,dimension(n_supported_sga_file_types) :: fileIdent    = (/"CssiS", "d/mm/", " JB20"/)       ! characteristic identifiers of sga data file
+    character(len=*),public,parameter,dimension(n_supported_sga_file_types) :: suppSgaFiles = (/"CSSI (v1.2)", "ESA daily  ", "JB Indices "/)    ! supported solmag data files
 
     ! Solar and geomagnetic activity (SGA) type for Nrmmsise
     type sga_t
@@ -86,15 +87,7 @@ module atmosphere
         real(dp) :: f81ctr                                                      ! Observed F10.7, 81-day centered
         real(dp) :: f107                                                        ! Observed F10.7
 
-    end type sga_t
-
-    ! Solar and geomagnetic activity (SGA) data array for Nrmmsise
-    type(sga_t), dimension(:), allocatable :: sga_data                          ! Containing solar and geomagnetic activity data (SGA)
-
-    ! Solar and geomagnetic activity (SGA) type for Nrmmsise
-    type sgajb08_t
-
-        real(dp) :: mjd                                                         ! Modified julian day of SGA
+        ! JB08 specific indices
         integer, dimension(24) :: dtc                                           ! 1hr temperature change from dtcfile
         real(dp) :: f10b_jb                                                     ! F10.7 index, 81-day centered
         real(dp) :: f10_jb                                                      ! F10.7 index
@@ -105,10 +98,10 @@ module atmosphere
         real(dp) :: y10b_jb                                                     ! x-ray and lya index, 81-day centered
         real(dp) :: y10_jb                                                      ! x-ray and lya index
 
-    end type sgajb08_t
+    end type sga_t
 
     ! Solar and geomagnetic activity (SGA) data array for Nrmmsise
-    type(sgajb08_t), dimension(:), allocatable :: sgajb08_data                          ! Containing solar and geomagnetic activity data (SGA)
+    type(sga_t), dimension(:), allocatable :: sga_data                          ! Containing solar and geomagnetic activity data (SGA)
 
     ! The atmospheric model class (type defintion)
     type, public :: Atmosphere_class
@@ -165,11 +158,14 @@ module atmosphere
         real(dp)               :: last_time_mjd
         real(dp)               :: last_rho
         real(dp)               :: rho                                           ! atmospheric density in kg/km**3
+        type(time_t)           :: date_start                                    ! First date solmag data is available for
+        type(time_t)           :: date_end                                      ! Last date solmag data is available for
 
     contains
         procedure :: initAtmosphere
         procedure :: readCssiDataFile
-        procedure :: readJB2008data
+        procedure :: read_jb2008_files
+        procedure :: get_jb2008_date_interval
         procedure :: readFapDayDataFile
         procedure :: readFapMonDataFile
         procedure :: parseCSSIDataLine
@@ -280,7 +276,6 @@ contains
 
         call this%hwm07_model%destroy()
         if (allocated(sga_data)) deallocate(sga_data)
-        if (allocated(sgajb08_data)) deallocate(sgajb08_data)
     end subroutine destroy
 
 !==========================================================================
@@ -386,10 +381,10 @@ contains
     integer                     :: ich                                          ! input channel
     integer                     :: idays                                        ! number of days for which data is required
     integer                     :: sgaDataType                                  ! data file type for solmag input read (e.g. 1=CSSI, 2=FAP_DAY)
-    type(time_t)                :: date_start
-    type(time_t)                :: date_end
     real(dp)                    :: mjd_end                                      ! MJD of last SGA data entry
     real(dp)                    :: mjd_start                                    ! MJD of first SGA data entry
+    character(len=255)          :: cmess                                        ! message string
+
 
     if(isControlled()) then
       if(hasToReturn()) return
@@ -423,25 +418,45 @@ contains
       return
     end if
 
-    date_start%mjd = 37300.d0  ! Jan 1st, 1961
-    date_end%mjd = 71183.d0    ! Dec 31st, 2051
+    this%date_start%mjd = 37300.d0  ! Jan 1st, 1961
+    this%date_end%mjd = 71183.d0    ! Dec 31st, 2051
 
     !** add three 'previous days' (for NRLMSISE-00) and an additional day at the end (for interpolation)
-    mjd_start = date_start%mjd - 3.d0
-    mjd_end   = date_end%mjd + 1.d0
+    mjd_start = this%date_start%mjd - 3.d0
+    mjd_end   = this%date_end%mjd + 1.d0
 
     if(sgaDataType == FILE_FAPDAY .and. this%nmodel == MSIS2000) then           ! F10.7 81-day centered will be required, but ESA daily data provides last 81-day data only,
                                                                                 ! so 41 additional days are required for a shift later on
       mjd_start = mjd_start - 81.d0                                             ! in order to compute F10.7 last 81-day averages
       mjd_end   = mjd_end   + 41.d0
 
+    else if (sgaDataType == FILE_JB08 .and. this%nmodel == MSIS2000) then
+
+      cmess = "Wrong input file (JB08) specified for the selected NRLMSISE-00 atmospheric model."
+      call setNeptuneError(E_SPECIAL, FATAL, (/cmess/))
+      return
+
     end if
 
-    if(sgaDataType == FILE_FAPDAY .and. this%nmodel == JB08) then           ! F10.7 81-day centered will be required, but ESA daily data provides last 81-day data only,
-                                                                                ! so 41 additional days are required for a shift later on
-      mjd_start = mjd_start - 81.d0                                             ! in order to compute F10.7 last 81-day averages
-      !mjd_end   = mjd_end   + 41.d0
-      mjd_end = 59155.0                                                     ! Currently only data up to 3.11.2020 available
+    if(sgaDataType == FILE_JB08 .and. this%nmodel == JB08) then
+
+      !mjd_start = 50449.5   ! Jan 1st, 1997
+      call this%get_jb2008_date_interval(ich, this%date_start%mjd, this%date_end%mjd)
+      mjd_start = this%date_start%mjd
+      mjd_end   = this%date_end%mjd
+
+    else if (sgaDataType == FILE_FAPDAY .and. this%nmodel == JB08) then
+
+      cmess = "Wrong input file (FAPDAY) specified for the selected JB2008 atmospheric model."
+      call setNeptuneError(E_SPECIAL, FATAL, (/cmess/))
+      return
+
+    else if (sgaDataType == FILE_CSSI .and. this%nmodel == JB08) then
+
+      cmess = "Wrong input file (CSSI) specified for the selected JB2008 atmospheric model."
+      call setNeptuneError(E_SPECIAL, FATAL, (/cmess/))
+      return
+
     end if
 
     !** allocate SGA array according to number of days... (+60 to account mainly for monthly predictions, requiring more input to read for interpolation
@@ -453,10 +468,6 @@ contains
     end if
     allocate(sga_data(idays))
 
-    if(allocated(sgajb08_data)) then
-      deallocate(sgajb08_data)
-    end if
-    allocate(sgajb08_data(idays))
     !---------------------------------------------------
 
     !** now start reading data into the allocated sga_data array depending on type of file
@@ -468,13 +479,11 @@ contains
       case(FILE_FAPDAY)
         call this%readFapDayDataFile(ich, mjd_start, mjd_end)
         if(hasFailed()) return
+      case(FILE_JB08)
+        call this%read_jb2008_files(ich, mjd_start, mjd_end)
+        if(hasFailed()) return
     end select
 
-    !** Read solar and geomagnetic data for JB2008
-    !----------------------------------------------------------------------------------
-    if(sgaDataType == FILE_FAPDAY .and. this%nmodel == JB08) then 
-      call this%readJB2008data(mjd_start, mjd_end)
-    end if
     !** IF wind is considered, open horizontal wind data files
     !----------------------------------------------------------------------------------
     if(this%considerWind) then
@@ -661,9 +670,10 @@ contains
 !!              for the passed radius vector and the MJD.
 !!
 !> @todo        JB2008 data only go up to 03.11.2020 after that NRLMSISE-00 is used (this is hardcoded)
-!!  
+!!
 !!------------------------------------------------------------------------------------------------
   real(dp) function getAtmosphericDensity(this, gravity_model, r_gcrf, v_gcrf, r_itrf, v_itrf, time_mjd) result(rho)
+    use slam_strings, only: toString
 
     implicit none
 
@@ -672,11 +682,11 @@ contains
     real(dp), dimension(3), intent(in) :: r_gcrf
     real(dp), dimension(3), intent(in) :: v_gcrf
     real(dp), dimension(3), intent(in) :: r_itrf
-    real(dp), dimension(3), intent(in) :: v_itrf   
+    real(dp), dimension(3), intent(in) :: v_itrf
     real(dp),               intent(in) :: time_mjd
 
     character(len=*), parameter :: csubid =  "getAtmosphericDensity"
-    
+
     integer  :: ierr                                                            ! error flag
     real(dp) :: altitude                                                        ! geodetic altitude (km)
     real(dp) :: height                                                          ! geocentric altitude (km)
@@ -688,6 +698,8 @@ contains
     real(dp) :: lon_gc                                                          ! geocentric longitude (rad)
     real(dp) :: right_ascension                                                 ! right ascension of satellite position (not RAAN!)
     real(dp) :: rabs                                                            ! magnitude of radius (km)
+
+    character(len=255) :: cmess
 
     real(dp), dimension(3)       :: tmp_r
     this%last_r = -1.d0
@@ -725,8 +737,8 @@ contains
     end if
 
     ! height = rabs - 6371.0 !height not clearly defined in jb2008 this is for geocentric height
-    
-   
+
+
 
     !** check whether altitude is below re-entry altitude limit
     if(altitude < this%p_altitude_min) then
@@ -741,11 +753,12 @@ contains
     else if(this%nmodel == MSIS2000) then
       rho = this%getDensityMSIS2000(altitude, lat_gd, lon_gd, time_mjd)
     else if(this%nmodel == JB08) then
-      if(time_mjd < 59155) then                                                       ! JB2008 data currently only available until 03.11.2020
+      if(this%date_start%mjd <= time_mjd .and. time_mjd <= this%date_end%mjd) then                                                       ! JB2008 data currently only available until 03.11.2020
         rho = this%getDensityJB2008(altitude, lat_gc, right_ascension, time_mjd)
       else
-        write(*,*) "- NO JB2008 DATA AVAILABLE AFTER 03.11.2020, USING NRLMSISE-00 NOW!"
-        rho = this%getDensityMSIS2000(altitude, lat_gd, lon_gd, time_mjd)
+        cmess = "No solar and geomagnetic data available for the given time: "//toString(time_mjd)
+        call setNeptuneError(E_SPECIAL, FATAL, (/cmess/))
+        return
       end if
     end if
 
@@ -952,7 +965,7 @@ contains
     !rho = dble(sp_density(6))*1.d12
     rho = dble(output%d(5))*1.d12
     !write(*,*) time_mjd, longitude, latitude, altitude
-    
+
 
     return
 
@@ -1047,7 +1060,7 @@ contains
   real(dp) function getDensityJB2008(this, altitude, latitude, right_ascension, time_mjd) result(rho)
     use nrlmsise00Class,        only: nrlmsise_flags,nrlmsise_input,nrlmsise_output
     use JB2008module
-    
+
 
     implicit none
 
@@ -1086,7 +1099,7 @@ contains
     real(dp)                :: tanhalfeps4
     real(dp)                :: solon
     real(dp)                :: d2000
-   
+
     ! calculate position of the sun (taken from JB08DRVY2k.for)
 
     d2000 = time_mjd - 51544.5D0
@@ -1133,17 +1146,17 @@ contains
 
 
     !** find index in space weather data for current date
-    idx = int(time_mjd - int(sgajb08_data(1)%mjd)) + 1
+    idx = int(time_mjd - int(sga_data(1)%mjd)) + 1
 
     ! set solar parameters
-    f10 = sgajb08_data(idx-1)%f10_jb
-    f10b = sgajb08_data(idx-1)%f10b_jb
-    s10 = sgajb08_data(idx-1)%s10_jb
-    s10b = sgajb08_data(idx-1)%s10b_jb
-    m10 = sgajb08_data(idx-2)%m10_jb
-    m10b = sgajb08_data(idx-2)%m10b_jb
-    y10 = sgajb08_data(idx-5)%y10_jb
-    y10b = sgajb08_data(idx-5)%y10b_jb
+    f10 = sga_data(idx-1)%f10_jb
+    f10b = sga_data(idx-1)%f10b_jb
+    s10 = sga_data(idx-1)%s10_jb
+    s10b = sga_data(idx-1)%s10b_jb
+    m10 = sga_data(idx-2)%m10_jb
+    m10b = sga_data(idx-2)%m10b_jb
+    y10 = sga_data(idx-5)%y10_jb
+    y10b = sga_data(idx-5)%y10b_jb
 
     if (f10.LT.40..OR.f10b.LT.40.) then
       f10  = 0.
@@ -1161,14 +1174,14 @@ contains
       y10  = 0.
       y10b = 0.
     endif
-    
+
     ! set satellite position
     sat(1) = right_ascension
     sat(2) = latitude
     sat(3) = altitude
-    
+
     ! set delta T caused by geomagnetic activity
-    dstdtc = sgajb08_data(idx)%dtc(1+int(24*(time_mjd-int(time_mjd))))
+    dstdtc = sga_data(idx)%dtc(1+int(24*(time_mjd-int(time_mjd))))
 
     ! call atmosphere model
     call JB2008(time_mjd, &
@@ -1186,7 +1199,7 @@ contains
                 temp,     &
                 rho)
     rho = rho * 1.d9
-  
+
     return
 
   end function getDensityJB2008
@@ -1436,7 +1449,7 @@ contains
     real(dp)                 :: crossSection  ! satellite cross section
     real(dp), dimension(3,3) :: mati          ! identity matrix
     real(dp), dimension(3)   :: r_itrf        ! radius vector in ITRF
-    real(dp), dimension(3)   :: v_itrf        ! radius vector in ITRF   
+    real(dp), dimension(3)   :: v_itrf        ! radius vector in ITRF
     real(dp), dimension(3,3) :: rotTIRS       ! rotation matrix to convert from GCRF to TIRS
     real(dp)                 :: vabs          ! magnitude of v_rel
     real(dp), dimension(3)   :: v_rel         ! relative velocity in GCRF
@@ -2080,7 +2093,6 @@ contains
       end if
     end if
 
-    !** done!
     if(isControlled()) then
       call checkOut(csubid)
     end if
@@ -2268,9 +2280,85 @@ contains
 
   end function kp2ap
 
+  !=============================================================================
+  !
+  !> @anchor      get_jb2008_date_interval
+  !!
+  !! @brief       Getting first and last MJD entry in JB2008 solmag file
+  !! @author      Christopher Kebschull (ChK)
+  !!
+  !! @date        <ul>
+  !!                <li> 14.01.2021 (ChK: initial design)</li>
+  !!              </ul>
+  !!
+  !!
+  !! @details     This routine reads solar and geomagnetic and returns the last MJD entry
+  !!
+  !!------------------------------------------------------------------------------------------------
+  subroutine get_jb2008_date_interval( this, &
+                                  ich,       &  ! <-- INT     input channel to read data from
+                                  mjd_start, &  ! <--> DBL    MJD of first SGA entry
+                                  mjd_end    &  ! <--> DBL    MJD of last SGA entry
+                                )
+
+    !** interface
+    !-------------------------------------------
+    class(Atmosphere_class)             :: this
+    integer,  intent(in)                :: ich
+    real(dp), intent(inout)             :: mjd_start
+    real(dp), intent(inout)             :: mjd_end
+    character(len=255)                  :: cbuf,cbuf_dtc
+    !-------------------------------------------
+
+    real(dp)        :: dummy
+    integer         :: year_sol
+    integer         :: doy_sol
+    integer         :: ios                      ! I/O status
+    logical         :: first
+    integer         :: dtc_ich
+
+    character(len=*), parameter :: csubid = "get_jb2008_date_interval"
+
+    if(isControlled()) then
+      if(hasToReturn()) return
+      call checkIn(csubid)
+    end if
+
+    rewind(ich)
+
+    dtc_ich = openFile(trim(adjustl(this%dataPath))//cdelimit//"DTCFILE.TXT", SEQUENTIAL, IN_FORMATTED)
+
+    first = .true.
+    do
+      read(ich,'(A)',iostat=ios) cbuf
+      if (ios < 0) exit
+      if(index(cbuf,'#') /= 0) cycle
+
+      ! Now also start reading the DTC file
+      read(dtc_ich,'(A)',iostat=ios) cbuf_dtc
+      if (ios < 0) exit
+
+      read (cbuf,*) year_sol, doy_sol, mjd_end
+      mjd_end = mjd_end - 2400000.5
+      if (first) then
+        first= .false.
+        mjd_start = mjd_end
+      end if
+    end do
+
+    dtc_ich = closeFile(dtc_ich)
+
+    if(isControlled()) then
+      call checkOut(csubid)
+    end if
+
+    return
+
+  end subroutine get_jb2008_date_interval
+
 !=============================================================================
 !
-!> @anchor      readJB2008data
+!> @anchor      read_jb2008_files
 !!
 !! @brief       Reading solar and geomagnetic activity data from CSSI data file
 !! @author      Daniel Lück (DLU)
@@ -2285,7 +2373,8 @@ contains
 !> @todo        This will crash if a wrong date is used
 !!------------------------------------------------------------------------------------------------
 
-  subroutine readJB2008data(  this,      &
+  subroutine read_jb2008_files(  this,      &
+                              ich,       &  ! <-- INT     input channel to read data from
                               mjd_start, &  ! --> DBL     MJD of first SGA data entry
                               mjd_end    &  ! --> DBL     MJD of last SGA entry
                             )
@@ -2293,6 +2382,7 @@ contains
     !** interface
     !-------------------------------------------
     class(Atmosphere_class)             :: this
+    integer,  intent(in)                :: ich
     real(dp), intent(in)                :: mjd_start
     real(dp), intent(in)                :: mjd_end
     !-------------------------------------------
@@ -2301,50 +2391,59 @@ contains
     real(dp)        :: JD_end
     real(dp)        :: JD_temp
     integer         :: year_sol, year_mag
-    integer         :: doy_sol, doy_mag 
-    type(sgajb08_t) :: tempsga            ! auxiliary
+    integer         :: doy_sol, doy_mag
     integer         :: i
     character(len=3):: buffer
+    integer         :: dtc_ich
+
+    character(len=*), parameter :: csubid = "read_jb2008_files"
+
+    if(isControlled()) then
+      if(hasToReturn()) return
+      call checkIn(csubid)
+    end if
 
     write(*,*) '- Reading JB2008 files...'
 
-    JD_start = mjd_start + 2400000.5
-    JD_end = mjd_end + 2400000.5
-    
-    open(24,file='../work/data/SOLFSMY.TXT',access='sequential',status='old')
-    open(25,file='../work/data/DTCFILE.TXT',access='sequential',status='old')
-    
+    rewind(ich)
+
+    dtc_ich = openFile(trim(adjustl(this%dataPath))//cdelimit//"DTCFILE.TXT", SEQUENTIAL, IN_FORMATTED)
+
     do i = 1, 4
-      read (24,*)
+      read (ich,*)
     end do
 
     JD_temp = 0.0
-    do while(JD_temp < mjd_start+2399999.5)
-      read (24,*) year_sol,doy_sol, JD_temp
+    do while(JD_temp < mjd_start + 2399999.5D0)
+      read (ich,*) year_sol,doy_sol, JD_temp
     end do
     year_mag = 0
     doy_mag = 0
     do while(.not.(year_mag==year_sol .and. doy_mag==doy_sol))
-      read (25,*) buffer, year_mag, doy_mag      
+      read (dtc_ich,*) buffer, year_mag, doy_mag
     end do
 
     i = 1
-    do while(JD_temp < mjd_end+2400000.5)
+    do while(JD_temp < mjd_end + 2400000.5)
 
-      read (24,*) year_sol, doy_sol, JD_temp, tempsga%f10_jb, tempsga%f10b_jb, tempsga%s10_jb, &
-        tempsga%s10b_jb, tempsga%m10_jb,tempsga%m10b_jb,tempsga%y10_jb,tempsga%y10b_jb
+      read (ich,*) year_sol, doy_sol, JD_temp, sga_data(i)%f10_jb, sga_data(i)%f10b_jb, sga_data(i)%s10_jb, &
+      sga_data(i)%s10b_jb, sga_data(i)%m10_jb,sga_data(i)%m10b_jb,sga_data(i)%y10_jb,sga_data(i)%y10b_jb
 
-      read (25,*) buffer, year_mag, doy_mag, tempsga%dtc
+      read (dtc_ich,*) buffer, year_mag, doy_mag, sga_data(i)%dtc
 
-      tempsga%mjd = JD_temp - 2400000.5
-      sgajb08_data(i) = tempsga
+      sga_data(i)%mjd = JD_temp - 2400000.5
       i = i+1
     end do
-    close(24)
-    close(25)
+
+    dtc_ich = closeFile(dtc_ich)
+
+    if(isControlled()) then
+      call checkOut(csubid)
+    end if
+
     return
 
-  end subroutine readJB2008data
+  end subroutine read_jb2008_files
 
 !===============================================================================
 !
@@ -2385,6 +2484,8 @@ contains
       getSgaDataFileType = FILE_CSSI
     else if(index(cbuf,fileIdent(FILE_FAPDAY)) /= 0) then
       getSgaDataFileType = FILE_FAPDAY
+    else if(index(cbuf,fileIdent(FILE_JB08)) /= 0) then
+      getSgaDataFileType = FILE_JB08
     else
       call setNeptuneError(E_SGA_UNSUPPORTED_TYPE, FATAL, suppSgaFiles)
       getSgaDataFileType = -1
@@ -3310,12 +3411,6 @@ contains
     !
     !-------------------------------------------------
     if(this%nmodel == MSIS2000) then
-
-      sga_data(:)%f81ctr = eoshift(sga_data(:)%f81ctr, 40)
-
-    end if
-
-    if(this%nmodel == JB08) then
 
       sga_data(:)%f81ctr = eoshift(sga_data(:)%f81ctr, 40)
 
