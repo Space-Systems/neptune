@@ -56,7 +56,7 @@ cd ../../
 echo "Checking for libslam"
 if [[ ! -d "libslam" ]]; then
   echo "Not found - cloning from https://github.com/Space-Systems/libslam.git"
-  git clone https://github.com/Space-Systems/libslam.git
+  git clone https://github.com/Space-Systems/libslam.git --branch v2020-12
 else
   echo "Found - updating master branch."
   cd libslam
