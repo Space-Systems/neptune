@@ -1099,6 +1099,8 @@ contains
     real(dp)                :: tanhalfeps4
     real(dp)                :: solon
     real(dp)                :: d2000
+    real(dp)                :: hourofday
+    real(dp)                :: fractionofhour
 
     ! calculate position of the sun (taken from JB08DRVY2k.for)
 
@@ -1181,7 +1183,15 @@ contains
     sat(3) = altitude
 
     ! set delta T caused by geomagnetic activity
-    dstdtc = sga_data(idx)%dtc(1+int(24*(time_mjd-int(time_mjd))))
+    hourofday = 1+int(24*(time_mjd-int(time_mjd)))
+    fractionofhour = 24*(time_mjd-int(time_mjd))-int(24*(time_mjd-int(time_mjd)))
+    if(hourofday<24) then
+      dstdtc = (sga_data(idx)%dtc(hourofday+1)-sga_data(idx)%dtc(hourofday))*fractionofhour + sga_data(idx)%dtc(hourofday)
+    else
+      dstdtc = (sga_data(idx+1)%dtc(1)-sga_data(idx)%dtc(hourofday))*fractionofhour + sga_data(idx)%dtc(hourofday)
+    end if
+
+
 
     ! call atmosphere model
     call JB2008(time_mjd, &
