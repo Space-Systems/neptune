@@ -23,7 +23,7 @@ if [[ ! -d "OPI" ]]; then
   echo "Not found - cloning from  https://github.com/Space-Systems/OPI.git --branch OPI-2015"
   git clone https://github.com/Space-Systems/OPI.git --branch OPI-2015
 else
-  echo "Found - updating master branch."
+  echo "Found - updating branch."
   cd OPI
   git pull
   cd ..
@@ -47,8 +47,8 @@ cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=../ -DCMAKE_Fortran_
 echo "Building OPI"
 make install
 if [[ $? -ne 0 ]]; then
-    echo "Could not build OPI. Exiting."
-    exit $?
+  echo "Could not build OPI. Exiting."
+  exit $?
 fi
 echo "Leaving OPI"
 cd ../../
@@ -62,7 +62,7 @@ if [[ ! -d "libslam" ]]; then
   echo "Not found - cloning from https://github.com/Space-Systems/libslam.git"
   git clone https://github.com/Space-Systems/libslam.git --branch v2020-12
 else
-  echo "Found - updating master branch."
+  echo "Found - updating branch."
   cd libslam
   git pull
   cd ..

@@ -305,163 +305,384 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
         write(temp_string,*) OPI_Module_getPropertyString(propagator,"data_folder")
         call neptune_instance%setDataPath(trim(temp_string))
 
-        !** start with the perturbations. All to zero
-        write(cpert(1),*) OPI_Module_getPropertyString(propagator,"geopotential_degree_order")
-        write(cpert(2),*) OPI_Module_getPropertyString(propagator,"atmosphere")
-        write(cpert(3),*) OPI_Module_getPropertyString(propagator,"horizontal_wind")
-        write(cpert(4),*) OPI_Module_getPropertyString(propagator,"solar")
-        write(cpert(5),*) OPI_Module_getPropertyString(propagator,"moon")
-        write(cpert(6),*) OPI_Module_getPropertyString(propagator,"srp")
-        write(cpert(7),*) OPI_Module_getPropertyString(propagator,"albedo")
-        write(cpert(8),*) OPI_Module_getPropertyString(propagator,"solid_tides")
-        write(cpert(9),*) OPI_Module_getPropertyString(propagator,"ocean_tides")
-        write(cpert(10),*) OPI_Module_getPropertyString(propagator,"manoeuvres")
+        !** set error handling to return, in case we need to change the accuracy
+        call initErrorHandler(control = "YES", errAction = "RETURN", traceback = "YES")
 
-        !** set maneuver switch
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"manoeuvres")
-        if (index(temp_string,"OFF") /= 0) then
-            propagate_maneuvers = .false.
-        else
-            propagate_maneuvers = .true.
+        is_initialized = .true.
+    end if
+
+    !** start with the perturbations. All to zero
+    write(cpert(1),*) OPI_Module_getPropertyString(propagator,"geopotential_degree_order")
+    write(cpert(2),*) OPI_Module_getPropertyString(propagator,"atmosphere")
+    write(cpert(3),*) OPI_Module_getPropertyString(propagator,"horizontal_wind")
+    write(cpert(4),*) OPI_Module_getPropertyString(propagator,"solar")
+    write(cpert(5),*) OPI_Module_getPropertyString(propagator,"moon")
+    write(cpert(6),*) OPI_Module_getPropertyString(propagator,"srp")
+    write(cpert(7),*) OPI_Module_getPropertyString(propagator,"albedo")
+    write(cpert(8),*) OPI_Module_getPropertyString(propagator,"solid_tides")
+    write(cpert(9),*) OPI_Module_getPropertyString(propagator,"ocean_tides")
+    write(cpert(10),*) OPI_Module_getPropertyString(propagator,"manoeuvres")
+
+    !** set maneuver switch
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"manoeuvres")
+    if (index(temp_string,"OFF") /= 0) then
+        propagate_maneuvers = .false.
+    else
+        propagate_maneuvers = .true.
+    end if
+
+    !** move values to neptune
+    do i = 1, 10
+        ierr = neptune_instance%setNeptuneVar(perturbationValue(i),TRIM(cpert(i)))
+
+        !** check, if something went wrong in libslam/neptune
+        if (ierr .ne. 0) then
+            slam_error = t%check_slam_error()
+            if (t%has_to_return()) return
+            if (slam_error) then
+                call resetError()
+            end if
+        endif
+
+    end do
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"harmonics")
+    ierr = neptune_instance%setNeptuneVar("OPT_HARMONICS", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
         end if
-
-        !** move values to neptune
-        do i = 1, 10
-            ierr = neptune_instance%setNeptuneVar(perturbationValue(i),TRIM(cpert(i)))
-
-            !** check, if something went wrong in libslam/neptune
-            if (ierr .ne. 0) then
-                slam_error = t%check_slam_error()
-                if (t%has_to_return()) return
-                if (slam_error) then
-                    call resetError()
-                end if
-            endif
-
-        end do
-
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"harmonics")
-        ierr = neptune_instance%setNeptuneVar("OPT_HARMONICS", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
+    endif
 
 
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"eps_relative")
-        read(temp_string,*) relative_eps
-        ierr = neptune_instance%setNeptuneVar("PAR_INT_RELEPS", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"eps_absolute")
-        read(temp_string,*) absolute_eps
-        ierr = neptune_instance%setNeptuneVar("PAR_INT_ABSEPS", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"shadow_model")
-        ierr = neptune_instance%setNeptuneVar("OPT_SHADOW", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-          write(*,*) "Error in Neptune during neptune_instance%setNeptuneVar (OPT_SHADOW): "//toString(ierr)
-          stop
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"eps_relative")
+    read(temp_string,*) relative_eps
+    ierr = neptune_instance%setNeptuneVar("PAR_INT_RELEPS", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
         end if
+    endif
 
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"srp_correct")
-        ierr = neptune_instance%setNeptuneVar("OPT_SRP_CORRECT", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"solar_activity_file")
-        ierr = neptune_instance%setNeptuneVar("FILE_SOLMAG", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"geo_model")
-        ierr = neptune_instance%setNeptuneVar("OPT_GEO_MODEL", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-        
-        !** set the atm model to be used
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"atm_model")
-        ierr = neptune_instance%setNeptuneVar("OPT_ATMOSPHERE_MODEL", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        !** constant ap value (long term propagation)
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"const_ap_value")        
-        ierr = neptune_instance%setNeptuneVar("OPT_AP_FORECAST", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-        
-        !** constant f10.7 value (long term propagation)
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"const_f107_value")
-        ierr = neptune_instance%setNeptuneVar("OPT_SOL_FORECAST", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        !** Enable/Disable covariance propagation
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop")
-        if (index(temp_string,"OFF") /= 0) then
-            propagate_covariance = .false.
-        else
-            propagate_covariance = .true.
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"eps_absolute")
+    read(temp_string,*) absolute_eps
+    ierr = neptune_instance%setNeptuneVar("PAR_INT_ABSEPS", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
         end if
-        ierr = neptune_instance%setNeptuneVar("COVARIANCE_PROPAGATION", trim(temp_string))
+    endif
+
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"shadow_model")
+    ierr = neptune_instance%setNeptuneVar("OPT_SHADOW", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        write(*,*) "Error in Neptune during neptune_instance%setNeptuneVar (OPT_SHADOW): "//toString(ierr)
+        stop
+    end if
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"srp_correct")
+    ierr = neptune_instance%setNeptuneVar("OPT_SRP_CORRECT", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"solar_activity_file")
+    ierr = neptune_instance%setNeptuneVar("FILE_SOLMAG", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"geo_model")
+    ierr = neptune_instance%setNeptuneVar("OPT_GEO_MODEL", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    !** set the atm model to be used
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"atm_model")
+    ierr = neptune_instance%setNeptuneVar("OPT_ATMOSPHERE_MODEL", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    !** constant ap value (long term propagation)
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"const_ap_value")
+    ierr = neptune_instance%setNeptuneVar("OPT_AP_FORECAST", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    !** constant f10.7 value (long term propagation)
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"const_f107_value")
+    ierr = neptune_instance%setNeptuneVar("OPT_SOL_FORECAST", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    !** Enable/Disable covariance propagation
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop")
+    if (index(temp_string,"OFF") /= 0) then
+        propagate_covariance = .false.
+    else
+        propagate_covariance = .true.
+    end if
+    ierr = neptune_instance%setNeptuneVar("COVARIANCE_PROPAGATION", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop_geopotential_degree_order")
+    ierr = neptune_instance%setNeptuneVar("COVARIANCE_GEOPOTENTIAL",trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop_drag")
+    ierr = neptune_instance%setNeptuneVar("COVARIANCE_DRAG",trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop_moon")
+    ierr = neptune_instance%setNeptuneVar("COVARIANCE_MOON",trim(temp_string))
+    !!** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop_sun")
+    ierr = neptune_instance%setNeptuneVar("COVARIANCE_SUN",trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop_srp")
+    ierr = neptune_instance%setNeptuneVar("COVARIANCE_SRP",trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop_correlation_matrix")
+    ierr = neptune_instance%setNeptuneVar("CORRELATION_MATRIX",trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_propagation_step")
+    ierr = neptune_instance%setNeptuneVar("PAR_INT_COV_STEP", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_propagation_method")
+    ierr = neptune_instance%setNeptuneVar("PAR_INT_COV_METHOD", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"output_files")
+    ierr = neptune_instance%setNeptuneVar("OUTPUT_FILES", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"reentry_altitude")
+    ierr = neptune_instance%setNeptuneVar("PAR_REENTRY", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"start_epoch_gd")
+    ierr = neptune_instance%setNeptuneVar("EPOCH_START_GD", trim(adjustl(temp_string)))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"end_epoch_gd")
+    ierr = neptune_instance%setNeptuneVar("EPOCH_END_GD", trim(adjustl(temp_string)))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"sat_prop")
+    ierr = neptune_instance%setNeptuneVar("OPT_SRP_CORRECT", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"eop")
+    ierr = neptune_instance%setNeptuneVar("OPT_EOP", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"use_pn_lookup_tables")
+    ierr = neptune_instance%setNeptuneVar("OPT_PN_LOOKUP", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"int_logfile")
+    ierr = neptune_instance%setNeptuneVar("OPT_INT_LOGFILE", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"data_folder")
+    ierr = neptune_instance%setNeptuneVar("PATH_DATA", trim(temp_string))
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    !** using properties of the satellite
+    ierr = neptune_instance%setNeptuneVar("OPT_SAT_PROPERTIES",   "1")
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
+
+    !** check if we want to have the polynomials
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"cheby_polys")
+    if (index(temp_string,"OFF") /= 0) then
+        create_cheby = .false.
+
+        !** We need to store the data, as we are VERY interested in the ephemeris. As a "first try", we use 30 seconds.
+        ierr = neptune_instance%setNeptuneVar("OPT_STORE_DATA", "30")
         !** check error
         if (ierr .ne. 0) then
             slam_error = t%check_slam_error()
@@ -471,9 +692,11 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             end if
         endif
 
+    else
+        create_cheby = .true.
 
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop_geopotential_degree_order")
-        ierr = neptune_instance%setNeptuneVar("COVARIANCE_GEOPOTENTIAL",trim(temp_string))
+        !** we need to store data in this case. We use every 30 seconds for now. Needs a check
+        ierr = neptune_instance%setNeptuneVar("OPT_STORE_DATA", "30")
         !** check error
         if (ierr .ne. 0) then
             slam_error = t%check_slam_error()
@@ -483,19 +706,13 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             end if
         endif
 
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop_drag")
-        ierr = neptune_instance%setNeptuneVar("COVARIANCE_DRAG",trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
+    end if
 
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop_moon")
-        ierr = neptune_instance%setNeptuneVar("COVARIANCE_MOON",trim(temp_string))
+    !** Allow saving the states, if wanted
+    store_data = .false.
+    if (.not. create_cheby) then
+        write(temp_string,*) OPI_Module_getPropertyString(propagator,"store_data")
+        ierr = neptune_instance%setNeptuneVar("OPT_STORE_DATA", trim(temp_string))
         !!** check error
         if (ierr .ne. 0) then
             slam_error = t%check_slam_error()
@@ -505,395 +722,180 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             end if
         endif
 
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop_sun")
-        ierr = neptune_instance%setNeptuneVar("COVARIANCE_SUN",trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
+        temp_integer = string_to_int(temp_string)
 
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop_srp")
-        ierr = neptune_instance%setNeptuneVar("COVARIANCE_SRP",trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
+        if ( temp_integer .ne. 0 ) then
 
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_prop_correlation_matrix")
-        ierr = neptune_instance%setNeptuneVar("CORRELATION_MATRIX",trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-        
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_propagation_step")
-        ierr = neptune_instance%setNeptuneVar("PAR_INT_COV_STEP", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-        
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_propagation_method")
-        ierr = neptune_instance%setNeptuneVar("PAR_INT_COV_METHOD", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
+        store_data = .true.
 
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"output_files")
-        ierr = neptune_instance%setNeptuneVar("OUTPUT_FILES", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"reentry_altitude")
-        ierr = neptune_instance%setNeptuneVar("PAR_REENTRY", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"start_epoch_gd")
-        ierr = neptune_instance%setNeptuneVar("EPOCH_START_GD", trim(adjustl(temp_string)))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"end_epoch_gd")
-        ierr = neptune_instance%setNeptuneVar("EPOCH_END_GD", trim(adjustl(temp_string)))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"sat_prop")
-        ierr = neptune_instance%setNeptuneVar("OPT_SRP_CORRECT", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"eop")
-        ierr = neptune_instance%setNeptuneVar("OPT_EOP", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"use_pn_lookup_tables")
-        ierr = neptune_instance%setNeptuneVar("OPT_PN_LOOKUP", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif        
-
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"int_logfile")
-        ierr = neptune_instance%setNeptuneVar("OPT_INT_LOGFILE", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"data_folder")
-        ierr = neptune_instance%setNeptuneVar("PATH_DATA", trim(temp_string))
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        !** using properties of the satellite
-        ierr = neptune_instance%setNeptuneVar("OPT_SAT_PROPERTIES",   "1")
-        !** check error
-        if (ierr .ne. 0) then
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-                call resetError()
-            end if
-        endif
-
-        !** check if we want to have the polynomials
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"cheby_polys")
-        if (index(temp_string,"OFF") /= 0) then
-          create_cheby = .false.
-
-          !** We need to store the data, as we are VERY interested in the ephemeris. As a "first try", we use 30 seconds.
-          ierr = neptune_instance%setNeptuneVar("OPT_STORE_DATA", "30")
-          !** check error
-          if (ierr .ne. 0) then
-              slam_error = t%check_slam_error()
-              if (t%has_to_return()) return
-              if (slam_error) then
-                  call resetError()
-              end if
-          endif
-
-        else
-          create_cheby = .true.
-
-          !** we need to store data in this case. We use every 30 seconds for now. Needs a check
-          ierr = neptune_instance%setNeptuneVar("OPT_STORE_DATA", "30")
-          !** check error
-          if (ierr .ne. 0) then
-              slam_error = t%check_slam_error()
-              if (t%has_to_return()) return
-              if (slam_error) then
-                  call resetError()
-              end if
-          endif
+        !** store the data
+        output_step_size = string_to_int(temp_string)
 
         end if
+    endif
 
-        !** Allow saving the states, if wanted
-        store_data = .false.
-        if (.not. create_cheby) then
-          write(temp_string,*) OPI_Module_getPropertyString(propagator,"store_data")
-          ierr = neptune_instance%setNeptuneVar("OPT_STORE_DATA", trim(temp_string))
-          !!** check error
-          if (ierr .ne. 0) then
-              slam_error = t%check_slam_error()
-               if (t%has_to_return()) return
-              if (slam_error) then
-                  call resetError()
-              end if
-          endif
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"cheby_degree")
+    read (temp_string,*) cheby_degree
 
-          temp_integer = string_to_int(temp_string)
+    !** check if we want to use keplerian elements
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"keplerian_elements_in")
+    if (index(temp_string,"OFF") /= 0) then
+        use_kepler_elements_in = .false.
+    else
+        use_kepler_elements_in = .true.
+    end if
 
-          if ( temp_integer .ne. 0 ) then
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"keplerian_elements_out")
+    if (index(temp_string,"OFF") /= 0) then
+        use_kepler_elements_out = .false.
+    else
+        use_kepler_elements_out = .true.
+    end if
 
-            store_data = .true.
+    !** check if we want to use ecef states
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"ecef_states_in")
+    if (index(temp_string,"OFF") /= 0) then
+        use_ecef_states_in = .false.
+    else
+        use_ecef_states_in = .true.
+    end if
 
-            !** store the data
-            output_step_size = string_to_int(temp_string)
+    !** check if we want to use ecef states
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"ecef_states_out")
+    if (index(temp_string,"OFF") /= 0) then
+        use_ecef_states_out = .false.
+    else
+        use_ecef_states_out = .true.
+    end if
 
-          end if
-        endif
+    !** check if we want to mean elements as input
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"mean_elements_in")
+    if (index(temp_string,"OFF") /= 0) then
+        use_mean_elements_in = .false.
+    else
+        use_mean_elements_in = .true.
+    end if
 
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"cheby_degree")
-        read (temp_string,*) cheby_degree
+    !** check if we want to use mean elements as output
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"mean_elements_out")
+    if (index(temp_string,"OFF") /= 0) then
+        use_mean_elements_out = .false.
+    else
+        use_mean_elements_out = .true.
+    end if
 
-        !** check if we want to use keplerian elements
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"keplerian_elements_in")
-        if (index(temp_string,"OFF") /= 0) then
-            use_kepler_elements_in = .false.
-        else
-            use_kepler_elements_in = .true.
-        end if
+    !** have fun with maneuvers
+    if (propagate_maneuvers) then
 
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"keplerian_elements_out")
-        if (index(temp_string,"OFF") /= 0) then
-            use_kepler_elements_out = .false.
-        else
-            use_kepler_elements_out = .true.
-        end if
+        number_of_maneuvers = 0
+        !** we have to check for every manoeuvre, if there is one included.
+        !** we do the decision based on the burn time
+        temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_1")
+        call message(toString(temp_fortran_real), LOG_AND_STDOUT)
+        if (temp_fortran_real .gt. 0.d0) then
 
-        !** check if we want to use ecef states
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"ecef_states_in")
-        if (index(temp_string,"OFF") /= 0) then
-            use_ecef_states_in = .false.
-        else
-            use_ecef_states_in = .true.
-        end if
-
-        !** check if we want to use ecef states
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"ecef_states_out")
-        if (index(temp_string,"OFF") /= 0) then
-            use_ecef_states_out = .false.
-        else
-            use_ecef_states_out = .true.
-        end if
-
-        !** check if we want to mean elements as input
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"mean_elements_in")
-        if (index(temp_string,"OFF") /= 0) then
-            use_mean_elements_in = .false.
-        else
-            use_mean_elements_in = .true.
-        end if
-
-        !** check if we want to use mean elements as output
-        write(temp_string,*) OPI_Module_getPropertyString(propagator,"mean_elements_out")
-        if (index(temp_string,"OFF") /= 0) then
-            use_mean_elements_out = .false.
-        else
-            use_mean_elements_out = .true.
-        end if
-
-        !** have fun with maneuvers
-        if (propagate_maneuvers) then
-
-          number_of_maneuvers = 0
-          !** we have to check for every manoeuvre, if there is one included.
-          !** we do the decision based on the burn time
-          temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_1")
-          call message(toString(temp_fortran_real), LOG_AND_STDOUT)
-          if (temp_fortran_real .gt. 0.d0) then
-
-            number_of_maneuvers = number_of_maneuvers + 1
-            temp_maneuver_array(1,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_1")
-            temp_maneuver_array(1,2) = temp_fortran_real
-            temp_maneuver_array(1,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_1")
-            temp_maneuver_array(1,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_1")
-            temp_maneuver_array(1,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_1")
-            temp_maneuver_array(1,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_1")
-            temp_maneuver_array(1,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_1")
-
-          endif
-
-          temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_2")
-          call message(toString(temp_fortran_real), LOG_AND_STDOUT)
-          if (temp_fortran_real .gt. 0.d0) then
-
-            number_of_maneuvers = number_of_maneuvers + 1
-            temp_maneuver_array(2,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_2")
-            temp_maneuver_array(2,2) = temp_fortran_real
-            temp_maneuver_array(2,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_2")
-            temp_maneuver_array(2,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_2")
-            temp_maneuver_array(2,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_2")
-            temp_maneuver_array(2,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_2")
-            temp_maneuver_array(2,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_2")
-
-          endif
-
-          temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_3")
-          call message(toString(temp_fortran_real), LOG_AND_STDOUT)
-          if (temp_fortran_real .gt. 0.d0) then
-
-            number_of_maneuvers = number_of_maneuvers + 1
-            temp_maneuver_array(3,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_3")
-            temp_maneuver_array(3,2) = temp_fortran_real
-            temp_maneuver_array(3,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_3")
-            temp_maneuver_array(3,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_3")
-            temp_maneuver_array(3,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_3")
-            temp_maneuver_array(3,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_3")
-            temp_maneuver_array(3,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_3")
-
-          endif
-
-          temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_4")
-          call message(toString(temp_fortran_real), LOG_AND_STDOUT)
-          if (temp_fortran_real .gt. 0.d0) then
-
-            number_of_maneuvers = number_of_maneuvers + 1
-            temp_maneuver_array(4,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_4")
-            temp_maneuver_array(4,2) = temp_fortran_real
-            temp_maneuver_array(4,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_4")
-            temp_maneuver_array(4,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_4")
-            temp_maneuver_array(4,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_4")
-            temp_maneuver_array(4,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_4")
-            temp_maneuver_array(4,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_4")
-
-          endif
-
-          temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_5")
-          call message(toString(temp_fortran_real), LOG_AND_STDOUT)
-          if (temp_fortran_real .gt. 0.d0) then
-
-            number_of_maneuvers = number_of_maneuvers + 1
-            temp_maneuver_array(5,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_5")
-            temp_maneuver_array(5,2) = temp_fortran_real
-            temp_maneuver_array(5,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_5")
-            temp_maneuver_array(5,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_5")
-            temp_maneuver_array(5,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_5")
-            temp_maneuver_array(5,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_5")
-            temp_maneuver_array(5,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_5")
-
-          endif
-
-          !** create the maneuver array
-          allocate(maneuvers(number_of_maneuvers))
-          allocate(phases_array(number_of_maneuvers))
-          phases_array(:) = 1
-          do i = 1, number_of_maneuvers
-
-            temp_date%mjd = temp_maneuver_array(i,1)
-            call mjd2gd(temp_date)
-            maneuvers(i)%start_date = temp_date
-
-            temp_date%mjd = temp_maneuver_array(i,1) + temp_maneuver_array(i,2)/86400.d0
-            call mjd2gd(temp_date)
-            maneuvers(i)%end_date = temp_date
-
-            maneuvers(i)%nphases = 1 !** just one phase now!!!!
-
-            !** allocate that single phase
-            allocate(maneuvers(i)%phase(1))
-
-            !** set the alues for that phase
-            maneuvers(i)%phase(1)%mjd_start = temp_maneuver_array(i,1)
-            maneuvers(i)%phase(1)%mjd_end = temp_maneuver_array(i,1) + temp_maneuver_array(i,2)/86400.d0
-            maneuvers(i)%phase(1)%acc(:) = temp_maneuver_array(i,3:5)
-
-            !** dunno how to use the uncertainties yet
-
-          enddo
-          call neptune_instance%manoeuvres_model%init_maneuvers(maneuvers, phases_array)
+        number_of_maneuvers = number_of_maneuvers + 1
+        temp_maneuver_array(1,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_1")
+        temp_maneuver_array(1,2) = temp_fortran_real
+        temp_maneuver_array(1,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_1")
+        temp_maneuver_array(1,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_1")
+        temp_maneuver_array(1,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_1")
+        temp_maneuver_array(1,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_1")
+        temp_maneuver_array(1,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_1")
 
         endif
 
-        !** set error handling to return, in case we need to change the accuracy
-        call initErrorHandler(control = "YES", errAction = "RETURN", traceback = "YES")
+        temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_2")
+        call message(toString(temp_fortran_real), LOG_AND_STDOUT)
+        if (temp_fortran_real .gt. 0.d0) then
 
-        is_initialized = .true.
+        number_of_maneuvers = number_of_maneuvers + 1
+        temp_maneuver_array(2,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_2")
+        temp_maneuver_array(2,2) = temp_fortran_real
+        temp_maneuver_array(2,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_2")
+        temp_maneuver_array(2,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_2")
+        temp_maneuver_array(2,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_2")
+        temp_maneuver_array(2,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_2")
+        temp_maneuver_array(2,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_2")
+
+        endif
+
+        temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_3")
+        call message(toString(temp_fortran_real), LOG_AND_STDOUT)
+        if (temp_fortran_real .gt. 0.d0) then
+
+        number_of_maneuvers = number_of_maneuvers + 1
+        temp_maneuver_array(3,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_3")
+        temp_maneuver_array(3,2) = temp_fortran_real
+        temp_maneuver_array(3,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_3")
+        temp_maneuver_array(3,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_3")
+        temp_maneuver_array(3,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_3")
+        temp_maneuver_array(3,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_3")
+        temp_maneuver_array(3,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_3")
+
+        endif
+
+        temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_4")
+        call message(toString(temp_fortran_real), LOG_AND_STDOUT)
+        if (temp_fortran_real .gt. 0.d0) then
+
+        number_of_maneuvers = number_of_maneuvers + 1
+        temp_maneuver_array(4,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_4")
+        temp_maneuver_array(4,2) = temp_fortran_real
+        temp_maneuver_array(4,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_4")
+        temp_maneuver_array(4,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_4")
+        temp_maneuver_array(4,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_4")
+        temp_maneuver_array(4,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_4")
+        temp_maneuver_array(4,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_4")
+
+        endif
+
+        temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_5")
+        call message(toString(temp_fortran_real), LOG_AND_STDOUT)
+        if (temp_fortran_real .gt. 0.d0) then
+
+        number_of_maneuvers = number_of_maneuvers + 1
+        temp_maneuver_array(5,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_5")
+        temp_maneuver_array(5,2) = temp_fortran_real
+        temp_maneuver_array(5,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_5")
+        temp_maneuver_array(5,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_5")
+        temp_maneuver_array(5,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_5")
+        temp_maneuver_array(5,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_5")
+        temp_maneuver_array(5,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_5")
+
+        endif
+
+        !** create the maneuver array
+        if (allocated(maneuvers)) deallocate(maneuvers)
+        allocate(maneuvers(number_of_maneuvers))
+        if (allocated(phases_array)) deallocate(phases_array)
+        allocate(phases_array(number_of_maneuvers))
+        phases_array(:) = 1
+        do i = 1, number_of_maneuvers
+
+        temp_date%mjd = temp_maneuver_array(i,1)
+        call mjd2gd(temp_date)
+        maneuvers(i)%start_date = temp_date
+
+        temp_date%mjd = temp_maneuver_array(i,1) + temp_maneuver_array(i,2)/86400.d0
+        call mjd2gd(temp_date)
+        maneuvers(i)%end_date = temp_date
+
+        maneuvers(i)%nphases = 1 !** just one phase now!!!!
+
+        !** allocate that single phase
+        allocate(maneuvers(i)%phase(1))
+
+        !** set the alues for that phase
+        maneuvers(i)%phase(1)%mjd_start = temp_maneuver_array(i,1)
+        maneuvers(i)%phase(1)%mjd_end = temp_maneuver_array(i,1) + temp_maneuver_array(i,2)/86400.d0
+        maneuvers(i)%phase(1)%acc(:) = temp_maneuver_array(i,3:5)
+        maneuvers(i)%phase(1)%thrust_efficiency = abs(1.d0 - temp_maneuver_array(i,6))
+
+        !** dunno how to use the uncertainties yet
+
+        enddo
+        call neptune_instance%manoeuvres_model%init_maneuvers(maneuvers, phases_array)
 
     end if
 
@@ -1118,15 +1120,15 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             initial_covariance%elem(6,6) = object_covariance(iobject)%k6_k6
             covariance_matrix_UVW = initial_covariance%elem
 
-            ! write(*,*) "Initial Covariance (as delivered) in km and km/s"
-            ! write(*,'(6(F15.8,1X))') initial_covariance%elem(:,1)
-            ! write(*,'(6(F15.8,1X))') initial_covariance%elem(:,2)
-            ! write(*,'(6(F15.8,1X))') initial_covariance%elem(:,3)
-            ! write(*,'(6(F15.8,1X))') initial_covariance%elem(:,4)
-            ! write(*,'(6(F15.8,1X))') initial_covariance%elem(:,5)
-            ! write(*,'(6(F15.8,1X))') initial_covariance%elem(:,6)
+            !write(*,*) "Initial Covariance (as delivered) in km and km/s"
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,1)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,2)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,3)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,4)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,5)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,6)
 
-            !** check, in what frame the coariance was provided
+            !** check, in what frame the covariance was provided
             write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_ref_frame")
             if ( trim(adjustl(temp_string)) == "UVW" ) then
 
@@ -1151,15 +1153,19 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
 
                 covariance_matrix_ECI = matmul(matmul(invJacobi,covariance_matrix_UVW),transpose(invJacobi))
                 initial_covariance%elem = covariance_matrix_ECI
+                !write(*,*) "Initial covariance (in RTN) in km and km/s"
+            else
+                !write(*,*) "Initial covariance (in GCRF) in km and km/s"
             endif
 
-            ! write(*,*) "Initial covariance (in GCRF) in km and km/s"
-            ! write(*,'(6(F15.8,1X))') initial_covariance%elem(:,1)
-            ! write(*,'(6(F15.8,1X))') initial_covariance%elem(:,2)
-            ! write(*,'(6(F15.8,1X))') initial_covariance%elem(:,3)
-            ! write(*,'(6(F15.8,1X))') initial_covariance%elem(:,4)
-            ! write(*,'(6(F15.8,1X))') initial_covariance%elem(:,5)
-            ! write(*,'(6(F15.8,1X))') initial_covariance%elem(:,6)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,1)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,2)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,3)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,4)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,5)
+            !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,6)
+        else
+            !write (99,*) "No covariance to propagate"
 
         end if
 
@@ -1175,9 +1181,6 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             if (slam_error) then
                 call resetError()
             end if
-
-            covariance_matrix_ECI = matmul(matmul(invJacobi,covariance_matrix_UVW),transpose(invJacobi))
-            initial_covariance%elem = covariance_matrix_ECI
         end if
 
         current_error = E_INTEGRATION_ABORT
@@ -1328,17 +1331,19 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
         end if
 
         if (propagate_covariance) then
-            covariance_matrix_ECI = propagated_covariance%elem
-            ! Convert UVW covariance into ECI covariance
-            call reduction_model%getJacobianEci2uvw(propagated_state%r,propagated_state%v,jacobi) ! convert to UVW
-            slam_error = t%check_slam_error()
-            if (t%has_to_return()) return
-            if (slam_error) then
-              call resetError()
+            !** check, in what frame the covariance was provided
+            write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_ref_frame")
+            if ( trim(adjustl(temp_string)) == "UVW" ) then
+                ! Convert UVW covariance into ECI covariance
+                call reduction_model%getJacobianEci2uvw(propagated_state%r,propagated_state%v,jacobi) ! convert to UVW
+                slam_error = t%check_slam_error()
+                if (t%has_to_return()) return
+                if (slam_error) then
+                    call resetError()
+                end if
+                covariance_matrix_UVW = matmul(matmul(jacobi,propagated_covariance%elem),transpose(jacobi))
+                propagated_covariance%elem = covariance_matrix_UVW
             end if
-
-            covariance_matrix_UVW = matmul(matmul(jacobi,covariance_matrix_ECI),transpose(jacobi))
-            propagated_covariance%elem = covariance_matrix_UVW
             object_covariance(iobject)%k1_k1 = propagated_covariance%elem(1,1)
             object_covariance(iobject)%k2_k1 = propagated_covariance%elem(2,1)
             object_covariance(iobject)%k2_k2 = propagated_covariance%elem(2,2)
@@ -1361,13 +1366,13 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             object_covariance(iobject)%k6_k5 = propagated_covariance%elem(6,5)
             object_covariance(iobject)%k6_k6 = propagated_covariance%elem(6,6)
 
-            ! write(*,*) "New Covariance (UVW) in km and km/s"
-            ! write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,1)
-            ! write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,2)
-            ! write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,3)
-            ! write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,4)
-            ! write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,5)
-            ! write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,6)
+            !write(*,*) "New Covariance (UVW) in km and km/s"
+            !write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,1)
+            !write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,2)
+            !write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,3)
+            !write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,4)
+            !write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,5)
+            !write(*,'(6(F15.8,1X))') propagated_covariance%elem(:,6)
         end if
 
         if (create_cheby) then
@@ -1460,11 +1465,32 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
 
           do j = 1, number_of_states
 
+            ! Extract state vector from NEPTUNE API
             temp_state = neptune_instance%getNeptuneData(j)
-            temp_covariance = neptune_instance%getNeptuneCovarianceData(j)
             ephemeris(j, 1, iobject) = temp_state%epoch%mjd
             ephemeris(j, 2:4, iobject) = temp_state%r(1:3)
             ephemeris(j, 5:7, iobject) = temp_state%v(1:3)
+            !write (99,*) temp_state%epoch%mjd, temp_state%r(1:3), temp_state%v(1:3)
+
+            ! Extract covariance from NEPTUNE API
+            if (propagate_covariance) then
+                temp_covariance = neptune_instance%getNeptuneCovarianceData(j)
+                !** check, in what frame the covariance was provided
+                write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_ref_frame")
+                if ( trim(adjustl(temp_string)) == "UVW" ) then
+                    ! Convert UVW covariance into ECI covariance
+                    call reduction_model%getJacobianEci2uvw(temp_state%r,temp_state%v,jacobi) ! convert to UVW
+                    slam_error = t%check_slam_error()
+                    if (t%has_to_return()) return
+                    if (slam_error) then
+                        call resetError()
+                    end if
+                    covariance_matrix_UVW = matmul(matmul(jacobi,temp_covariance%elem),transpose(jacobi))
+                    temp_covariance%elem = covariance_matrix_UVW
+                end if
+            else
+                temp_covariance%elem = initial_covariance%elem
+            end if
             ephemeris(j, 8, iobject) = temp_covariance%elem(1,1)
             ephemeris(j, 9, iobject) = temp_covariance%elem(2,1)
             ephemeris(j,10, iobject) = temp_covariance%elem(2,2)
@@ -1486,9 +1512,9 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             ephemeris(j,26, iobject) = temp_covariance%elem(6,4)
             ephemeris(j,27, iobject) = temp_covariance%elem(6,5)
             ephemeris(j,28, iobject) = temp_covariance%elem(6,6)
-            !** write(99,*) ephemeris(j,1:7, iobject)
 
           end do
+          !write (99,*) propagation_epoch(2)%mjd, propagated_state%r(1:3), propagated_state%v(1:3)
         endif
 
     end do
@@ -1509,6 +1535,9 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
         deallocate(ephemeris)
 
     end if
+
+    if (allocated(maneuvers)) deallocate(maneuvers)
+    if (allocated(phases_array)) deallocate(phases_array)
 
     !** update the data for opi
     if (opi_error_code .eq. 0) then

@@ -136,6 +136,7 @@ module numint
         procedure,public :: getCovariancePropagationFlag
         procedure,public :: get_covariance_integration_method
         procedure,public :: getStateTransitionMatrix
+        procedure,public :: get_current_step_size
 
         !** set
         procedure,public :: resetCountIntegrator
@@ -150,7 +151,7 @@ module numint
         procedure,public :: setSrpCorrect
         procedure,public :: set_start_epoch
         !** others
-        procedure,public :: integrateStep
+        procedure,public  :: integrateStep
         procedure,private :: varstormcow
         procedure,private :: srpCorrection
 
@@ -444,6 +445,7 @@ contains
                             derivatives_model,  &
                             reduction,          &
                             rqtime,             &
+                            force_no_interpolation, &
                             currtime,           &
                             pos,                &
                             vel,                &
@@ -460,8 +462,9 @@ contains
     type(Thirdbody_class),intent(inout)             :: thirdbody_model          ! <-> Third body model
     type(Tides_class),intent(inout)                 :: tides_model              ! <-> Tides model
     type(Derivatives_class),intent(inout)           :: derivatives_model        ! <-> Derivatives model
-    type(Reduction_type),intent(inout)             :: reduction                ! <-> Reduction
+    type(Reduction_type),intent(inout)              :: reduction                ! <-> Reduction
     real(dp),                 intent(in)            :: rqtime                   ! <-- requested time / s
+    logical,                  intent(in)            :: force_no_interpolation   ! <- indicates no interpolation => perfect last step for big changes in acceleration (i.e. maneuvers)
     real(dp),                 intent(inout)         :: currtime                 ! <-> current time
     real(dp), dimension(3),   intent(inout)         :: pos                      ! <-> position vector
     real(dp), dimension(3),   intent(inout)         :: vel                      ! <-> velocity vector
@@ -489,6 +492,7 @@ contains
                           derivatives_model,&  ! <->  TYPE   Derivatives model
                           reduction,        &  ! <->  TYPE   Reduction
                           rqtime,           &  ! <--  DBL    requested time
+                          force_no_interpolation, &
                           currtime,         &  ! <--> DBL    current time
                           pos,              &  ! <--> DBL()  position vector
                           vel,              &  ! <--> DBL()  velocity vector
@@ -934,6 +938,7 @@ end subroutine
                         derivatives_model,                   &
                         reduction,                           &
                         t2,                                  &      ! <--  DBL   requested time (s)
+                        .false.,                             &
                         reqt_loc,                            &      ! <--  DBL   current time (s)
                         state(2)%r,                          &      ! <--> DBL() radius vector (km)
                         state(2)%v,                          &      ! <--> DBL() velocity vector (km/s)
@@ -1071,6 +1076,26 @@ subroutine resetCountIntegrator(this)
   return
 end subroutine
 
+!========================================================================
+!
+!> @anchor      get_current_step_size
+!!
+!> @brief       Returns the step size of the integrator
+!> @author      Christopher Kebschull
+!!
+!> @date        <ul>
+!!                <li> 29.10.2020 (initial design)</li>
+!!              </ul>
+!!
+!------------------------------------------------------------------------
+real(dp) function get_current_step_size(this)
+  class(Numint_class),intent(inout)       :: this
+
+  get_current_step_size = this%stepsize
+
+  return
+end function
+
 
 !========================================================================
 !
@@ -1134,6 +1159,7 @@ end subroutine
                           derivatives_model,&                                   ! <->  TYPE   Derivatives model
                           reduction,        &                                   ! <->  TYPE   Reduction
                           rqtime,           &                                   ! <--  DBL    requested time
+                          force_no_interpolation, &                             ! <--  LOGI   indicates no interpolation => perfect last step for big changes in acceleration (i.e. maneuvers)
                           currtime,         &                                   ! <--> DBL    current time
                           pos,              &                                   ! <--> DBL()  position vector
                           vel,              &                                   ! <--> DBL()  velocity vector
@@ -1156,6 +1182,7 @@ end subroutine
     type(Derivatives_class),intent(inout)           :: derivatives_model        ! Derivatives model
     type(Reduction_type),intent(inout)              :: reduction                ! Reduction
     real(dp),                 intent(in)            :: rqtime                   ! requested time
+    logical,                intent(in)              :: force_no_interpolation   !
 
     real(dp),                 intent(inout)         :: currtime                 ! current time
     real(dp), dimension(3),   intent(inout)         :: pos                      ! position vector
@@ -1552,6 +1579,12 @@ end subroutine
 
       ! change the step size
       this%stepsize  = this%stepsize * this%r
+
+      ! Force a step size to meet e.g. changes in acceleration => maneuvers
+      if ((rqtime < (this%inttime + this%stepsize)) .and. force_no_interpolation) then
+        this%stepsize = rqtime - this%inttime
+      end if
+
       stepsize2 = this%stepsize * this%stepsize
 
       if (this%lk == kmax) then
@@ -1773,10 +1806,8 @@ end subroutine
                                   posl2,                                        & ! <-- DBL() current + 2 prior position vectors
                                   vel,                                          & ! <-- DBL() current velocity vector
                                   this%start_epoch%mjd*sec_per_day+ currtime,   & ! <-- DBL   current time / sec
-                                  this%stepsize,                                     & ! <-- DBL   current stepsize / sec
-                   !               steps,                                       & ! <-- DBL() stepsize history
+                                  this%stepsize,                                & ! <-- DBL   current stepsize / sec
                                   T,                                            & ! <-- DBL() values of T-function
-                   !               fshadow,                                     & ! <-- DBL() shadow function
                                   theta,                                        & ! <-- DBL() angles theta
                                   alpha_e,                                      & ! <-- DBL() angles alpha earth
                                   alpha_s,                                      & ! <-- DBL() angles alpha sun
