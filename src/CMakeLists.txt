@@ -10,6 +10,7 @@ set(SRC_FILES
     gravity.f90
     nrlmsise00Data.f90
     nrlmsise00Class.f90
+    JB2008.for
     atmosphere.f90
     thirdbody.f90
     radiation.f90
@@ -24,6 +25,7 @@ set(SRC_FILES
     reentry.f90
     rdinp.f90
     neptune.f90
+    JB2008module.for
 )
 
 # Build the neptune library based on the given source files
