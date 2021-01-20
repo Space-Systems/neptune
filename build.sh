@@ -8,6 +8,10 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
   LIBSUFFIX="so"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
   LIBSUFFIX="dylib"
+elif [[ "$OSTYPE" == "CYGWIN"* ]]; then
+  LIBSUFFIX="dll"
+elif [[ "$OSTYPE" == "MINGW"* ]]; then
+  LIBSUFFIX="dll"
 fi
 ################################################################################
 #                                                                              #
