@@ -26,129 +26,6 @@ module mem_copy
   end interface
 end module
 
-subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
-
-  use OPI
-  use ISO_C_BINDING
-
-  implicit none
-
-  type(c_ptr), value :: propagator
-
-  !** perturbations
-  call OPI_Module_createProperty(propagator, "geopotential_degree_order", "6")
-  call OPI_Module_createProperty(propagator, "atmosphere", "ON")
-  call OPI_Module_createProperty(propagator, "horizontal_wind", "OFF")
-  call OPI_Module_createProperty(propagator, "solar", "ON")
-  call OPI_Module_createProperty(propagator, "moon", "ON")
-  call OPI_Module_createProperty(propagator, "srp", "ON")
-  call OPI_Module_createProperty(propagator, "albedo", "ON")
-  call OPI_Module_createProperty(propagator, "solid_tides", "ON")
-  call OPI_Module_createProperty(propagator, "ocean_tides", "OFF")
-  call OPI_Module_createProperty(propagator, "manoeuvres", "OFF") !** maneuvers are now "kind of" supported via opi
-
-  !** Neptune errors
-  call OPI_Module_createProperty(propagator, "eps_relative", "1.d-10")
-  call OPI_Module_createProperty(propagator, "eps_absolute", "1.d-11")
-
-  !** Neptune options
-  call OPI_Module_createProperty(propagator, "harmonics", "OFF")
-  call OPI_Module_createProperty(propagator, "shadow_model", "conical")
-  call OPI_Module_createProperty(propagator, "shadow_boundary_correction", "OFF")
-  call OPI_Module_createProperty(propagator, "srp_correct", "OFF")
-  call OPI_Module_createProperty(propagator, "solar_activity_file", "sw19571001.txt")
-  call OPI_Module_createProperty(propagator, "data_folder", "neptune_data")
-
-  call OPI_Module_createProperty(propagator, "geo_model", "3")                  ! EIGEN-GL04C model
-  call OPI_Module_createProperty(propagator, "atm_model", "2")                  ! NRLMSISE-00, 1 is exponential
-  call OPI_Module_createProperty(propagator, "const_ap_value", "15")
-  call OPI_Module_createProperty(propagator, "const_f107_value", "150.0")
-
-
-  call OPI_Module_createProperty(propagator, "covariance_propagation_method", "2")
-  call OPI_Module_createProperty(propagator, "covariance_propagation_step", "60.d0")
-  call OPI_Module_createProperty(propagator, "covariance_prop", "OFF")          ! Enable/Disable covariance propagation
-  call OPI_Module_createProperty(propagator, "covariance_prop_geopotential_degree_order", "2")
-  call OPI_Module_createProperty(propagator, "covariance_prop_drag", "OFF")
-  call OPI_Module_createProperty(propagator, "covariance_prop_sun", "OFF")
-  call OPI_Module_createProperty(propagator, "covariance_prop_moon", "OFF")
-  call OPI_Module_createProperty(propagator, "covariance_prop_srp", "OFF")
-  call OPI_Module_createProperty(propagator, "covariance_prop_correlation_matrix", "OFF")
-  call OPI_Module_createProperty(propagator, "covariance_ref_frame", "UVW")
-
-  call OPI_Module_createProperty(propagator, "output_files", "OFF")
-  call OPI_Module_createProperty(propagator, "store_data", "0")
-
-  call OPI_Module_createProperty(propagator, "reentry_altitude", "50.d0")      ! km above the surface
-
-  call OPI_Module_createProperty(propagator, "start_epoch_gd", "2009-01-01T00:00:00Z") ! start epoch, TBD
-  call OPI_Module_createProperty(propagator, "end_epoch_gd", "2033-01-01T00:00:00Z") ! end epoch, TBD
-
-  call OPI_Module_createProperty(propagator, "sat_prop", "OFF")
-  call OPI_Module_createProperty(propagator, "eop", "ON")
-  call OPI_Module_createProperty(propagator, "use_pn_lookup_tables", "ON")
-  call OPI_Module_createProperty(propagator, "int_logfile", "OFF")
-
-  call OPI_Module_createProperty(propagator, "cheby_polys", "OFF")
-  call OPI_Module_createProperty(propagator, "cheby_degree", "36")              ! 36 is max
-  call OPI_Module_createProperty(propagator, "keplerian_elements_in", "ON")
-  call OPI_Module_createProperty(propagator, "ecef_states_in", "OFF")
-  call OPI_Module_createProperty(propagator, "mean_elements_in", "ON")
-  call OPI_Module_createProperty(propagator, "keplerian_elements_out", "ON")
-  call OPI_Module_createProperty(propagator, "ecef_states_out", "OFF")
-  call OPI_Module_createProperty(propagator, "mean_elements_out", "ON")
-
-  !** covariance propagation
-
-
-  !** manoeuvre --> should be temp, this is a little bit an overkill
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_1", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_duration_1", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_ref_frame_1", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_1", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_a2_1", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_a3_1", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_1", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_1", 0.0D0)
-
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_2", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_duration_2", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_ref_frame_2", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_2", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_a2_2", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_a3_2", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_2", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_2", 0.0D0)
-
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_3", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_duration_3", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_ref_frame_3", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_3", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_a2_3", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_a3_3", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_3", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_3", 0.0D0)
-
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_4", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_duration_4", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_ref_frame_4", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_4", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_a2_4", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_a3_4", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_4", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_4", 0.0D0)
-
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_5", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_duration_5", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_ref_frame_5", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_5", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_a2_5", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_a3_5", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_5", 0.0D0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_5", 0.0D0)
-
-end subroutine
-
 function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error_code) bind(c, name="OPI_Plugin_propagate")
 
     use mem_copy
@@ -437,7 +314,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
         end if
     endif
 
-        !** constant ap value (long term propagation)
+    !** constant ap value (long term propagation)
     write(temp_string,*) OPI_Module_getPropertyString(propagator,"const_ap_value")
     ierr = neptune_instance%setNeptuneVar("OPT_AP_FORECAST", trim(temp_string))
     !** check error

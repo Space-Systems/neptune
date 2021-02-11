@@ -16,8 +16,8 @@ fi
 ################################################################################
 echo "Checking for OPI"
 if [[ ! -d "OPI" ]]; then
-  echo "Not found - cloning from  https://github.com/Space-Systems/OPI.git --branch OPI-2015"
-  git clone https://github.com/Space-Systems/OPI.git --branch OPI-2015
+  echo "Not found - cloning from  https://github.com/Space-Systems/OPI.git --branch OPI-2019.7"
+  git clone https://github.com/Space-Systems/OPI.git --branch master #OPI-2019.7
 else
   echo "Found - updating branch."
   cd OPI
@@ -39,7 +39,7 @@ else
 fi
 cd build
 echo "Updating cmake"
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=../ -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_CXX11=ON -DENABLE_CL_SUPPORT=OFF -DENABLE_CUDA_SUPPORT=OFF -DENABLE_PYTHON=OFF ../
+cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=../ -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_CXX11=ON -DENABLE_CL_SUPPORT=OFF -DENABLE_CUDA_SUPPORT=OFF -DENABLE_PYTHON=ON ../
 echo "Building OPI"
 make install
 if [[ $? -ne 0 ]]; then
