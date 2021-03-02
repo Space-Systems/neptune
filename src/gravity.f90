@@ -1033,6 +1033,7 @@ contains
   !!
   !> @brief       Providing contributions to derivative of state transition matrix due to geopotential
   !> @author      Vitali Braun
+  !> @author      Daniel Lück
   !!
   !> @date        <ul>
   !!                <li> 11.11.2013 (initial design)          </li>
@@ -1040,6 +1041,7 @@ contains
   !!                <li> 09.08.2014 (fixed a bug for d2phi/dr2) </li>
   !!                <li> 01.05.2015 (changed input to body-fixed) </li>
   !!                <li> 14.03.2017 (removed unused dummy mjd) </li>
+  !!                <li> 02.03.2021 (added calculation of legendre polynomials) </li> 
   !!              </ul>
   !!
   !> @param[in]   r_itrf      radius vector in body-fixed frame
@@ -1096,6 +1098,32 @@ contains
       this%tanphi    = tan(this%phi_gc)
       this%r1r2      = r_itrf(1)*r_itrf(1) + r_itrf(2)*r_itrf(2)
       this%sqrt_r1r2 = sqrt(this%r1r2)
+
+      ! calculate legendre polynomials
+      this%lp(0,0) = 1.d0
+      this%lp(0,1) = 0.d0
+      this%lp(1,0) = sin(this%phi_gc)
+      this%lp(1,1) = cos(this%phi_gc)
+
+      !** determine legendre polynomials recursively
+      !if(.true.) then
+
+      ! STABLE
+      do m = 0, this%degree
+
+        do l = max(2,m), this%degree
+
+          if(l == m) then
+            this%lp(m,m) = (2*m-1)*this%lp(1,1)*this%lp(m-1,m-1)
+          else if(l == m + 1) then
+            this%lp(l,m) = (2*m+1)*this%lp(1,0)*this%lp(l-1,m)
+          else
+            this%lp(l,m) = ((2*l-1)*this%lp(1,0)*this%lp(l-1,m) - (l+m-1)*this%lp(l-2,m))/(l-m)
+          end if
+
+        end do
+
+      end do
 
       !** compute derivatives du/dr, du/dphi and du/dlmb
       !----------------------------------------------------------------------
