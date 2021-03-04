@@ -55,37 +55,37 @@
 #     - gregorian date: YYYY MM DD HH MM SS.SSS... (separated by blanks)
 #     - julian day:     XXXXXXX.XX...              (no blanks)
 #
-  2019 06 24 22 59 42.00   2440980.0    Begin date
-  2019 09 24 22 59 42.00   2441345.0    End date
+  2016 07 20 00 31 50.00   2440980.0    Begin date
+  2016 07 25 00 31 50.00   2441345.0    End date
 #
 #------------------------------------------------------------------------------
 #
 #   Cartesian state vector (if input type == 1)
 #
-     5123.592195               radius   x-component (km)
-   -462.889158               radius   y-component (km)
-    -4865.970976               radius   z-component (km)
-     -5.16151308                 velocity x-component (km/s)
-    -1.00719510                 velocity y-component (km/s)
-    -5.34379188                velocity z-component (km/s)
+     615.119526d0               radius   x-component (km)
+   -7095.644839d0               radius   y-component (km)
+    -678.668352d0               radius   z-component (km)
+     0.390367d0                 velocity x-component (km/s)
+     0.741902d0                 velocity y-component (km/s)
+    -7.396980d0                 velocity z-component (km/s)
 #
 #   Osculating kepler elements (if input type == 2)
 #
-   6671.00    semi-major axis (km)
-   0.001     eccentricity
-   5.0    inclination (deg)
+   7150.59176    semi-major axis (km)
+   0.0012347     eccentricity
+   98.4076293    inclination (deg)
    30.3309997    right ascension of ascending node (deg)
    68.5606724    argument of perigee (deg)
    291.5725696   true anomaly (deg)
 #
 #   Covariance matrix
 #
-  2.25d-4       variance position x/u (m**2)
-  2.25d-4       variance position y/v (m**2)
-  2.25d-4        variance position z/w (m**2)
-  2.25d-12       variance velocity x/u (m**2/s**2)
-  2.25d-12       variance velocity y/v (m**2/s**2)
-  2.25d-12       variance velocity z/w (m**2/s**2)
+  10.d0       variance position x/u (m**2)
+  100.d0      variance position y/v (m**2)
+  30.d0       variance position z/w (m**2)
+  2.d-4       variance velocity x/u (m**2/s**2)
+  1.d-4       variance velocity y/v (m**2/s**2)
+  1.d-4       variance velocity z/w (m**2/s**2)
 #
   0.d0                      covariance matrix 2nd row (units see above..)
   0.d0 0.d0                 covariance matrix 3rd row
@@ -101,7 +101,7 @@
 #     0 = off (special case Gravity potential:  0  = central body force
 #                                              >0  = degree of gravity potential
 #
-  70   Geopotential
+  6   Geopotential
   1   Atmospheric drag    ! (0 = off, 1 = on, 2 = on+wind (HMW07))
   1   Sun gravity
   1   Moon gravity
@@ -111,6 +111,7 @@
   0   Ocean tides
   0   Orbital maneuvers   ! specification to be provided in file as given below in section 'File paths'
 #
+#   Geopotential model to be used (if geopotential perturbation /= 0):
 #     1 = EGM96
 #     2 = EGM2008
 #     3 = EIGEN-GL04C
@@ -140,10 +141,10 @@
 #   Covariance matrix propagation
 #
   1     Propagation switch (1=on, 0=off)
-  70     Degree of geopotential (0=two-body only, n=degree of geopotential, but smaller than or equal to degree in state vector propagation!)
-  1    Atmospheric drag (variational equations)
-  1     Sun  (variational equations)
-  1     Moon (variational equations)
+  2     Degree of geopotential (0=two-body only, n=degree of geopotential, but smaller than or equal to degree in state vector propagation!)
+  1     Atmospheric drag (variational equations)
+  0     Sun  (variational equations)
+  0     Moon (variational equations)
   0     Solar radiation pressure (variational equations)
 #
 #   Noise matrix computation
@@ -174,8 +175,8 @@
 #
 #   c) Satellite characteristics
 #
-  2151.964         Mass (kg)
-  6.2        Cross-section (m**2)
+  1.3d0         Mass (kg)
+  0.01d0        Cross-section (m**2)
   2.2d0         Drag coefficient
   1.3d0         Reflectivity coefficient
 #
@@ -196,7 +197,7 @@
 #
 #   Output time step (in seconds)
 #
-  100
+  60
 #
 #   Time step for ephemerides in internal array (available via 'getNeptuneData' API)
 #   (in seconds - IF not '0' then output time step (above) will be overwritten by this
@@ -217,7 +218,7 @@
   1           covariances (UVW, non-diagonal)    vs. time
 #
   1           total accelerations                vs. time
-  1           acceleration due to geopotential   vs. time
+  0           acceleration due to geopotential   vs. time
   0           acceleration due to drag           vs. time
   0           acceleration due to Sun            vs. time
   0           acceleration due to Moon           vs. time
@@ -253,16 +254,16 @@
 #
   1          Integrator to be used (1 = Variable-step Störmer-Cowell, 2 = Fixed-step Gauss-Jackson)
 #
-  1.d-12     Störmer-Cowell relative tolerance
-  1.d-13     Störmer-Cowell absolute tolerance
+  1.d-10     Störmer-Cowell relative tolerance
+  1.d-11     Störmer-Cowell absolute tolerance
 #
-  100.0      Covariance matrix integration step size (sec) [multiple of output step, should not be greater than output step!!]
-  3         Covariance matrix integration method: 1=taylor expansion, 2=RK4, 3=RK8
+  60.d0      Covariance matrix integration step size (sec) [multiple of output step, should not be greater than output step!!]
+  3          Covariance matrix integration method: 1=taylor expansion, 2=RK4, 3=RK8
 #
 #   Integration logfile (stepsize, local error)
 #     1 = on
 #     0 = off
 #
-  1
+  0
 #
 #------------------------------------------------------------------------------
