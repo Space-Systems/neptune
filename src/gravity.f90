@@ -5,6 +5,7 @@
 !> @brief       Geopotential modeling
 !> @author      Vitali Braun (VB)
 !> @author      Christopher Kebschull (CHK)
+!> @author      Daniel Lück (DLU)
 !!
 !> @date        <ul>
 !!                <li>VB:  02.10.2012 (initial design)                        </li>
@@ -16,6 +17,7 @@
 !!                <li>VB:  10.06.2014 (changed handling of Earth's radius, implemented new function 'getEarthGeopotentialRadius')</li>
 !!                <li>CHK: 13.11.2015 (updated to use libslam)</li>
 !!                <li>VB:  15.05.2016 (updated to have only statements for all use statements)</li>
+!!                <li>DLU: 13.11.2015 (added calculation of legendre polynomials to gravity covariance)</li>
 !!              </ul>
 !!
 !> @details     This module contains parameters, subroutines and functions required for Earth's
@@ -1032,16 +1034,16 @@ contains
   !> @anchor      getGravityCovariance
   !!
   !> @brief       Providing contributions to derivative of state transition matrix due to geopotential
-  !> @author      Vitali Braun
-  !> @author      Daniel Lück
+  !> @author      Vitali Braun (VB)
+  !> @author      Daniel Lück (DLU)
   !!
   !> @date        <ul>
-  !!                <li> 11.11.2013 (initial design)          </li>
-  !!                <li> 08.08.2014 (fixed a bug for d2U/dphi2) </li>
-  !!                <li> 09.08.2014 (fixed a bug for d2phi/dr2) </li>
-  !!                <li> 01.05.2015 (changed input to body-fixed) </li>
-  !!                <li> 14.03.2017 (removed unused dummy mjd) </li>
-  !!                <li> 02.03.2021 (added calculation of legendre polynomials) </li> 
+  !!                <li>VB:  11.11.2013 (initial design)          </li>
+  !!                <li>VB:  08.08.2014 (fixed a bug for d2U/dphi2) </li>
+  !!                <li>VB:  09.08.2014 (fixed a bug for d2phi/dr2) </li>
+  !!                <li>VB:  01.05.2015 (changed input to body-fixed) </li>
+  !!                <li>VB:  14.03.2017 (removed unused dummy mjd) </li>
+  !!                <li>DLU: 02.03.2021 (added calculation of legendre polynomials) </li> 
   !!              </ul>
   !!
   !> @param[in]   r_itrf      radius vector in body-fixed frame

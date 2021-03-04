@@ -3,7 +3,8 @@
 !!
 !> @brief       Numerical integration based on Cowell's method
 !> @author      Vitali Braun (VB)
-!> @brief       Christopher Kebschull (CHK)
+!> @author      Christopher Kebschull (CHK)
+!> @author      Daniel Lück (DLU)
 !!
 !> @date        <ul>
 !!                <li>VB:  01.2013 (initial design)</li>
@@ -15,6 +16,7 @@
 !!                <li>VB:  15.05.2016 (updated to have only statements for all use statements)</li>
 !!                <li>VB:  14.07.2017 (added method to return covariance integration method)</li>
 !!                <li>CHK: 02.01.2018 (updated to use NEPTUNE class) </li>
+!!                <li>DLU: 02.03.2021 (added RK8 Integration) </li>
 !!              </ul>
 !!
 !> @details     This module contains parameters, subroutines and functions required for the
@@ -793,7 +795,8 @@ end subroutine
 !> @anchor      getStateTransitionMatrix
 !!
 !> @brief       Compute the state error transition matrix from (t) to (reqt-t)
-!> @author      Vitali Braun
+!> @author      Vitali Braun  (VB)
+!> @author      Daniel Lück (DLU)
 !!
 !!  @param[in]  r     Radius vector in GCRF / km
 !!  @param[in]  v     Velocity vector in GCRF / km/s
@@ -805,6 +808,7 @@ end subroutine
 !!                <li>VB 07.08.2013 (adapted to 'getStateTransitionMatrix')</li>
 !!                <li>VB 24.01.2016 (fixed issue with call counter: now via modul variable and reset function, which is called by NEPTUNE)<li>
 !!                <li>VB 14.07.2017 (changed to time offset in parameter list and adding to start epoch)<li>
+!!                <li>DLU 02.03.2021 (added RK8 Integration)<li>
 !!              </ul>
 !!
 !------------------------------------------------------------------------
@@ -1007,6 +1011,7 @@ end subroutine
                                         k4)
       if(hasFailed()) return
 
+      ! RK4:
       set = set + this%covIntegrationStep/6.d0*(k1 + 2.0*k2 + 2.d0*k3 + k4)
       !write(52,'(36(e14.7e2,x))') set
 
@@ -1019,8 +1024,6 @@ end subroutine
 
       !** save last state
       this%lastState = state(3)
-
-
 
     else if(this%cov_int_method == RK8) then
 
@@ -1407,10 +1410,6 @@ end subroutine
       
       !** save last state
       this%lastState = state_rk8(8)
-
-
-
-
 
     end if
 
