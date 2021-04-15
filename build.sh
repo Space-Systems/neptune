@@ -82,7 +82,7 @@ else
 fi
 cd build
 echo "Updating cmake"
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OpenMP_SUPPORT=ON -DENABLE_POSTGRESQL_SUPPORT=ON ../
+cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OpenMP_SUPPORT=OFF -DENABLE_POSTGRESQL_SUPPORT=OFF ../
 echo "Building libslam"
 make install
 if [[ $? -ne 0 ]]; then
@@ -127,7 +127,7 @@ else
 fi
 cd build
 echo "Updating cmake"
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OpenMP_SUPPORT=ON -DENABLE_OPI_SUPPORT=ON ../
+cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OpenMP_SUPPORT=OFF -DENABLE_OPI_SUPPORT=ON ../
 echo "Building NEPTUNE"
 make install
 if [[ $? -ne 0 ]]; then
