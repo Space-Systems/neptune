@@ -15,12 +15,12 @@ if [[ `find "data/eop19620101.txt" -mtime +24` ]]; then
   wget -N https://celestrak.com/SpaceData/EOP-All.txt --directory-prefix=./data
   mv ./data/EOP-All.txt ./data/eop19620101.txt
 fi
-if [[ `find "data/SOLFSMY.TXT" -mtime +24` ]]; then
-  wget -N http://sol.spacenvironment.net/~JB2008/indices/SOLFSMY.TXT --directory-prefix=./data
-fi
-if [[ `find "data/DTCFILE.TXT" -mtime +24` ]]; then
-  wget -N http://sol.spacenvironment.net/~JB2008/indices/DTCFILE.TXT --directory-prefix=./data
-fi
+#if [[ `find "data/SOLFSMY.TXT" -mtime +24` ]]; then
+#  wget -N http://sol.spacenvironment.net/~JB2008/indices/SOLFSMY.TXT --directory-prefix=./data
+#fi
+#if [[ `find "data/DTCFILE.TXT" -mtime +24` ]]; then
+#  wget -N http://sol.spacenvironment.net/~JB2008/indices/DTCFILE.TXT --directory-prefix=./data
+#fi
 #
 # Create the output directory if it does not exist
 #
