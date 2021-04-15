@@ -32,7 +32,7 @@ program openmp_test_sa
 
     implicit none
     integer,parameter                         :: num_objects  = 8               ! Number of objects
-    integer,parameter                         :: n_threads  = 4                 ! Number of available cores
+    integer,parameter                         :: n_threads    = 4               ! Number of available cores
     type(Neptune_class)                       :: single_neptune                 ! Neptune class instances
 
     type(time_t),dimension(num_objects)       :: startEpoch                     ! Star epoch
@@ -42,7 +42,7 @@ program openmp_test_sa
     type(state_t),dimension(num_objects)      :: propagatedState                ! State available from the object, which i used to initialize the propagator
     type(covariance_t),dimension(num_objects) :: propagatedCovariance           ! The covariance matrix
     type(time_t),dimension(2)                 :: tmpEpoch                       ! This array holds the start and end epochs as an array
-    
+
     integer                         :: ineptune,iobject,itime                   ! Neptune counter
 
     ! For benchmarking
@@ -92,6 +92,9 @@ do itime=1,5
 !$omp do
     do iobject=1,num_objects
         write (*,*) "init propagator ", iobject, num_objects
+        ! Note: We need to re-allocate the output arrays within neptune. This is for gfortran, as it does not re-allocate them automatically for every thread.
+        ! ifort will do this w/o problems.
+        call single_neptune%reallocate()
         call initPropagator(single_neptune,startEpoch(iobject),endEpoch(iobject))
         if (single_neptune%neptuneInitialized) then
             tmpEpoch(1) = startEpoch(iobject)

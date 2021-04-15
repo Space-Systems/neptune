@@ -22,6 +22,11 @@
 !!              new, but backward-compatible, API features, the major version is incremented for
 !!              API changes, which are not backward-compatible (http://semver.org/spec/v2.0.0.html).
 !!
+!!              Version 1.1.1-release (15-APR-2021)
+!!              <ul>
+!!                <li> Feature: Support for Flang (AMD) compiler</li>
+!!                <li> Feature: OpenMP works with gfortran-8</li>
+!!              </ul>
 !!              Version 1.1.0-release (07-MAR-2021)
 !!              <ul>
 !!                <li> Feature: JB2008 atmopsheric model</li>
@@ -229,7 +234,7 @@ contains
     !!
     ! --------------------------------------------------------------------
     type(Version_class) function constructor()
-        constructor%current_version = version_t(1,1,0,'release')
+        constructor%current_version = version_t(1,1,1,'release')
         constructor%logoLineCounter = 0                                         ! number of lines in NEPTUNE logo data file
         constructor%loadedLogo      = .false.
     end function constructor
@@ -457,6 +462,8 @@ contains
     character(len=*), intent(in)    :: version
 
     select case(version)
+      case('1.1.1-release')
+        getVersionDate = '15-Apr-2021'
       case('1.1.0-release')
         getVersionDate = '07-Mar-2021'
       case('1.0.0-release')

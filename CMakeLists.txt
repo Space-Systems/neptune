@@ -3,6 +3,7 @@ cmake_minimum_required (VERSION 3.3)
 # Name the project NEPTUNE
 project (NEPTUNE Fortran)
 
+OPTION(BUILD_DOCUMENTATION "Build the doxygen documentation (default=OFF)" OFF)
 OPTION(ENABLE_OpenMP_SUPPORT "Enable OpenMP support (default=OFF)" OFF)
 OPTION(ENABLE_OPI_SUPPORT "Enable OPI support (default=OFF)" OFF)
 OPTION(ENABLE_STATIC_SUPPORT "Enable static library support (default=OFF)" OFF)
@@ -27,6 +28,10 @@ elseif("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Intel")
 	#set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -heap-arrays 32768")
 	set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -fpp -g -fno-omit-frame-pointer -traceback -check bounds -check output-conversion -check format -check pointers -check uninit -ftrapuv -assume realloc_lhs -fstack-protector -assume protect_parens")
 	set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -fpp")
+elseif ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Flang")
+    set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -Mpreprocess")
+    set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS} -g -O")
+    set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} -O3")
 endif()
 
 if (ENABLE_STATIC_SUPPORT)
@@ -36,6 +41,9 @@ if (ENABLE_STATIC_SUPPORT)
 	elseif ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Intel")
 	  set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -static-intel")
 	  set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -static-intel")
+	elseif ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Flang")
+	  set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -static-flang-libs")
+	  set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -static-flang-libs")
 	endif()
 endif()
 
@@ -94,15 +102,17 @@ add_subdirectory(validation)
 # Create test scenarios
 add_test("ExecutableTest" neptune)
 
-find_package(Doxygen REQUIRED dot)
+if (BUILD_DOCUMENTATION)
+	find_package(Doxygen REQUIRED dot)
 
-if (DOXYGEN_FOUND)
-	# note the option ALL which allows to build the docs together with the application
-    add_custom_target( doc_doxygen ALL
-        COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/documentation/02-Doxygen/nepdoc.cfg
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/documentation/02-Doxygen/
-        COMMENT "Generating API documentation with Doxygen"
-        VERBATIM )
-else (DOXYGEN_FOUND)
-  message("Doxygen needs to be installed to generate the source code documentation")
-endif (DOXYGEN_FOUND)
+	if (DOXYGEN_FOUND)
+		# note the option ALL which allows to build the docs together with the application
+		add_custom_target( doc_doxygen ALL
+			COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/documentation/02-Doxygen/nepdoc.cfg
+			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/documentation/02-Doxygen/
+			COMMENT "Generating API documentation with Doxygen"
+			VERBATIM )
+	else (DOXYGEN_FOUND)
+	message("Doxygen needs to be installed to generate the source code documentation")
+	endif (DOXYGEN_FOUND)
+endif (BUILD_DOCUMENTATION)
