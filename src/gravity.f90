@@ -70,9 +70,12 @@ module gravity
                                                                                  "egm2008.dat    ", &
                                                                                  "eigen_gl04c.dat"/)
   ! data file formats for each supported model
-  character(len=*), dimension(n_supported_models), parameter :: cDataFormat = (/"(a1,2(i4),2(e20.12e2), 2(e16.8e2))", &
-                                                                                "(a1,2(i5),2(e25.15e2),2(e20.10e2))", &
-                                                                                "(a4,2(i5),2(e19.12e2), 2(e11.4e2))"/)
+  character(len=37), dimension(n_supported_models,2), parameter :: cDataFormat = reshape((/"(a1,2(i4),2(e20.12e2),2(e16.8e2),a9)",  &
+                                                                                          "(a1,2(i5),2(e25.15e2),2(e20.10e2))", &
+                                                                                          "(a4,2(i5),2(e19.12e2),2(e11.4e2),a9),", &
+                                                                                          "(a1,2(i4),2(e20.12e2),2(e16.8e2))",  &
+                                                                                          "(a1,2(i5),2(e25.15e2),2(e20.10e2))", &
+                                                                                          "(a3,2(i5),2(e19.12e2),2(e11.4e2))"/), (/3,2/))
 
   integer, parameter :: maxdegree = 85                                          ! maximum degree of geopotential
   integer, parameter :: maxDistinctHarmonics = 80                               ! maximum number of individual harmonics to be analysed
@@ -506,7 +509,8 @@ contains
         exit    !** end of file
       else if( (this%nmodel == EIGEN_GL04C .and. index(cbuf,'gfct') /= 0) .or. &
                (this%nmodel == EGM96       .and. cbuf(1:1) == 't') ) then
-        read(cbuf,cDataFormat(this%nmodel)(1:len_trim(cDataFormat(this%nmodel))-1)//",a9)") ctemp, l, m, tempC, tempS, tempSigmaC, tempSigmaS, tempEpoch
+        ! write (*,*) cDataFormat(this%nmodel,1)
+        read(cbuf,cDataFormat(this%nmodel,1)) ctemp, l, m, tempC, tempS, tempSigmaC, tempSigmaS, tempEpoch
 
         if(l > this%degree) cycle
         if(m > this%degree) exit
@@ -529,8 +533,8 @@ contains
       else if( (this%nmodel == EIGEN_GL04C .and. index(cbuf,'gfc') /= 0) .or. &
                (this%nmodel == EGM08                                   ) .or. &
                (this%nmodel == EGM96       .and. cbuf(1:1) == ' ') ) then
-
-        read(cbuf,cDataFormat(this%nmodel)) ctemp, l, m, tempC, tempS, tempSigmaC, tempSigmaS
+        ! write (*,*) cDataFormat(this%nmodel,2)
+        read(cbuf,cDataFormat(this%nmodel,2)) ctemp, l, m, tempC, tempS, tempSigmaC, tempSigmaS
 
         if(l > this%degree) cycle
         if(m > this%degree) exit
@@ -542,8 +546,8 @@ contains
 
       else if( (this%nmodel == EIGEN_GL04C .and. index(cbuf,'dot') /= 0) .or. &
                (this%nmodel == EGM96       .and. cbuf(1:1) == 'd') ) then
-
-        read(cbuf,cDataFormat(this%nmodel)) ctemp, l, m, tempdCdt, tempdSdt, tempSigmaC, tempSigmaS
+        ! write (*,*) cDataFormat(this%nmodel,2)
+        read(cbuf,cDataFormat(this%nmodel,2)) ctemp, l, m, tempdCdt, tempdSdt, tempSigmaC, tempSigmaS
 
         if(l > this%degree) cycle
         if(m > this%degree) exit
@@ -1043,7 +1047,7 @@ contains
   !!                <li>VB:  09.08.2014 (fixed a bug for d2phi/dr2) </li>
   !!                <li>VB:  01.05.2015 (changed input to body-fixed) </li>
   !!                <li>VB:  14.03.2017 (removed unused dummy mjd) </li>
-  !!                <li>DLU: 02.03.2021 (added calculation of legendre polynomials) </li> 
+  !!                <li>DLU: 02.03.2021 (added calculation of legendre polynomials) </li>
   !!              </ul>
   !!
   !> @param[in]   r_itrf      radius vector in body-fixed frame
