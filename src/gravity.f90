@@ -70,12 +70,12 @@ module gravity
                                                                                  "egm2008.dat    ", &
                                                                                  "eigen_gl04c.dat"/)
   ! data file formats for each supported model
-  character(len=37), dimension(n_supported_models,2), parameter :: cDataFormat = reshape((/"(a1,2(i4),2(e20.12e2),2(e16.8e2),a9)",  &
-                                                                                          "(a1,2(i5),2(e25.15e2),2(e20.10e2))", &
-                                                                                          "(a4,2(i5),2(e19.12e2),2(e11.4e2),a9),", &
-                                                                                          "(a1,2(i4),2(e20.12e2),2(e16.8e2))",  &
-                                                                                          "(a1,2(i5),2(e25.15e2),2(e20.10e2))", &
-                                                                                          "(a3,2(i5),2(e19.12e2),2(e11.4e2))"/), (/3,2/))
+  character(len=36), dimension(n_supported_models,2), parameter :: cDataFormat = reshape((/"(a1,2(i4),2(e20.12e2),2(e16.8e2),a9)", &
+                                                                                           "  (a1,2(i5),2(e25.15e2),2(e20.10e2))", &
+                                                                                           "(a4,2(i5),2(e19.12e2),2(e11.4e2),a9)", &
+                                                                                           "   (a1,2(i4),2(e20.12e2),2(e16.8e2))", &
+                                                                                           "  (a1,2(i5),2(e25.15e2),2(e20.10e2))", &
+                                                                                           "   (a3,2(i5),2(e19.12e2),2(e11.4e2))"/), (/3,2/))
 
   integer, parameter :: maxdegree = 85                                          ! maximum degree of geopotential
   integer, parameter :: maxDistinctHarmonics = 80                               ! maximum number of individual harmonics to be analysed
