@@ -22,12 +22,29 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: true
-    - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+
+    - name: Configure CMake OPI
+      # Configure OPI
+      run: cmake -B ${{github.workspace}}/OPI/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DENABLE_CXX11=ON -DENABLE_CL_SUPPORT=OFF -DENABLE_CUDA_SUPPORT=OFF -DENABLE_PYTHON=OFF
+    
+    - name: Build OPI
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/OPI/build --config ${{env.BUILD_TYPE}}
+
+      # Configure libslam
+    - name: Configure CMake libslam
+      # Configure OPI
+      run: cmake -B ${{github.workspace}}/libslam/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DENABLE_OpenMP_SUPPORT=OFF -DENABLE_POSTGRESQL_SUPPORT=OFF
+
+    - name: Build libslam
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/libslam/build --config ${{env.BUILD_TYPE}}
+
+    - name: Configure CMake neptune
+      # Configure neptune 
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
-    - name: Build
+    - name: Build neptune
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
