@@ -28,7 +28,5 @@ _minted-neptune/
 neptune-sa
 openmp-test-sa
 **/validation
-**/OPI
-**/libslam
 **/work*/
 .vscode
