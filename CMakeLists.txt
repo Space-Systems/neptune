@@ -100,7 +100,6 @@ add_subdirectory(src)
 add_subdirectory(validation)
 
 # Create test scenarios
-#add_test("ExecutableTest" neptune)
 add_test(NAME execute_neptune COMMAND ../bin/neptune-sa WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/work/)
 
 

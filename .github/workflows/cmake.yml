@@ -25,28 +25,43 @@ jobs:
 
     - name: Configure CMake OPI
       # Configure OPI
-      run: cmake -B ${{github.workspace}}/OPI/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DENABLE_CXX11=ON -DENABLE_CL_SUPPORT=OFF -DENABLE_CUDA_SUPPORT=OFF -DENABLE_PYTHON=OFF
+      run: cmake -S OPI -B ${{github.workspace}}/OPI/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/OPI/ -DENABLE_CXX11=ON -DENABLE_CL_SUPPORT=OFF -DENABLE_CUDA_SUPPORT=OFF -DENABLE_PYTHON=OFF
     
     - name: Build OPI
-      # Build your program with the given configuration
+      # Build OPI
       run: cmake --build ${{github.workspace}}/OPI/build --config ${{env.BUILD_TYPE}}
 
-      # Configure libslam
+    - name: Install OPI
+      # Build OPI
+      run: cmake --install ${{github.workspace}}/OPI/build --config ${{env.BUILD_TYPE}}
+
     - name: Configure CMake libslam
-      # Configure OPI
-      run: cmake -B ${{github.workspace}}/libslam/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DENABLE_OpenMP_SUPPORT=OFF -DENABLE_POSTGRESQL_SUPPORT=OFF
+      # Configure libslam
+      run: cmake -S libslam -B ${{github.workspace}}/libslam/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DENABLE_OpenMP_SUPPORT=OFF -DENABLE_POSTGRESQL_SUPPORT=OFF
 
     - name: Build libslam
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/libslam/build --config ${{env.BUILD_TYPE}}
 
+    - name: Install libslam
+      # install libs and includes in libslam/build/
+      run: cmake --install ${{github.workspace}}/libslam/build --config ${{env.BUILD_TYPE}}
+
+    - name: Link include and libs
+      # Link all libs needed from libslam and OPI for neptune
+      run: bash link-dependencies.sh 
+
     - name: Configure CMake neptune
       # Configure neptune 
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DENABLE_OPI_SUPPORT=ON
 
     - name: Build neptune
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    - name: Install neptune
+      # Build your program with the given configuration
+      run: cmake --install ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: Test
       working-directory: ${{github.workspace}}/build
