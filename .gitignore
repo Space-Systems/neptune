@@ -16,6 +16,8 @@ logfile
 *.gz
 *.toc
 *.mod
+*.pyg
+*.ilg
 _minted-neptune/
 **/build*/
 **/lib
@@ -26,6 +28,5 @@ _minted-neptune/
 neptune-sa
 openmp-test-sa
 **/validation
-**/OPI
-**/libslam
 **/work*/
+.vscode

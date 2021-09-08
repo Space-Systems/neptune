@@ -43,6 +43,7 @@ subroutine rdinp(                   &
     character(len=10)  :: ccrssrp
     character(len=30)  :: cepoch_start, cepoch_end, cstart, cend
     character(len=1)   :: cGeoModel
+    character(len=1)   :: cAtmModel
     character(len=10)  :: cmass
     character(len=20)  :: cRelTolerance
     character(len=20)  :: cAbsTolerance
@@ -112,6 +113,10 @@ subroutine rdinp(                   &
     call nxtbuf('#', 0, 21, cbuf)
     read(cbuf,*) cGeoModel
 
+    !** atmosphere model to be used
+    call nxtbuf('#', 0, 21, cbuf)
+    read(cbuf,*) cAtmModel
+
     !** relative tolerance
     call nxtbuf('#', 0, 21, cbuf)
     read(cbuf,*) cRelTolerance
@@ -145,6 +150,10 @@ subroutine rdinp(                   &
 
     !** Options
     ierr = neptune_instance%setNeptuneVar("OPT_GEO_MODEL",      trim(cGeoModel))
+    ierr = neptune_instance%setNeptuneVar("OPT_ATMOSPHERE_MODEL", trim(cAtmModel))
+    if (index(cAtmModel,'3') /= 0) then
+      ierr = neptune_instance%setNeptuneVar("FILE_SOLMAG", "SOLFSMY.TXT")
+    end if
     ierr = neptune_instance%setNeptuneVar("OPT_AP_FORECAST",    "15")
     ierr = neptune_instance%setNeptuneVar("OPT_SAT_PROPERTIES", "1")
     ierr = neptune_instance%setNeptuneVar("OPT_EOP",            "ON")

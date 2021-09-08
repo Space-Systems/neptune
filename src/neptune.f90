@@ -984,10 +984,9 @@ contains
           !** cumulate state transition matrix
           cumSet = matmul(set,cumSet)
           set_out%elem = cumSet
-
+          
           !** compute new covariance matrix for given time
           covar_out%elem = matmul(matmul(cumSet,covar_in%elem),transpose(cumSet))
-
           if(neptune%correlation_model%getNoisePropagationFlag()) then
               corrMat                 = neptune%correlation_model%getCorrelationMatrix(request_time)
               covar_out%elem(1:6,1:6) = covar_out%elem(1:6,1:6) + corrMat

@@ -8,6 +8,10 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
   LIBSUFFIX="so"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
   LIBSUFFIX="dylib"
+elif [[ "$OSTYPE" == "CYGWIN"* ]]; then
+  LIBSUFFIX="dll"
+elif [[ "$OSTYPE" == "MINGW"* ]]; then
+  LIBSUFFIX="dll"
 fi
 ################################################################################
 #                                                                              #
@@ -56,7 +60,7 @@ cd ../../
 echo "Checking for libslam"
 if [[ ! -d "libslam" ]]; then
   echo "Not found - cloning from https://github.com/Space-Systems/libslam.git"
-  git clone https://github.com/Space-Systems/libslam.git -b v2020-11
+  git clone https://github.com/Space-Systems/libslam.git --branch v2020-12
 else
   echo "Found - updating branch."
   cd libslam
@@ -78,7 +82,7 @@ else
 fi
 cd build
 echo "Updating cmake"
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OpenMP_SUPPORT=ON -DENABLE_POSTGRESQL_SUPPORT=ON ../
+cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OpenMP_SUPPORT=OFF -DENABLE_POSTGRESQL_SUPPORT=OFF ../
 echo "Building libslam"
 make install
 if [[ $? -ne 0 ]]; then
@@ -123,7 +127,7 @@ else
 fi
 cd build
 echo "Updating cmake"
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -ENABLE_OpenMP_SUPPORT=ON -DENABLE_OPI_SUPPORT=ON ../
+cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OPI_SUPPORT=ON ../
 echo "Building NEPTUNE"
 make install
 if [[ $? -ne 0 ]]; then

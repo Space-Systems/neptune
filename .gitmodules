@@ -1,0 +1,6 @@
+[submodule "OPI"]
+	path = OPI
+	url = https://github.com/Space-Systems/OPI.git
+[submodule "libslam"]
+	path = libslam
+	url = https://github.com/Space-Systems/libslam.git

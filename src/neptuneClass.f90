@@ -87,9 +87,9 @@ module neptuneClass
     integer, parameter :: INPUT_ARR_DEFAULT_SIZE = 30
     integer, parameter :: isize = 1000000                                        ! max. number of array elements
 
-    type(state_t),      dimension(isize) :: ephem                               !< ephemerides
-    type(covariance_t), dimension(isize) :: covMatrix                           !< covariance matrix
-    type(covariance_t), dimension(isize) :: setMatrix                           !< state error transition matrix
+    type(state_t),      dimension(:),allocatable :: ephem                               !< ephemerides
+    type(covariance_t), dimension(:),allocatable :: covMatrix                           !< covariance matrix
+    type(covariance_t), dimension(:),allocatable :: setMatrix                           !< state error transition matrix
 
 ! Using threadprivate as a memory optimization here. ephem, covMatrix and setMatrix
 ! should be part of the Neptune_class. But because the stack might be too small when
@@ -240,6 +240,7 @@ module neptuneClass
         procedure :: write_input_to_dump
         procedure :: initialize_input_array
         procedure :: destroy
+        procedure :: reallocate
 
     end type Neptune_class
 
@@ -322,7 +323,37 @@ contains
         constructor%storeEphemData = .false.                                    ! default: not stored
         constructor%warned         = .false.                                    ! default: not warned (if ephem array is full)
 
+        if (.not. allocated(ephem)) allocate(ephem(isize))
+        if (.not. allocated(covMatrix)) allocate(covMatrix(isize))
+        if (.not. allocated(setMatrix)) allocate(setMatrix(isize))
+
     end function constructor
+
+
+    !===========================================================================
+    !!
+    !>  @anchor     reallocate
+    !!
+    !>  @brief      Re-allocates the ephem, covMatrix and setMatrix arrays.
+    !!
+    !>  @details    This is only needed when openmp creates a new thread of this class.
+    !!
+    !>  @author     Christopher Kebschull
+    !!
+    !!
+    !>  @date       <ul>
+    !!                <li>04.04.2021 (initial design)</li>
+    !!              </ul>
+    !!
+    !---------------------------------------------------------------------------
+    subroutine reallocate(this)
+      class(Neptune_class)    :: this
+
+      if (.not. allocated(ephem)) allocate(ephem(isize))
+      if (.not. allocated(covMatrix)) allocate(covMatrix(isize))
+      if (.not. allocated(setMatrix)) allocate(setMatrix(isize))
+
+    end subroutine reallocate
 
     !===========================================================================
     !!
@@ -349,9 +380,9 @@ contains
         !call this%reduction%destroy()
 
         if(allocated(this%input_arr)) deallocate(this%input_arr)
-!        if(allocated(ephem)) deallocate(ephem)
-!        if(allocated(covMatrix)) deallocate(covMatrix)
-!        if(allocated(setMatrix)) deallocate(setMatrix)
+        if(allocated(ephem)) deallocate(ephem)
+        if(allocated(covMatrix)) deallocate(covMatrix)
+        if(allocated(setMatrix)) deallocate(setMatrix)
 
     end subroutine destroy
 

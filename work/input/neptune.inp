@@ -1,7 +1,7 @@
 #-----<IRAS/NEPTUNE>-----------------------------------------------------------
 #
 #   NEPTUNE -- Input File
-#   [v1.0.0-release]
+#   [v1.1.0-release]
 #
 #------------------------------------------------------------------------------
 #
@@ -56,7 +56,7 @@
 #     - julian day:     XXXXXXX.XX...              (no blanks)
 #
   2016 07 20 00 31 50.00   2440980.0    Begin date
-  2016 07 25 00 31 50.00   2441345.0    End date
+  2016 08 03 00 31 50.00   2441345.0    End date
 #
 #------------------------------------------------------------------------------
 #
@@ -121,6 +121,7 @@
 #   Atmosphere model to be used
 #     1 = Exponential
 #     2 = NRLMSISE-00
+#     3 = JB2008			JB2008 currently only available until 03.11.2020 Density will be calculated with NRLMSISE-00 after that time
 #
   2
 #
@@ -258,7 +259,7 @@
   1.d-11     Störmer-Cowell absolute tolerance
 #
   60.d0      Covariance matrix integration step size (sec) [multiple of output step, should not be greater than output step!!]
-  2          Covariance matrix integration method: 1=taylor expansion, 2=RK4
+  3          Covariance matrix integration method: 1=taylor expansion, 2=RK4, 3=RK8
 #
 #   Integration logfile (stepsize, local error)
 #     1 = on
