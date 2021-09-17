@@ -125,7 +125,7 @@
 #     2 = NRLMSISE-00
 #     3 = JB2008
 #
-  3
+  2
 #
 #   Use only a subset of spherical harmonics of the geopotential
 #     - First set switch to '1', then provide harmonics in the
@@ -244,8 +244,7 @@
   neptune.mnv       Orbital maneuvers input file
   neptune.srf       Oriented surfaces definition file
 #
-  SOLFSMY.TXT
-#  fap_day.dat       Data file for daily solar and geomagnetic activity
+  fap_day.dat       Data file for daily solar and geomagnetic activity
   fap_mon.dat       Data file for monthly solar and geomagnetic activity (only used if ESA daily data file used)
   apexgrid.dat      Pre-computed interpolation grid for quasi-dipole coordinates (needed for HWM07)
   dwm07b_104i.dat   Disturbance winds data file (needed for HWM07)
