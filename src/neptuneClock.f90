@@ -15,8 +15,7 @@
 !
 ! ------------------------------------------------------------------------
 module neptuneClock
-    use slam_io,        only: LOG_AND_STDOUT, message
-    use slam_strings,   only: toString
+
     use slam_time,      only: time_t
     use slam_types,     only: dp
     use numint,         only: RK4

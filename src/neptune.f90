@@ -869,6 +869,7 @@ contains
       end if
 
       !call message(' Going into integrator loop at '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'  ('//toString(prop_counter)//')', LOG_AND_STDOUT)
+      !call message(' prop counter: '//toString(prop_counter)//' request_time: '//toString(request_time)//' difference: '//toString(prop_counter - request_time), LOG_AND_STDOUT)
 
 
       !====================================================================================
@@ -984,7 +985,7 @@ contains
           !** cumulate state transition matrix
           cumSet = matmul(set,cumSet)
           set_out%elem = cumSet
-          
+
           !** compute new covariance matrix for given time
           covar_out%elem = matmul(matmul(cumSet,covar_in%elem),transpose(cumSet))
           if(neptune%correlation_model%getNoisePropagationFlag()) then

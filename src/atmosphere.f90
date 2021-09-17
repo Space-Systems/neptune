@@ -3747,6 +3747,9 @@ contains
 
         sga_data(i)%ap = nint(dtemp)
 
+        !sga_data(i)%f107 = this%sol_predict
+        !sga_data(i)%ap = this%ap_predict
+
         if(sga_data(i)%mjd > mjd_end_monthly .or. i == size(sga_data)) exit
 
       end do
