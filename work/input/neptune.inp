@@ -1,7 +1,7 @@
 #-----<IRAS/NEPTUNE>-----------------------------------------------------------
 #
 #   NEPTUNE -- Input File
-#   [v1.1.0-release]
+#   [v1.1.2-release]
 #
 #------------------------------------------------------------------------------
 #
@@ -39,6 +39,8 @@
 #   1 = cartesian state vector      (GCRF)
 #   2 = osculating kepler elements  (GCRF)
 #   3 = cartesian state vector      (TEME)
+#   4 = cartesian state vector      (ITRF-2000)
+#   5 = cartesian state vector      (ITRF-2000 & TEME)
 #
   1
 #
@@ -121,9 +123,9 @@
 #   Atmosphere model to be used
 #     1 = Exponential
 #     2 = NRLMSISE-00
-#     3 = JB2008			JB2008 currently only available until 03.11.2020 Density will be calculated with NRLMSISE-00 after that time
+#     3 = JB2008
 #
-  2
+  3
 #
 #   Use only a subset of spherical harmonics of the geopotential
 #     - First set switch to '1', then provide harmonics in the
@@ -242,7 +244,8 @@
   neptune.mnv       Orbital maneuvers input file
   neptune.srf       Oriented surfaces definition file
 #
-  fap_day.dat       Data file for daily solar and geomagnetic activity
+  SOLFSMY.TXT
+#  fap_day.dat       Data file for daily solar and geomagnetic activity
   fap_mon.dat       Data file for monthly solar and geomagnetic activity (only used if ESA daily data file used)
   apexgrid.dat      Pre-computed interpolation grid for quasi-dipole coordinates (needed for HWM07)
   dwm07b_104i.dat   Disturbance winds data file (needed for HWM07)
