@@ -42,7 +42,7 @@ module neptuneOutput
   use maneuvers,              only: Manoeuvres_class
   use slam_math,              only: rad2deg, mag
   use neptuneParameters,      only: PROP_CONSTANT, &
-                                    INPUT_UNDEFINED, INPUT_CARTESIAN, INPUT_COV_GCRF, INPUT_OSCULATING, &
+                                    INPUT_UNDEFINED, INPUT_CARTESIAN, INPUT_TEME, INPUT_ITRF, INPUT_ITRF_TEME, INPUT_COV_GCRF, INPUT_OSCULATING, &
                                     INPUT_COV_UVW, C_VENUS, C_URANUS, C_SUN, C_SRP, C_SATURN, C_NEPTUNE, C_RUN_ID, &
                                     C_OUTPUT_VAR_ECI, C_OUTPUT_VAR_UVW, C_OUTPUT_COV_ECI, C_OUTPUT_COV_UVW, C_OUTPUT_ACC, &
                                     C_OUTPUT_ACG, C_OUTPUT_ACD, C_OUTPUT_ACM, C_OUTPUT_ACS, C_OUTPUT_ACR, C_OUTPUT_ACA, C_OUTPUT_ACT, &
@@ -1709,7 +1709,11 @@ contains
     write(ich,'(A)')         '#  Input Data (Run ID: '//trim(this%run_id)//'): '
     write(ich,'(A)')         '#'
 
-    if(this%input_type == INPUT_CARTESIAN .or. this%input_type == INPUT_UNDEFINED) then   ! assuming that an undefined input only obtains a cartesian state vector through the call of neptune
+    if(this%input_type == INPUT_CARTESIAN     &
+      .or. this%input_type == INPUT_TEME      &
+      .or. this%input_type == INPUT_ITRF      &
+      .or. this%input_type == INPUT_ITRF_TEME &
+      .or. this%input_type == INPUT_UNDEFINED) then   ! assuming that an undefined input only obtains a cartesian state vector through the call of neptune
       ctemp = C_INPUT_CARTESIAN
     else if(this%input_type == INPUT_OSCULATING) then
       ctemp = C_INPUT_OSCULATING
@@ -1727,9 +1731,11 @@ contains
     if(this%isSetInitialState) then
 
       write(ich,'(A)')         '#  Initial state vector:'
-      select case(this%input_type)
-
-        case(INPUT_CARTESIAN)
+      if(this%input_type == INPUT_CARTESIAN     &
+        .or. this%input_type == INPUT_TEME      &
+        .or. this%input_type == INPUT_ITRF      &
+        .or. this%input_type == INPUT_ITRF_TEME &
+        .or. this%input_type == INPUT_UNDEFINED) then
 
           ctemp = getUnitString(this%initial_orbit_csv%radius_unit)
 
@@ -1743,24 +1749,24 @@ contains
           write(ich,'(A,f16.8)')         '#    '//trim(C_VY)//' / '//trim(ctemp)//' : ',   this%initial_orbit_csv%v(2)
           write(ich,'(A,f16.8)')         '#    '//trim(C_VZ)//' / '//trim(ctemp)//' : ',   this%initial_orbit_csv%v(3)
 
-        case(INPUT_OSCULATING)
+      else if(this%input_type == INPUT_OSCULATING) then
 
-          if(this%initial_orbit_osc%angles_unit == UNIT_RAD) then
-            conv = rad2deg
-          else
-            conv = 1.d0
-          end if
+        if(this%initial_orbit_osc%angles_unit == UNIT_RAD) then
+          conv = rad2deg
+        else
+          conv = 1.d0
+        end if
 
-          ctemp = getUnitString(this%initial_orbit_osc%sma_unit)
+        ctemp = getUnitString(this%initial_orbit_osc%sma_unit)
 
-          write(ich,'(A,f16.8)')         '#    '//trim(C_SMA)//' / '//trim(ctemp)//' :                    ', this%initial_orbit_osc%sma
-          write(ich,'(A,f16.8)')         '#    '//trim(C_ECC)//' / - :                        ', this%initial_orbit_osc%ecc
-          write(ich,'(A,f16.8)')         '#    '//trim(C_INC)//' / '//C_UNIT_DEG//     ' :                       ', this%initial_orbit_osc%inc*conv
-          write(ich,'(A,f16.8)')         '#    '//trim(C_RAN_LONG)//' / '//C_UNIT_DEG//' : ', this%initial_orbit_osc%raan*conv
-          write(ich,'(A,f16.8)')         '#    '//trim(C_AOP_LONG)//' / '//C_UNIT_DEG//' :               ', this%initial_orbit_osc%aop*conv
-          write(ich,'(A,f16.8)')         '#    '//trim(C_TAN)//' / '//C_UNIT_DEG//     ' :                      ', this%initial_orbit_osc%tran*conv
+        write(ich,'(A,f16.8)')         '#    '//trim(C_SMA)//' / '//trim(ctemp)//' :                    ', this%initial_orbit_osc%sma
+        write(ich,'(A,f16.8)')         '#    '//trim(C_ECC)//' / - :                        ', this%initial_orbit_osc%ecc
+        write(ich,'(A,f16.8)')         '#    '//trim(C_INC)//' / '//C_UNIT_DEG//     ' :                       ', this%initial_orbit_osc%inc*conv
+        write(ich,'(A,f16.8)')         '#    '//trim(C_RAN_LONG)//' / '//C_UNIT_DEG//' : ', this%initial_orbit_osc%raan*conv
+        write(ich,'(A,f16.8)')         '#    '//trim(C_AOP_LONG)//' / '//C_UNIT_DEG//' :               ', this%initial_orbit_osc%aop*conv
+        write(ich,'(A,f16.8)')         '#    '//trim(C_TAN)//' / '//C_UNIT_DEG//     ' :                  <    ', this%initial_orbit_osc%tran*conv
 
-      end select
+      end if
 
     else
 

@@ -62,7 +62,7 @@ subroutine rdinp(                &
   use slam_io,             only: closeFile, openFile, SEQUENTIAL, IN_FORMATTED, nxtbuf
   !use neptuneInput,        only:  setNeptuneVar
   use neptuneClass,        only: Neptune_class
-  use neptuneParameters,   only: INPUT_TEME, INPUT_OSCULATING, INPUT_COV_UVW, INPUT_COV_GCRF
+  use neptuneParameters,   only: INPUT_TEME, INPUT_ITRF, INPUT_ITRF_TEME, INPUT_OSCULATING, INPUT_COV_UVW, INPUT_COV_GCRF
   use slam_math,           only: deg2rad
   use slam_orbit_types,    only: state_t, covariance_t, kepler_t, idimcov
   use slam_rframes,        only: getFrameId, REF_FRAME_UVW, REF_FRAME_GCRF
@@ -131,6 +131,7 @@ subroutine rdinp(                &
   real(dp), dimension(6,6) :: jac   ! jacobian to convert from ECI to UVW frame
 
   type(state_t)   :: stateTEME              ! required for TEME state input
+  type(state_t)   :: stateITRF              ! required for ITRF state input
 
   if(isControlled()) then
     if(hasToReturn()) return
@@ -934,6 +935,25 @@ subroutine rdinp(                &
 
     ! At this point EOPs have not been initialized yet - let's do this now
     call neptune%reduction%initEOP(neptune%getDataPath())
+    stateTEME = state
+    call neptune%reduction%teme2eci(stateTEME%r, stateTEME%v, (/0.d0,0.d0,0.d0/), & ! no accelerations..
+                  epoch(1)%mjd, state%r, state%v, dtmp3)
+
+  else if(input_type == INPUT_ITRF) then
+
+    ! At this point EOPs have not been initialized yet - let's do this now
+    call neptune%reduction%initEOP(neptune%getDataPath())
+    stateITRF = state
+    call neptune%reduction%earthFixed2inertial(stateITRF%r, stateITRF%v, (/0.d0,0.d0,0.d0/), & ! no accelerations..
+                  epoch(1)%mjd, state%r, state%v, dtmp3)
+
+  else if(input_type == INPUT_ITRF_TEME) then
+
+    ! At this point EOPs have not been initialized yet - let's do this now
+    call neptune%reduction%initEOP(neptune%getDataPath())
+    stateITRF = state
+    call neptune%reduction%earthFixed2inertial(stateITRF%r, stateITRF%v, (/0.d0,0.d0,0.d0/), & ! no accelerations..
+                  epoch(1)%mjd, state%r, state%v, dtmp3)
     stateTEME = state
     call neptune%reduction%teme2eci(stateTEME%r, stateTEME%v, (/0.d0,0.d0,0.d0/), & ! no accelerations..
                   epoch(1)%mjd, state%r, state%v, dtmp3)

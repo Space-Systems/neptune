@@ -179,6 +179,8 @@ module neptuneParameters
   integer, parameter    :: INPUT_CARTESIAN  =  1  ! index for cartesian state vector input
   integer, parameter    :: INPUT_OSCULATING =  2  ! index for osculating state vector input
   integer, parameter    :: INPUT_TEME       =  3  ! index for TEME frame state vector input
+  integer, parameter    :: INPUT_ITRF       =  4  ! index for ITRF-2000 frame state vector input
+  integer, parameter    :: INPUT_ITRF_TEME  =  5  ! index for ITRF-2000 and TEME frame state vector input
   integer, parameter    :: INPUT_COV_GCRF   =  1  ! index for GCRF covariance matrix input
   integer, parameter    :: INPUT_COV_UVW    =  2  ! index for UVW covariance matrix input
 
