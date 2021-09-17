@@ -1,7 +1,7 @@
 #-----<IRAS/NEPTUNE>-----------------------------------------------------------
 #
 #   NEPTUNE -- Input File
-#   [v1.1.0-release]
+#   [v1.1.2-release]
 #
 #------------------------------------------------------------------------------
 #
@@ -39,6 +39,8 @@
 #   1 = cartesian state vector      (GCRF)
 #   2 = osculating kepler elements  (GCRF)
 #   3 = cartesian state vector      (TEME)
+#   4 = cartesian state vector      (ITRF-2000)
+#   5 = cartesian state vector      (ITRF-2000 & TEME)
 #
   1
 #
@@ -121,7 +123,7 @@
 #   Atmosphere model to be used
 #     1 = Exponential
 #     2 = NRLMSISE-00
-#     3 = JB2008			JB2008 currently only available until 03.11.2020 Density will be calculated with NRLMSISE-00 after that time
+#     3 = JB2008
 #
   2
 #

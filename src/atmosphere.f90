@@ -76,7 +76,7 @@ module atmosphere
     ! Model names
     character(len=*), dimension(n_supported_models),      parameter :: modelName     = (/"Exponential","NRLMSISE-00","JB2008     "/)
     character(len=*), dimension(n_supported_wind_models), parameter :: windModelName = (/"HWM07"/)
-    character(len=*),public,parameter,dimension(n_supported_sga_file_types) :: fileIdent    = (/"CssiS", "d/mm/", " JB20"/)       ! characteristic identifiers of sga data file
+    character(len=*),public,parameter,dimension(n_supported_sga_file_types) :: fileIdent    = (/"CssiS", "d/mm/", " F10,"/)       ! characteristic identifiers of sga data file
     character(len=*),public,parameter,dimension(n_supported_sga_file_types) :: suppSgaFiles = (/"CSSI (v1.2)", "ESA daily  ", "JB Indices "/)    ! supported solmag data files
 
     ! Solar and geomagnetic activity (SGA) type for Nrmmsise
@@ -3746,6 +3746,9 @@ contains
                                     dtemp)
 
         sga_data(i)%ap = nint(dtemp)
+
+        !sga_data(i)%f107 = this%sol_predict
+        !sga_data(i)%ap = this%ap_predict
 
         if(sga_data(i)%mjd > mjd_end_monthly .or. i == size(sga_data)) exit
 

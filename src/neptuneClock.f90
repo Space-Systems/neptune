@@ -16,8 +16,8 @@
 ! ------------------------------------------------------------------------
 module neptuneClock
 
-    use slam_time,     only: time_t
-    use slam_types,    only: dp
+    use slam_time,      only: time_t
+    use slam_types,     only: dp
     use numint,         only: RK4
     use neptuneClass,   only: Neptune_class
 
@@ -198,8 +198,8 @@ contains
                     this%flag_cov_save    = .false.
                 end if
             end if
-            if ((step) > this%end_time) then
-                step = (this%end_time - this%start_time)
+            if (step > this%end_time) then
+                step = this%end_time
             end if
         else
             if(this%cov_counter > this%out_counter) then
@@ -228,8 +228,8 @@ contains
                     this%flag_cov_save    = .false.
                 end if
             end if
-            if ((step) < this%end_time) then
-                step = (this%start_time - this%end_time)
+            if (step < this%end_time) then
+                step = this%end_time
             end if
         end if
         ! save the value for later reference (e.g. by has_finished_step)
