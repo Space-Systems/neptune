@@ -814,6 +814,9 @@ contains
         request_time = nep_clock%get_next_step(neptune,prop_counter)
         ! Save the current requested time in case we determine that an intermediate call must be done due to an immenant manoeuvre start or end
         restored_request_time = request_time
+        ! Create a point to restore to when the propagation fails
+        last_state_out   = state_out
+        lastPropCounter  = prop_counter
       end if
 
       ! Check whether there is a manoeuvre change (start or end)
@@ -854,17 +857,6 @@ contains
             neptune%manoeuvres_model%ignore_maneuver_start = .true.
             call message(' - Adding intermediate integrator call for planned maneuver at '//toString(epochs(1)%mjd + request_time/86400.d0)//' ('//toString(request_time)//')', LOGFILE)
           end if
-
-          ! Reset when the timestep of the integrator is greater than
-          if (.not. flag_backward .and. (manoeuvre_change_counter < (prop_counter + neptune%numerical_integrator%get_current_step_size()) .and. manoeuvre_change_counter > prop_counter) &
-          .or. flag_backward .and. (manoeuvre_change_counter > (prop_counter - neptune%numerical_integrator%get_current_step_size()) .and. manoeuvre_change_counter < prop_counter)) then
-            reset = 1
-            !force_no_interpolation = .true.
-            ! reset also the count of subroutine calls to the integrator
-            call neptune%numerical_integrator%resetCountIntegrator()
-            call message(' - Performing reset of intergator for upcoming maneuver due to time step size '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
-          end if
-
         end if
       end if
 
@@ -878,6 +870,20 @@ contains
       !
       !--------------------------------------------------------------------------------
       do
+
+        if (neptune%derivatives_model%getPertSwitch(PERT_MANEUVERS)) then
+          if (upcoming_maneuver_epoch_mjd > 0.d0) then
+            ! Reset when the timestep of the integrator is greater than
+            if (.not. flag_backward .and. (manoeuvre_change_counter < (prop_counter + neptune%numerical_integrator%get_current_step_size()) .and. manoeuvre_change_counter > prop_counter) &
+            .or. flag_backward .and. (manoeuvre_change_counter > (prop_counter - neptune%numerical_integrator%get_current_step_size()) .and. manoeuvre_change_counter < prop_counter)) then
+              reset = 1
+              force_no_interpolation = .true.
+              ! reset also the count of subroutine calls to the integrator
+              call neptune%numerical_integrator%resetCountIntegrator()
+              call message(' - Performing reset of intergator for upcoming maneuver due to time step size '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
+            end if
+          end if
+        end if
 
         call neptune%numerical_integrator%integrateStep(         &
                             neptune%gravity_model,               &              ! <->  TYPE  Gravity model
