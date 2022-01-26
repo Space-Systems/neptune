@@ -100,52 +100,18 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
 
   !** covariance propagation
 
+  do i = 1, 20
+    !** manoeuvre --> should be temp, this is a little bit an overkill
+    call OPI_Module_createProperty(propagator, "man_mjd_ignition_"//toString(i), "0.0")
+    call OPI_Module_createProperty(propagator, "man_duration_"//toString(i), "0.0")
+    call OPI_Module_createProperty(propagator, "man_ref_frame_"//toString(i), "UVW")
+    call OPI_Module_createProperty(propagator, "man_a1_"//toString(i), "0.0")
+    call OPI_Module_createProperty(propagator, "man_a2_"//toString(i), "0.0")
+    call OPI_Module_createProperty(propagator, "man_a3_"//toString(i), "0.0")
+    call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_"//toString(i), "0.0")
+    call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_"//toString(i), "0.0")
 
-  !** manoeuvre --> should be temp, this is a little bit an overkill
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_1", "0.0")
-  call OPI_Module_createProperty(propagator, "man_duration_1", "0.0")
-  call OPI_Module_createProperty(propagator, "man_ref_frame_1", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_1", "0.0")
-  call OPI_Module_createProperty(propagator, "man_a2_1", "0.0")
-  call OPI_Module_createProperty(propagator, "man_a3_1", "0.0")
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_1", "0.0")
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_1", "0.0")
-
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_2", "0.0")
-  call OPI_Module_createProperty(propagator, "man_duration_2", "0.0")
-  call OPI_Module_createProperty(propagator, "man_ref_frame_2", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_2", "0.0")
-  call OPI_Module_createProperty(propagator, "man_a2_2", "0.0")
-  call OPI_Module_createProperty(propagator, "man_a3_2", "0.0")
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_2", "0.0")
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_2", "0.0")
-
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_3", "0.0")
-  call OPI_Module_createProperty(propagator, "man_duration_3", "0.0")
-  call OPI_Module_createProperty(propagator, "man_ref_frame_3", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_3", "0.0")
-  call OPI_Module_createProperty(propagator, "man_a2_3", "0.0")
-  call OPI_Module_createProperty(propagator, "man_a3_3", "0.0")
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_3", "0.0")
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_3", "0.0")
-
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_4", "0.0")
-  call OPI_Module_createProperty(propagator, "man_duration_4", "0.0")
-  call OPI_Module_createProperty(propagator, "man_ref_frame_4", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_4", "0.0")
-  call OPI_Module_createProperty(propagator, "man_a2_4", "0.0")
-  call OPI_Module_createProperty(propagator, "man_a3_4", "0.0")
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_4", "0.0")
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_4", "0.0")
-
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_5", "0.0")
-  call OPI_Module_createProperty(propagator, "man_duration_5", "0.0")
-  call OPI_Module_createProperty(propagator, "man_ref_frame_5", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_5", "0.0")
-  call OPI_Module_createProperty(propagator, "man_a2_5", "0.0")
-  call OPI_Module_createProperty(propagator, "man_a3_5", "0.0")
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_5", "0.0")
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_5", "0.0")
+  end do
 
 end subroutine
 
@@ -276,7 +242,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
     integer, dimension(:), allocatable :: phases_array
     type(maneuver_t), dimension(:), allocatable :: maneuvers
     type(time_t) :: temp_date
-    real(dp), dimension(5,7) :: temp_maneuver_array !** contains the temp values for maneuvers: First the number of maneuver, then
+    real(dp), dimension(20,7) :: temp_maneuver_array !** contains the temp values for maneuvers: First the number of maneuver, then
                                                     !** temp_maneuver_array(,1): man_mjd_ignition
                                                     !** temp_maneuver_array(,2): man_duration
                                                     !** temp_maneuver_array(,3): man_a1
@@ -787,14 +753,14 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
     !** have fun with maneuvers
     if (propagate_maneuvers) then
         number_of_maneuvers = 0
-        do i = 1, 5
+        do i = 1, 20
 
             write(temp_string,*) OPI_Module_getPropertyString(propagator,"man_duration_"//toString(i))
             read (temp_string,*) temp_fortran_real
             ! call message(toString(temp_fortran_real), LOG_AND_STDOUT)
             if (temp_fortran_real .gt. 0.d0) then
                 number_of_maneuvers = number_of_maneuvers + 1
-                write(temp_string,*) OPI_Module_getPropertyString(propagator,"man_mjd_ignitiion_"//toString(i))
+                write(temp_string,*) OPI_Module_getPropertyString(propagator,"man_mjd_ignition_"//toString(i))
                 read (temp_string,*) temp_fortran_real
                 temp_maneuver_array(number_of_maneuvers,1) = temp_fortran_real
                 write(temp_string,*) OPI_Module_getPropertyString(propagator,"man_duration_"//toString(i))
