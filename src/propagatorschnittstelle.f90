@@ -30,6 +30,7 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
 
   use OPI
   use ISO_C_BINDING
+  use slam_strings, only: toString
 
   implicit none
 
