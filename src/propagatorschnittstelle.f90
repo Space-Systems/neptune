@@ -34,6 +34,7 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
   implicit none
 
   type(c_ptr), value :: propagator
+  integer            :: i
 
   !** perturbations
   call OPI_Module_createProperty(propagator, "geopotential_degree_order", "6")
@@ -98,8 +99,6 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
   call OPI_Module_createProperty(propagator, "ecef_states_out", "OFF")
   call OPI_Module_createProperty(propagator, "mean_elements_out", "ON")
 
-  !** covariance propagation
-
   do i = 1, 20
     !** manoeuvre --> should be temp, this is a little bit an overkill
     call OPI_Module_createProperty(propagator, "man_mjd_ignition_"//toString(i), "0.0")
@@ -110,7 +109,6 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
     call OPI_Module_createProperty(propagator, "man_a3_"//toString(i), "0.0")
     call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_"//toString(i), "0.0")
     call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_"//toString(i), "0.0")
-
   end do
 
 end subroutine
