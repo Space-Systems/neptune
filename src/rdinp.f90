@@ -965,9 +965,6 @@ subroutine rdinp(                &
   !** conversions for covariance matrix
   !----------------------------------------------
 
-  !** convert to km**2
-  covar%elem = covar%elem*1.d-6
-
   if(input_type_cov == INPUT_COV_UVW) then
     !** convert to ECI frame
     call neptune%reduction%getJacobianEci2uvw(state%r, state%v, jac)

@@ -1516,7 +1516,7 @@ contains
     cov(1:3,4:6) = -0.5d0*crossSection*this%cdom*this%rho*(vabs*mati + outerproduct(v_rel, v_rel)/vabs)
 
     !** correct for dv_r/dv (equivalent to transformation between TIRS and GCRF)
-    rotTIRS      = reduction%getRotationMatrixRC2TI(time_mjd)
+    !rotTIRS      = reduction%getRotationMatrixRC2TI(time_mjd)
     !write(*,*) "rotTIRS = "
     !write(*,*) rotTIRS(1,1:3)
     !write(*,*) rotTIRS(2,1:3)

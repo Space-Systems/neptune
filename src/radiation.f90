@@ -89,7 +89,6 @@ module radiation
         real(dp), private                           :: last_srp_mjd
         real(dp), dimension(3), private             :: last_srp_r
         real(dp), dimension(3), private             :: last_srp_acc
-        real(dp), private                           :: saved_mass               ! satellite mass
         integer, private                            :: apidx                    ! index of aphelion array, which is saved to accelerate array index search
         real(dp), private                           :: last_press               ! saving value for last call
         real(dp), private                           :: last_mjd                 ! saving last MJD
@@ -279,7 +278,7 @@ contains
 
     if(satellite_model%hasChangedSatellite(ID_SRP) .or. this%first_srp)  then    ! only required, if configuration has changed or called for first time
 
-      this%saved_mass = satellite_model%getObjectMass()
+      this%mass_srp = satellite_model%getObjectMass()
       if(hasFailed()) return
 
       do i=1,surf
@@ -378,7 +377,7 @@ contains
 
       end if
 
-      cov(:,:) = -fshadow*temp*solarPressure*rsun_abs2/(this%saved_mass*ros_abs2*ros_abs)*(mati(:,:) - 3.d0*outerproduct(ros, ros)/ros_abs2)
+      cov(:,:) = -fshadow*temp*solarPressure*rsun_abs2/(this%mass_srp*ros_abs2*ros_abs)*(mati(:,:) - 3.d0*outerproduct(ros, ros)/ros_abs2)
 
     else
 
