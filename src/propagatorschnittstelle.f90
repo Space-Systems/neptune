@@ -30,10 +30,12 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
 
   use OPI
   use ISO_C_BINDING
+  use slam_strings, only: toString
 
   implicit none
 
   type(c_ptr), value :: propagator
+  integer            :: i
 
   !** perturbations
   call OPI_Module_createProperty(propagator, "geopotential_degree_order", "6")
@@ -98,54 +100,17 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
   call OPI_Module_createProperty(propagator, "ecef_states_out", "OFF")
   call OPI_Module_createProperty(propagator, "mean_elements_out", "ON")
 
-  !** covariance propagation
-
-
-  !** manoeuvre --> should be temp, this is a little bit an overkill
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_1", 0.0)
-  call OPI_Module_createProperty(propagator, "man_duration_1", 0.0)
-  call OPI_Module_createProperty(propagator, "man_ref_frame_1", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_1", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a2_1", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a3_1", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_1", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_1", 0.0)
-
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_2", 0.0)
-  call OPI_Module_createProperty(propagator, "man_duration_2", 0.0)
-  call OPI_Module_createProperty(propagator, "man_ref_frame_2", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_2", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a2_2", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a3_2", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_2", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_2", 0.0)
-
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_3", 0.0)
-  call OPI_Module_createProperty(propagator, "man_duration_3", 0.0)
-  call OPI_Module_createProperty(propagator, "man_ref_frame_3", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_3", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a2_3", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a3_3", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_3", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_3", 0.0)
-
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_4", 0.0)
-  call OPI_Module_createProperty(propagator, "man_duration_4", 0.0)
-  call OPI_Module_createProperty(propagator, "man_ref_frame_4", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_4", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a2_4", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a3_4", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_4", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_4", 0.0)
-
-  call OPI_Module_createProperty(propagator, "man_mjd_ignitiion_5", 0.0)
-  call OPI_Module_createProperty(propagator, "man_duration_5", 0.0)
-  call OPI_Module_createProperty(propagator, "man_ref_frame_5", "UVW")
-  call OPI_Module_createProperty(propagator, "man_a1_5", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a2_5", 0.0)
-  call OPI_Module_createProperty(propagator, "man_a3_5", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_5", 0.0)
-  call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_5", 0.0)
+  do i = 1, 20
+    !** manoeuvre --> should be temp, this is a little bit an overkill
+    call OPI_Module_createProperty(propagator, "man_mjd_ignition_"//toString(i), "0.0")
+    call OPI_Module_createProperty(propagator, "man_duration_"//toString(i), "0.0")
+    call OPI_Module_createProperty(propagator, "man_ref_frame_"//toString(i), "UVW")
+    call OPI_Module_createProperty(propagator, "man_a1_"//toString(i), "0.0")
+    call OPI_Module_createProperty(propagator, "man_a2_"//toString(i), "0.0")
+    call OPI_Module_createProperty(propagator, "man_a3_"//toString(i), "0.0")
+    call OPI_Module_createProperty(propagator, "man_thrust_uncertainty_"//toString(i), "0.0")
+    call OPI_Module_createProperty(propagator, "man_thrust_pointing_uncertainty_"//toString(i), "0.0")
+  end do
 
 end subroutine
 
@@ -276,7 +241,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
     integer, dimension(:), allocatable :: phases_array
     type(maneuver_t), dimension(:), allocatable :: maneuvers
     type(time_t) :: temp_date
-    real(dp), dimension(5,7) :: temp_maneuver_array !** contains the temp values for maneuvers: First the number of maneuver, then
+    real(dp), dimension(20,7) :: temp_maneuver_array !** contains the temp values for maneuvers: First the number of maneuver, then
                                                     !** temp_maneuver_array(,1): man_mjd_ignition
                                                     !** temp_maneuver_array(,2): man_duration
                                                     !** temp_maneuver_array(,3): man_a1
@@ -786,84 +751,37 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
 
     !** have fun with maneuvers
     if (propagate_maneuvers) then
-
         number_of_maneuvers = 0
-        !** we have to check for every manoeuvre, if there is one included.
-        !** we do the decision based on the burn time
-        temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_1")
-        call message(toString(temp_fortran_real), LOG_AND_STDOUT)
-        if (temp_fortran_real .gt. 0.d0) then
+        do i = 1, 20
 
-        number_of_maneuvers = number_of_maneuvers + 1
-        temp_maneuver_array(1,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_1")
-        temp_maneuver_array(1,2) = temp_fortran_real
-        temp_maneuver_array(1,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_1")
-        temp_maneuver_array(1,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_1")
-        temp_maneuver_array(1,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_1")
-        temp_maneuver_array(1,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_1")
-        temp_maneuver_array(1,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_1")
-
-        endif
-
-        temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_2")
-        call message(toString(temp_fortran_real), LOG_AND_STDOUT)
-        if (temp_fortran_real .gt. 0.d0) then
-
-        number_of_maneuvers = number_of_maneuvers + 1
-        temp_maneuver_array(2,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_2")
-        temp_maneuver_array(2,2) = temp_fortran_real
-        temp_maneuver_array(2,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_2")
-        temp_maneuver_array(2,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_2")
-        temp_maneuver_array(2,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_2")
-        temp_maneuver_array(2,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_2")
-        temp_maneuver_array(2,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_2")
-
-        endif
-
-        temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_3")
-        call message(toString(temp_fortran_real), LOG_AND_STDOUT)
-        if (temp_fortran_real .gt. 0.d0) then
-
-        number_of_maneuvers = number_of_maneuvers + 1
-        temp_maneuver_array(3,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_3")
-        temp_maneuver_array(3,2) = temp_fortran_real
-        temp_maneuver_array(3,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_3")
-        temp_maneuver_array(3,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_3")
-        temp_maneuver_array(3,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_3")
-        temp_maneuver_array(3,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_3")
-        temp_maneuver_array(3,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_3")
-
-        endif
-
-        temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_4")
-        call message(toString(temp_fortran_real), LOG_AND_STDOUT)
-        if (temp_fortran_real .gt. 0.d0) then
-
-        number_of_maneuvers = number_of_maneuvers + 1
-        temp_maneuver_array(4,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_4")
-        temp_maneuver_array(4,2) = temp_fortran_real
-        temp_maneuver_array(4,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_4")
-        temp_maneuver_array(4,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_4")
-        temp_maneuver_array(4,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_4")
-        temp_maneuver_array(4,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_4")
-        temp_maneuver_array(4,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_4")
-
-        endif
-
-        temp_fortran_real = OPI_Module_getPropertyDouble(propagator, "man_duration_5")
-        call message(toString(temp_fortran_real), LOG_AND_STDOUT)
-        if (temp_fortran_real .gt. 0.d0) then
-
-        number_of_maneuvers = number_of_maneuvers + 1
-        temp_maneuver_array(5,1) = OPI_Module_getPropertyDouble(propagator, "man_mjd_ignitiion_5")
-        temp_maneuver_array(5,2) = temp_fortran_real
-        temp_maneuver_array(5,3) = OPI_Module_getPropertyDouble(propagator, "man_a1_5")
-        temp_maneuver_array(5,4) = OPI_Module_getPropertyDouble(propagator, "man_a2_5")
-        temp_maneuver_array(5,5) = OPI_Module_getPropertyDouble(propagator, "man_a3_5")
-        temp_maneuver_array(5,6) = OPI_Module_getPropertyDouble(propagator, "man_thrust_uncertainty_5")
-        temp_maneuver_array(5,7) = OPI_Module_getPropertyDouble(propagator, "man_thrust_pointing_uncertainty_5")
-
-        endif
+            write(temp_string,*) OPI_Module_getPropertyString(propagator,"man_duration_"//toString(i))
+            read (temp_string,*) temp_fortran_real
+            ! call message(toString(temp_fortran_real), LOG_AND_STDOUT)
+            if (temp_fortran_real .gt. 0.d0) then
+                number_of_maneuvers = number_of_maneuvers + 1
+                write(temp_string,*) OPI_Module_getPropertyString(propagator,"man_mjd_ignition_"//toString(i))
+                read (temp_string,*) temp_fortran_real
+                temp_maneuver_array(number_of_maneuvers,1) = temp_fortran_real
+                write(temp_string,*) OPI_Module_getPropertyString(propagator,"man_duration_"//toString(i))
+                read (temp_string,*) temp_fortran_real
+                temp_maneuver_array(number_of_maneuvers,2) = temp_fortran_real
+                write(temp_string,*) OPI_Module_getPropertyString(propagator,"man_a1_"//toString(i))
+                read (temp_string,*) temp_fortran_real
+                temp_maneuver_array(number_of_maneuvers,3) = temp_fortran_real
+                write(temp_string,*) OPI_Module_getPropertyString(propagator,"man_a2_"//toString(i))
+                read (temp_string,*) temp_fortran_real
+                temp_maneuver_array(number_of_maneuvers,4) = temp_fortran_real
+                write(temp_string,*) OPI_Module_getPropertyString(propagator,"man_a3_"//toString(i))
+                read (temp_string,*) temp_fortran_real
+                temp_maneuver_array(number_of_maneuvers,5) = temp_fortran_real
+                write(temp_string,*) OPI_Module_getPropertyString(propagator,"man_thrust_uncertainty_"//toString(i))
+                read (temp_string,*) temp_fortran_real
+                temp_maneuver_array(number_of_maneuvers,6) = temp_fortran_real
+                write(temp_string,*) OPI_Module_getPropertyString(propagator,"man_thrust_pointing_uncertainty_"//toString(i))
+                read (temp_string,*) temp_fortran_real
+                temp_maneuver_array(number_of_maneuvers,7) = temp_fortran_real
+            end if
+        end do
 
         !** create the maneuver array
         if (allocated(maneuvers)) deallocate(maneuvers)
@@ -873,28 +791,28 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
         phases_array(:) = 1
         do i = 1, number_of_maneuvers
 
-        temp_date%mjd = temp_maneuver_array(i,1)
-        call mjd2gd(temp_date)
-        maneuvers(i)%start_date = temp_date
+            temp_date%mjd = temp_maneuver_array(i,1)
+            call mjd2gd(temp_date)
+            maneuvers(i)%start_date = temp_date
 
-        temp_date%mjd = temp_maneuver_array(i,1) + temp_maneuver_array(i,2)/86400.d0
-        call mjd2gd(temp_date)
-        maneuvers(i)%end_date = temp_date
+            temp_date%mjd = temp_maneuver_array(i,1) + temp_maneuver_array(i,2)/86400.d0
+            call mjd2gd(temp_date)
+            maneuvers(i)%end_date = temp_date
 
-        maneuvers(i)%nphases = 1 !** just one phase now!!!!
+            maneuvers(i)%nphases = 1 !** just one phase now!!!!
 
-        !** allocate that single phase
-        allocate(maneuvers(i)%phase(1))
+            !** allocate that single phase
+            allocate(maneuvers(i)%phase(1))
 
-        !** set the alues for that phase
-        maneuvers(i)%phase(1)%mjd_start = temp_maneuver_array(i,1)
-        maneuvers(i)%phase(1)%mjd_end = temp_maneuver_array(i,1) + temp_maneuver_array(i,2)/86400.d0
-        maneuvers(i)%phase(1)%acc(:) = temp_maneuver_array(i,3:5)
-        maneuvers(i)%phase(1)%thrust_efficiency = abs(1.d0 - temp_maneuver_array(i,6))
+            !** set the alues for that phase
+            maneuvers(i)%phase(1)%mjd_start = temp_maneuver_array(i,1)
+            maneuvers(i)%phase(1)%mjd_end = temp_maneuver_array(i,1) + temp_maneuver_array(i,2)/86400.d0
+            maneuvers(i)%phase(1)%acc(:) = temp_maneuver_array(i,3:5)
+            maneuvers(i)%phase(1)%thrust_efficiency = abs(1.d0 - temp_maneuver_array(i,6))
 
-        !** dunno how to use the uncertainties yet
+            !** dunno how to use the uncertainties yet
 
-        enddo
+        end do
         call neptune_instance%manoeuvres_model%init_maneuvers(maneuvers, phases_array)
 
     end if
