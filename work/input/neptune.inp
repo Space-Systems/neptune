@@ -82,12 +82,12 @@
 #
 #   Covariance matrix
 #
-  10.d0       variance position x/u (m**2)
-  100.d0      variance position y/v (m**2)
-  30.d0       variance position z/w (m**2)
-  2.d-4       variance velocity x/u (m**2/s**2)
-  1.d-4       variance velocity y/v (m**2/s**2)
-  1.d-4       variance velocity z/w (m**2/s**2)
+  10.d-06       variance position x/u (km**2)
+  100.d-06      variance position y/v (km**2)
+  30.d-06       variance position z/w (km**2)
+  2.d-10        variance velocity x/u (km**2/s**2)
+  1.d-10        variance velocity y/v (km**2/s**2)
+  1.d-10        variance velocity z/w (km**2/s**2)
 #
   0.d0                      covariance matrix 2nd row (units see above..)
   0.d0 0.d0                 covariance matrix 3rd row

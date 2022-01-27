@@ -892,7 +892,7 @@ end subroutine
 
       set = set + this%covIntegrationStep*pdm &
                             + 0.5d0*this%covIntegrationStep**2.d0*matmul(pdm,pdm) &
-                            + 6.d0*this%covIntegrationStep**3.d0*matmul(matmul(pdm,pdm),pdm)
+                            + 1.d0/6.d0*this%covIntegrationStep**3.d0*matmul(matmul(pdm,pdm),pdm)
 
       !** update covariance matrix
       !cov = matmul(matmul(set,cov),transpose(set))
