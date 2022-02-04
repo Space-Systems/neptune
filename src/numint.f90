@@ -30,7 +30,7 @@
 module numint
 
   use slam_types,             only: dp
-  use slam_io,                only: openFile, SEQUENTIAL, OUT_FORMATTED_OVERWRITE, closeFile
+  use slam_io,                only: openFile, SEQUENTIAL, OUT_FORMATTED_OVERWRITE, closeFile, LOG_AND_STDOUT, LOGFILE, message
   use slam_math,              only: identity_matrix
   use neptune_error_handling, only: E_INTEGRATION_METHOD, E_INTEGRATION_STARTUP, E_ABS_TOLERANCE, E_REL_TOLERANCE, E_INTEGRATION_RESET, &
                                     E_SRP_CORRECTION, setNeptuneError
@@ -38,6 +38,7 @@ module numint
                                     E_UNKNOWN_PARAMETER, E_SPECIAL, checkIn, checkOut
   use slam_orbit_types,       only: state_t
   use slam_reduction_class,   only: Reduction_type
+  use slam_strings,           only: toString
   use gravity,                only: Gravity_class
   use atmosphere,             only: Atmosphere_class
   use maneuvers,              only: Manoeuvres_class
@@ -61,7 +62,7 @@ module numint
   integer, parameter, public    :: TAYLOR = 1
   integer, parameter, public    :: RK4    = 2
   integer, parameter, public    :: RK8    = 3
- 
+
   integer, parameter            :: INT_METHOD_VSSC = 1                          !< Variable step Störmer-Cowell according to M. Berry (2004)
   integer, parameter            :: INT_METHOD_FGJ  = 2                          !< Fixed step Gauß-Jackson
   integer, parameter, public    :: MAX_RESETS = 3                               !< maximum number of integrator resets for one single step, after which integration is cancelled.
@@ -698,7 +699,7 @@ contains
       case(RK4)
         this%cov_int_method = RK4
       case(RK8)
-        this%cov_int_method = RK8  
+        this%cov_int_method = RK8
       case default
         this%cov_int_method = RK4
     end select
@@ -1088,8 +1089,8 @@ end subroutine
                         reset,                               &      ! <--  INT   reset flag
                         dt                                   &      ! -->  DBL   propagated time (s)
                       )
-          
-          
+
+
           if(hasFailed()) return
       end if
 
@@ -1117,8 +1118,8 @@ end subroutine
                         reset,                               &      ! <--  INT   reset flag
                         dt                                   &      ! -->  DBL   propagated time (s)
                       )
-          
-          
+
+
           if(hasFailed()) return
       end if
 
@@ -1146,8 +1147,8 @@ end subroutine
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
-        
-        
+
+
         if(hasFailed()) return
       end if
 
@@ -1175,8 +1176,8 @@ end subroutine
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
-        
-        
+
+
         if(hasFailed()) return
       end if
 
@@ -1204,8 +1205,8 @@ end subroutine
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
-        
-        
+
+
         if(hasFailed()) return
       end if
 
@@ -1233,8 +1234,8 @@ end subroutine
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
-        
-        
+
+
         if(hasFailed()) return
       end if
 
@@ -1262,12 +1263,12 @@ end subroutine
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
-        
-        
+
+
         if(hasFailed()) return
       end if
 
-      
+
       !** evaluate derivative of SET matrix for RK states
       call derivatives_model%deriv_cov(                     &
                                         gravity_model,      &
@@ -1405,9 +1406,9 @@ end subroutine
                                         k10)
       if(hasFailed()) return
 
-      ! RK8: 
+      ! RK8:
       set = set + (this%covIntegrationStep/840.d0)*(41.d0*k1 + 27.d0*k4 + 272.d0*k5 + 27.d0*k6 + 216.d0*k7 + 216.d0*k9 + 41.d0*k10)
-      
+
       !** save last state
       this%lastState = state_rk8(8)
 
@@ -1977,6 +1978,7 @@ end function
       ! Force a step size to meet e.g. changes in acceleration => maneuvers
       if ((rqtime < (this%inttime + this%stepsize)) .and. force_no_interpolation) then
         this%stepsize = rqtime - this%inttime
+        call message("Reducing step size to "//toString(this%stepsize)//" Int time: "//toString(this%inttime)//" Rq time: "//toString(rqtime), LOGFILE)
       end if
 
       stepsize2 = this%stepsize * this%stepsize
