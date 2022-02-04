@@ -828,19 +828,19 @@ contains
 
         !call message(' Maneuver change at '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
 
-        ! Reset when we are starting into the new maneuver or no-maneuver interval
-        if (abs(prop_counter - manoeuvre_change_counter) < epsilon(1.d0)) then
-          reset = 1
-          !force_no_interpolation = .true.
-          ! reset also the count of subroutine calls to the integrator
-          call neptune%numerical_integrator%resetCountIntegrator()
-          call message(' - Performing reset of intergator for upcoming maneuver '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
-        end if
-
         ! Get the next manoeuvre change epoch
         upcoming_maneuver_epoch_mjd = neptune%manoeuvres_model%get_upcoming_manoeuvre_change_epoch(epochs(1)%mjd + prop_counter/86400.d0)
         if (upcoming_maneuver_epoch_mjd > 0.d0) then
           manoeuvre_change_counter = (upcoming_maneuver_epoch_mjd - epochs(1)%mjd) * 86400.d0
+          ! Reset when we are starting into the new maneuver or no-maneuver interval
+          if (abs(prop_counter - manoeuvre_change_counter) < epsilon(1.d0)) then
+            reset = 1
+            force_no_interpolation = .true.
+            ! reset also the count of subroutine calls to the integrator
+            call neptune%numerical_integrator%resetCountIntegrator()
+            call message(' - Performing reset of intergator now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
+          end if
+
           !call message(' New maneuver change at: '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
           ! Check whether the manoeuvre change is more immenent than the step proposed
           if (.not. flag_backward .and. (manoeuvre_change_counter < request_time .and. manoeuvre_change_counter > prop_counter) &
@@ -855,7 +855,7 @@ contains
             intermediate_integrator_call = .true.
             force_no_interpolation = .true.
             neptune%manoeuvres_model%ignore_maneuver_start = .true.
-            call message(' - Adding intermediate integrator call for planned maneuver at '//toString(epochs(1)%mjd + request_time/86400.d0)//' ('//toString(request_time)//')', LOGFILE)
+            call message(' - Adding intermediate integrator call now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for planned maneuver at '//toString(epochs(1)%mjd + request_time/86400.d0)//' ('//toString(request_time)//')', LOGFILE)
           end if
         end if
       end if
@@ -876,11 +876,9 @@ contains
             ! Reset when the timestep of the integrator is greater than
             if (.not. flag_backward .and. (manoeuvre_change_counter < (prop_counter + neptune%numerical_integrator%get_current_step_size()) .and. manoeuvre_change_counter > prop_counter) &
             .or. flag_backward .and. (manoeuvre_change_counter > (prop_counter - neptune%numerical_integrator%get_current_step_size()) .and. manoeuvre_change_counter < prop_counter)) then
-              reset = 1
+              ! Force the integrator not to overstep the requested epoch
               force_no_interpolation = .true.
-              ! reset also the count of subroutine calls to the integrator
-              call neptune%numerical_integrator%resetCountIntegrator()
-              call message(' - Performing reset of intergator for upcoming maneuver due to time step size '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
+              call message(' - Performing reset of intergator now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver due to time step size '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
             end if
           end if
         end if
