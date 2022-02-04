@@ -826,7 +826,7 @@ contains
       intermediate_integrator_call = .false.
       if (neptune%derivatives_model%getPertSwitch(PERT_MANEUVERS)) then
 
-        !call message(' Maneuver change at '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
+        !call message(' Maneuver change at '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
 
         ! Get the next manoeuvre change epoch
         upcoming_maneuver_epoch_mjd = neptune%manoeuvres_model%get_upcoming_manoeuvre_change_epoch(epochs(1)%mjd + prop_counter/86400.d0)
@@ -841,7 +841,8 @@ contains
             call message(' - Performing reset of intergator now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
           end if
 
-          !call message(' New maneuver change at: '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
+          !call message(' New maneuver change at: '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
+          !call message(' - Intermediate integrator call now? '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for planned maneuver at '//toString(epochs(1)%mjd + request_time/86400.d0)//' ('//toString(request_time)//')', LOGFILE)
           ! Check whether the manoeuvre change is more immenent than the step proposed
           if (.not. flag_backward .and. (manoeuvre_change_counter < request_time .and. manoeuvre_change_counter > prop_counter) &
             .or. flag_backward .and. (manoeuvre_change_counter > request_time .and. manoeuvre_change_counter < prop_counter)) then
@@ -854,14 +855,14 @@ contains
             request_time = manoeuvre_change_counter
             intermediate_integrator_call = .true.
             force_no_interpolation = .true.
-            neptune%manoeuvres_model%ignore_maneuver_start = .true.
+            !neptune%manoeuvres_model%ignore_maneuver_start = .true.
             call message(' - Adding intermediate integrator call now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for planned maneuver at '//toString(epochs(1)%mjd + request_time/86400.d0)//' ('//toString(request_time)//')', LOGFILE)
           end if
         end if
       end if
 
-      !call message(' Going into integrator loop at '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'  ('//toString(prop_counter)//')', LOG_AND_STDOUT)
-      !call message(' prop counter: '//toString(prop_counter)//' request_time: '//toString(request_time)//' difference: '//toString(prop_counter - request_time), LOG_AND_STDOUT)
+      !call message(' Going into integrator loop at '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'  ('//toString(prop_counter)//')', LOGFILE)
+      !call message(' prop counter: '//toString(prop_counter)//' request_time: '//toString(request_time)//' difference: '//toString(prop_counter - request_time), LOGFILE)
 
 
       !====================================================================================
@@ -878,7 +879,7 @@ contains
             .or. flag_backward .and. (manoeuvre_change_counter > (prop_counter - neptune%numerical_integrator%get_current_step_size()) .and. manoeuvre_change_counter < prop_counter)) then
               ! Force the integrator not to overstep the requested epoch
               force_no_interpolation = .true.
-              call message(' - Performing reset of intergator now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver due to time step size '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
+              call message(' - Forcing no interpolation now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver due to time step size '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//') int step size: '//toString(neptune%numerical_integrator%get_current_step_size()), LOGFILE)
             end if
           end if
         end if
