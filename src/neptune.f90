@@ -576,11 +576,16 @@ contains
     real(dp)                :: restored_request_time                            ! Requested time before the intermediate step got necessary
     logical                 :: force_no_interpolation
     real(dp)                :: upcoming_maneuver_epoch_mjd
+    character(len=255)      :: cmess
+    real(dp)                :: diff
+    integer                 :: i_next_calls         ! counting runs through getNext while-loop 
+    integer                 :: max_next_calls = 100
 
     restored_request_time = 0.d0
     prop_counter = 0.0d0
     propCounterAtReset = 0.0d0
     lastPropCounterSuccess = 0.0d0
+    diff = 0.d0
 
     if(isControlled()) then
       if(hasToReturn()) return
@@ -667,12 +672,17 @@ contains
     !   Initialise propagation time counter
     !
     !------------------------------------------------------------
+    
     if (size(epochs) > 2) then
       if (allocated(step_epochs_sec)) deallocate(step_epochs_sec)
       allocate(step_epochs_sec(size(epochs)-1))
       do i_epoch = 2, size(epochs)
+
         ! Handle intermediate steps
         step_epochs_sec(i_epoch-1) = (epochs(i_epoch)%mjd-epochs(i_epoch-1)%mjd)*86400.d0 ! in seconds
+      
+        ! write(cmess, '(a)') 'diff = '//date2longstring(epochs(i_epoch))//', step_epochs_sec = '//toString(step_epochs_sec(i_epoch-1))
+        ! call message(cmess, LOG_AND_STDOUT)
       end do
       !write (*,*) step_epochs_sec
       nep_clock = Clock_class(start_epoch_sec, end_epoch_sec, step_epochs_sec)
@@ -750,6 +760,7 @@ contains
     suppressed_output = .false.
     intermediate_integrator_call = .false.
     restored_request_time = request_time
+
     do
       step_counter = step_counter + 1
       ! Check exit clause
@@ -812,6 +823,7 @@ contains
       else
         ! No previous intermediate call - we can just proceed as planned
         request_time = nep_clock%get_next_step(neptune,prop_counter)
+        
         ! Save the current requested time in case we determine that an intermediate call must be done due to an immenant manoeuvre start or end
         restored_request_time = request_time
         ! Create a point to restore to when the propagation fails
@@ -885,6 +897,9 @@ contains
           end if
         end if
 
+        ! write(cmess,'(a)') ' pre: request_time '//toString(request_time)//', prop_counter '//toString(prop_counter)//', delta_time '//toString(delta_time)//', reset: '//toString(reset)
+        ! call message(cmess, LOG_AND_STDOUT)
+
         call neptune%numerical_integrator%integrateStep(         &
                             neptune%gravity_model,               &              ! <->  TYPE  Gravity model
                             neptune%atmosphere_model,            &              ! <->  TYPE  Atmosphere model
@@ -905,6 +920,9 @@ contains
                             delta_time                           &              ! -->  DBL   propagated time (s)
                           )
 
+        ! write(cmess,'(a)') 'post: request_time '//toString(request_time)//', prop_counter '//toString(prop_counter)//', delta_time '//toString(delta_time)//', reset: '//toString(reset)
+        ! call message(cmess, LOG_AND_STDOUT)
+                  
         ! progress output immediately after integration step
         if(neptune%has_to_write_progress()) then
             dtmp = abs(prop_counter - start_epoch_sec)/abs(end_epoch_sec - start_epoch_sec)
@@ -915,6 +933,8 @@ contains
           call neptune%output%close_open_files(neptune%numerical_integrator)
           return
         end if
+
+        ! =================
 
         if(reset == 1) then     ! in case of a reset the last output state has to be re-established,
                                 ! as the original state_out is overwritten after each call
@@ -949,6 +969,11 @@ contains
           nresets = 0
           lastPropCounterSuccess = prop_counter
         end if
+      
+        
+        ! diff = abs(prop_counter - request_time)
+        ! write(cmess, '(a, D15.3, a)') 'diff = ', diff, toString(intermediate_integrator_call)
+        ! call message(cmess, LOG_AND_STDOUT)
 
         ! Exit the integration loop when the desired time is reached
         if (intermediate_integrator_call) then
@@ -956,6 +981,7 @@ contains
         else
           if(nep_clock%has_finished_step(prop_counter)) exit
         end if
+        ! =================
 
       end do
       !---------------------------------------------------------------------------------------------------------
