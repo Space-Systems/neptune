@@ -902,26 +902,28 @@ contains
         ! write(cmess,'(a)') ' pre: request_time '//toString(request_time)//', prop_counter '//toString(prop_counter)//', delta_time '//toString(delta_time)//', reset: '//toString(reset)
         ! call message(cmess, LOG_AND_STDOUT)
 
-        call neptune%numerical_integrator%integrateStep(         &
-                            neptune%gravity_model,               &              ! <->  TYPE  Gravity model
-                            neptune%atmosphere_model,            &              ! <->  TYPE  Atmosphere model
-                            neptune%manoeuvres_model,            &              ! <->  TYPE  Manoeuvres model
-                            neptune%radiation_model,             &              ! <->  TYPE  Radiation model
-                            neptune%satellite_model,             &              ! <->  TYPE  Satellite  model
-                            neptune%solarsystem_model,           &              ! <->  TYPE  Solarsysten model
-                            neptune%thirdbody_model,             &              ! <->  TYPE  Third body model
-                            neptune%tides_model,                 &              ! <->  TYPE  Tides model
-                            neptune%derivatives_model,           &              ! <->  TYPE  Derivatives model
-                            neptune%reduction,                   &              ! <->  TYPE  Reduction
-                            request_time,                        &              ! <--  DBL   requested time (s)
-                            force_no_interpolation,              &              ! <--  LOGI  indicates no interpolation => perfect last step for big changes in acceleration (i.e. maneuvers)
-                            prop_counter,                        &              ! <--> DBL   current time (s)
-                            state_out%r,                         &              ! <--> DBL() radius vector (km)
-                            state_out%v,                         &              ! <--> DBL() velocity vector (km/s)
-                            reset,                               &              ! <--> INT   reset flag
-                            delta_time                           &              ! -->  DBL   propagated time (s)
-                          )
-
+        if (abs(request_time-prop_counter) > epsilon(1.0d0)) then
+          call neptune%numerical_integrator%integrateStep(         &
+                              neptune%gravity_model,               &              ! <->  TYPE  Gravity model
+                              neptune%atmosphere_model,            &              ! <->  TYPE  Atmosphere model
+                              neptune%manoeuvres_model,            &              ! <->  TYPE  Manoeuvres model
+                              neptune%radiation_model,             &              ! <->  TYPE  Radiation model
+                              neptune%satellite_model,             &              ! <->  TYPE  Satellite  model
+                              neptune%solarsystem_model,           &              ! <->  TYPE  Solarsysten model
+                              neptune%thirdbody_model,             &              ! <->  TYPE  Third body model
+                              neptune%tides_model,                 &              ! <->  TYPE  Tides model
+                              neptune%derivatives_model,           &              ! <->  TYPE  Derivatives model
+                              neptune%reduction,                   &              ! <->  TYPE  Reduction
+                              request_time,                        &              ! <--  DBL   requested time (s)
+                              force_no_interpolation,              &              ! <--  LOGI  indicates no interpolation => perfect last step for big changes in acceleration (i.e. maneuvers)
+                              prop_counter,                        &              ! <--> DBL   current time (s)
+                              state_out%r,                         &              ! <--> DBL() radius vector (km)
+                              state_out%v,                         &              ! <--> DBL() velocity vector (km/s)
+                              reset,                               &              ! <--> INT   reset flag
+                              delta_time                           &              ! -->  DBL   propagated time (s)
+                              )
+        end if
+        
         ! write(cmess,'(a)') 'post: request_time '//toString(request_time)//', prop_counter '//toString(prop_counter)//', delta_time '//toString(delta_time)//', reset: '//toString(reset)
         ! call message(cmess, LOG_AND_STDOUT)
                   
