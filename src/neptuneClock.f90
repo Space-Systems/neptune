@@ -43,7 +43,8 @@ module neptuneClock
         real(dp),dimension(:),allocatable  :: step_epochs_sec                   !< intermediate epochs (in seconds)
         logical  :: intermediate_steps_flag                                     !< is .true. when intermediate steps are to be take (requested by user)
         integer  :: intermediate_steps_index                                    !  keeps track of in-array index whilst in intermediate mode
-
+        integer  :: last_index
+        real(dp) :: cumulated_time
     contains
         procedure :: init_counter
         procedure :: switch_backward_propagation
@@ -100,7 +101,8 @@ contains
         constructor_time%flag_cov_save                  = .false.               !< is .true. when an intermediate step for the covariance needs to be saved (like for RK4)
         constructor_time%intermediate_steps_flag        = .false.
         constructor_time%intermediate_steps_index       = 1
-
+        constructor_time%last_index                     = 1
+        constructor_time%cumulated_time                 = 0.d0
         !=====================================================
         !
         ! Consider backward propagation
@@ -136,6 +138,9 @@ contains
     !!
     ! --------------------------------------------------------------------
     function get_next_step(this,neptune,current_time) result(step)
+        use slam_io,                       only: LOG_AND_STDOUT, message
+        use slam_strings,                  only: toString
+
         class(Clock_class)                  :: this
         type(Neptune_class),intent(inout)   :: neptune
         real(dp)           ,intent(in)      :: current_time
@@ -144,28 +149,33 @@ contains
         real(dp), parameter                 :: eps3 = 1.d-3
         real(dp)                            :: cov_step                         !< covariance matrix integration step size / s
         integer                             :: i_index                          !< intermediate step index
-        integer                             :: next_i_index                     !< intermediate step index
-        real(dp)                            :: cumulated_steps
 
-        ! When we are in intermediate steps mode we update the step_size with every request
+        character(len=255)                  :: cmess
+
+        ! update step_size with every request when in intermediate steps mode
         if (this%intermediate_steps_flag) then
             
-            this%step_size = this%step_epochs_sec(this%intermediate_steps_index)
+            ! this%step_size = this%step_epochs_sec(this%intermediate_steps_index)
+            
+            ! Determine on which time step we are working
+            ! -- DO NOT TOUCH --
+            ! -- The new indexing-loop implementation now processes cases where 
+            ! -- neighbouring array-elements contain the same epoch (due to overlapping TDMs). 
+            ! -- Previously, those situations led to wrong in-array indexing and infinite 
+            ! -- looping, exhausting the allocated memory. 
+            do i_index = this%last_index, size(this%step_epochs_sec)
+                this%cumulated_time = this%cumulated_time + this%step_epochs_sec(i_index)
+                if (this%cumulated_time > current_time .or. i_index <= this%last_index) then
+                    this%last_index = i_index
+                    if (i_index < size(this%step_epochs_sec)) then
+                        this%last_index = i_index + 1
+                    end if
+                    exit
+                end if
+            end do
+            ! Extract the step size
+            this%step_size = this%step_epochs_sec(this%last_index)
 
-            ! cumulated_steps = 0.d0
-            ! ! Determine on which time step we are working
-            ! do i_index = 1, size(this%step_epochs_sec)
-            !     cumulated_steps = cumulated_steps + this%step_epochs_sec(i_index)
-            !     if (cumulated_steps > current_time) then
-            !         next_i_index = i_index
-            !         if (i_index < size(this%step_epochs_sec)) then
-            !             next_i_index = i_index + 1
-            !         end if
-            !         exit
-            !     end if
-            ! end do
-            ! ! Extract the step size
-            ! this%step_size = this%step_epochs_sec(next_i_index)
         end if
 
         ! for the covariance step, it can depend on the integration method. For example, the RK4 method requires
@@ -240,6 +250,10 @@ contains
         ! save the value for later reference (e.g. by has_finished_step)
         this%next_step = step
 
+        ! write(cmess,'(a)') 'this%step_size  = '//toString(this%step_size)//', this%next_step '//toString(this%next_step)
+        ! call message(cmess, LOG_AND_STDOUT)        
+        ! call message("request epoch: "//toString(this%next_step)//" this%last_index: "//toString(this%last_index), LOG_AND_STDOUT)
+        
         return
     end function
 
@@ -478,13 +492,13 @@ contains
             if((current_time - this%next_step) < epsilon(1.0d0)) hfs = .true.
         end if
         
-        if (this%intermediate_steps_flag .and. hfs) then 
-            if (this%intermediate_steps_index < size(this%step_epochs_sec)) then
-                this%intermediate_steps_index = this%intermediate_steps_index + 1
-            else 
-                this%intermediate_steps_index = size(this%step_epochs_sec)
-            end if
-        end if
+        ! if (this%intermediate_steps_flag .and. hfs) then 
+        !     if (this%intermediate_steps_index < size(this%step_epochs_sec)) then
+        !         this%intermediate_steps_index = this%intermediate_steps_index + 1
+        !     else 
+        !         this%intermediate_steps_index = size(this%step_epochs_sec)
+        !     end if
+        ! end if
 
         return
     end function
