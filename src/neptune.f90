@@ -683,6 +683,7 @@ contains
       
         ! write(cmess, '(a)') 'diff = '//date2longstring(epochs(i_epoch))//', step_epochs_sec = '//toString(step_epochs_sec(i_epoch-1))
         ! call message(cmess, LOG_AND_STDOUT)
+        ! call message('Initial request: '//toString(step_epochs_sec(i_epoch-1)), LOG_AND_STDOUT)
       end do
       !write (*,*) step_epochs_sec
       nep_clock = Clock_class(start_epoch_sec, end_epoch_sec, step_epochs_sec)
@@ -801,6 +802,7 @@ contains
 
         if(neptune%getStoreDataFlag()) then
           dtmp = epochs(1)%mjd + prop_counter/86400.d0
+          ! call message("output epoch: "//toString(prop_counter), LOG_AND_STDOUT)
           call neptune%storeData(state_out%r, state_out%v, dtmp)
           ! store covariance matrix data if requested
           if(neptune%numerical_integrator%getCovariancePropagationFlag()) then

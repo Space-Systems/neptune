@@ -330,8 +330,8 @@ contains
         if (.not. allocated(covMatrix)) allocate(covMatrix(isize))
         if (.not. allocated(setMatrix)) allocate(setMatrix(isize))
 
-        write(cmess,'(a)') 'Initialised index = '//toString(constructor%current_index)//' of '//toString(isize)
-        call message(cmess, LOG_AND_STDOUT)
+        ! write(cmess,'(a)') 'Initialised index = '//toString(constructor%current_index)//' of '//toString(isize)
+        ! call message(cmess, LOG_AND_STDOUT)
 
     end function constructor
 
