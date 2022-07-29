@@ -20,8 +20,8 @@ The software can be compiled on
 * Windows (using the Windows Subsystem for Linux on Windows 10, cygwin or MinGW)
 
 To build NEPTUNE you will need:
-* a fortran compiler (e.g. gfortran or ifort)
-* cmake
+* a fortran compiler (e.g. gfortran >= 8.0 or ifort > 19.0)
+* cmake >= 3.12
 * the [Orbital Propagation Interface (OPI-2015)](https://github.com/ILR/OPI) (retrieved automatically)
 * the support library [libslam](https://github.com/IRAS/libslam) (retrieved automatically)
 * doxygen (only for the source code documentation)
