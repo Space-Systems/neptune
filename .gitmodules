@@ -4,3 +4,6 @@
 [submodule "libslam"]
 	path = libslam
 	url = https://github.com/Space-Systems/libslam.git
+[submodule "pFUnit"]
+	path = pFUnit
+	url = https://github.com/Goddard-Fortran-Ecosystem/pFUnit.git

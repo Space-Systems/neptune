@@ -2,7 +2,7 @@
 #
 # Define how to build the libraries and executables:
 BUILD_TYPE=Debug
-Fortran_COMPILER=gfortran
+Fortran_COMPILER=gfortran-8
 LIBSUFFIX="so"
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
   LIBSUFFIX="so"
@@ -13,26 +13,12 @@ elif [[ "$OSTYPE" == "CYGWIN"* ]]; then
 elif [[ "$OSTYPE" == "MINGW"* ]]; then
   LIBSUFFIX="dll"
 fi
+git submodule update --init --recursive
 ################################################################################
 #                                                                              #
 #                                  Build OPI                                   #
 #                                                                              #
 ################################################################################
-echo "Checking for OPI"
-if [[ ! -d "OPI" ]]; then
-  echo "Not found - cloning from  https://github.com/Space-Systems/OPI.git --branch OPI-2015"
-  git clone https://github.com/Space-Systems/OPI.git --branch OPI-2015
-else
-  echo "Found - updating branch."
-  cd OPI
-  git pull
-  cd ..
-fi
-# No need to continue when cloning did not work
-if [[ $? -ne 0 ]]; then
-  echo "OPI could not be found. Exiting."
-  exit $?
-fi
 # Build OPI
 cd OPI
 # Create the build directory if it does not exist
@@ -57,21 +43,6 @@ cd ../../
 #                                Build libslam                                 #
 #                                                                              #
 ################################################################################
-echo "Checking for libslam"
-if [[ ! -d "libslam" ]]; then
-  echo "Not found - cloning from https://github.com/Space-Systems/libslam.git"
-  git clone https://github.com/Space-Systems/libslam.git --branch v2020-12
-else
-  echo "Found - updating branch."
-  cd libslam
-  git pull
-  cd ..
-fi
-# No need to continue when cloning did not work
-if [[ $? -ne 0 ]]; then
-  echo "libslam could not be found. Exiting."
-  exit $?
-fi
 # Build libslam
 cd libslam
 # Create the build directory if it does not exist
@@ -94,6 +65,28 @@ cd ../
 ln -sf build/include include
 ln -sf build/lib lib
 echo "Leaving libslam"
+cd ../
+################################################################################
+#                                                                              #
+#                                Build pFUnit                                  #
+#                                                                              #
+################################################################################
+cd pFUnit
+# Create the build directory if it does not exist
+if [[ ! -d "build" ]]; then
+  mkdir build
+else
+  rm -rf build/*
+fi
+cd build
+echo "Updating cmake"
+cmake  -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER ../
+cmake  -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER ../
+echo "Building pFUnit"
+make
+make install
+cd ../
+echo "Leaving pFUnit"
 cd ../
 ################################################################################
 #                                                                              #
@@ -127,7 +120,7 @@ else
 fi
 cd build
 echo "Updating cmake"
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OPI_SUPPORT=ON ../
+cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OPI_SUPPORT=ON -DCMAKE_PREFIX_PATH=../pFUnit/build/installed/ ../
 echo "Building NEPTUNE"
 make install
 if [[ $? -ne 0 ]]; then

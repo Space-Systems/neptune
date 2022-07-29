@@ -147,3 +147,5 @@ endif(ENABLE_OPI_SUPPORT)
 ### Install Fortran Mod files
 # Install the Fortran module files into the include directory
 install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/NEPTUNE)
+
+target_include_directories(neptune PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})

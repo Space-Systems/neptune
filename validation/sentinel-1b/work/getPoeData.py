@@ -1,16 +1,17 @@
 #!python3
 import requests
 import os
+from zipfile import ZipFile
 
-url = 'http://aux.sentinel1.eo.esa.int/POEORB/'
+url = 'http://step.esa.int/auxdata/orbits/Sentinel-1/POEORB/S1B/'
 dates = [
-    '2019/07/15', 
-    '2019/07/16', 
-    '2019/07/17', 
-    '2019/07/18', 
-    '2019/07/19', 
-    '2019/07/20', 
-    '2019/07/21']
+    '2019/06', 
+    '2019/06', 
+    '2019/06', 
+    '2019/06', 
+    '2019/06', 
+    '2019/06', 
+    '2019/06']
 filenames = [
     'S1B_OPER_AUX_POEORB_OPOD_20190715T110507_V20190624T225942_20190626T005942.EOF',
     'S1B_OPER_AUX_POEORB_OPOD_20190716T110556_V20190625T225942_20190627T005942.EOF',
@@ -26,13 +27,22 @@ with open(f'{dest}/available_files.txt', 'w') as file:
         file.write('%s\n' % filename)
 i = 0
 for filename in filenames:
-    if not os.path.exists(f'{dest}/{filename}'):
-        print(f'Downloading {filename} ...')
+    if not os.path.exists(f'{dest}/{filename}.zip'):
+        print(f'Downloading {url}/{dates[i]}/{filename}.zip ...')
         # Download validation file
-        S1B_file = requests.get(f'{url}/{dates[i]}/{filename}')
+        
+        S1B_file = requests.get(f'{url}/{dates[i]}/{filename}.zip')
 
-        with open(f'{dest}/{filename}', "wb") as file:
+        with open(f'{dest}/{filename}.zip', "wb") as file:
             file.write(S1B_file.content)
+    if os.path.exists(f'{dest}/{filename}.zip') \
+            and not os.path.exists(f'{dest}/{filename}'):
+        with ZipFile(f'{dest}/{filename}.zip', 'r') as zipObject:
+            # Extract from tmp/<filename> to destination
+            zipInfo = zipObject.getinfo(f'tmp/{filename}')
+            # Manipulate the filename to drop the tmp/ path
+            zipInfo.filename  = os.path.basename(f'{filename}')
+            zipObject.extract(zipInfo, f'{dest}')
     else:
         print('Nothing to download.')
     i=i+1
