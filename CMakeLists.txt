@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.3)
+cmake_minimum_required (VERSION 3.12)
 
 # Name the project NEPTUNE
 project (NEPTUNE Fortran)
@@ -62,9 +62,6 @@ if (ENABLE_OpenMP_SUPPORT)
 	endif()
 endif()
 
-# Make sure we are able to test the library later on
-enable_testing()
-
 # Set installation directories
 set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR})
 
@@ -100,7 +97,12 @@ add_subdirectory(src)
 add_subdirectory(validation)
 
 # Create test scenarios
-add_test(NAME execute_neptune COMMAND ../bin/neptune-sa WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/work/)
+find_package(PFUNIT REQUIRED)
+enable_testing()
+#add_test(NAME execute_neptune COMMAND ../bin/neptune-sa WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/work/)
+if (PFUNIT_FOUND)
+	add_subdirectory(tests)
+endif()
 
 
 if (BUILD_DOCUMENTATION)
