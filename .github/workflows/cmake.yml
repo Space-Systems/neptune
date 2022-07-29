@@ -2,7 +2,7 @@ name: CMake
 
 on:
   push:
-    branches: [ master, add_pfunit_tests ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
