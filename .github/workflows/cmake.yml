@@ -65,7 +65,7 @@ jobs:
 
     - name: Configure CMake neptune
       # Configure neptune 
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DENABLE_OPI_SUPPORT=ON
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DENABLE_OPI_SUPPORT=ON -DCMAKE_PREFIX_PATH=${{github.workspace}}/pFUnit/build/installed/
 
     - name: Build neptune
       # Build your program with the given configuration
