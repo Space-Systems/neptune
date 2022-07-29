@@ -2,7 +2,7 @@ name: CMake
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, add_pfunit_tests ]
   pull_request:
     branches: [ master ]
 
@@ -47,6 +47,18 @@ jobs:
       # install libs and includes in libslam/build/
       run: cmake --install ${{github.workspace}}/libslam/build --config ${{env.BUILD_TYPE}}
 
+    - name: Configure CMake pFUnit
+      # Configure pFUnit
+      run: cmake -S pFUnit -B ${{github.workspace}}/pFUnit/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DENABLE_OpenMP_SUPPORT=OFF -DENABLE_POSTGRESQL_SUPPORT=OFF
+
+    - name: Build pFUnit
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/pFUnit/build --config ${{env.BUILD_TYPE}}
+
+    - name: Install pFUnit
+      # install libs and includes in libslam/build/
+      run: cmake --install ${{github.workspace}}/pFUnit/build --config ${{env.BUILD_TYPE}}
+
     - name: Link include and libs
       # Link all libs needed from libslam and OPI for neptune
       run: bash link-dependencies.sh 
@@ -67,5 +79,4 @@ jobs:
       working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.  
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C ${{env.BUILD_TYPE}}
-      
+      run: LD_LIBRARY_PATH=${{github.workspace}}/lib ctest -C ${{env.BUILD_TYPE}}
