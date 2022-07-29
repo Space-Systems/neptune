@@ -49,6 +49,12 @@ In addition there are:
 * neptune-valsent1b
 * openmp-test-sa.
 
+You can run the tests by calling:
+```
+$ cd build
+$ LD_LIBRARY_PATH=../../lib ctest --verbose
+```
+
 While the first is a validation executables enabling the comparison of NEPTUNE results against measurements,
 the last executable is a test to show that parallel execution using OpenMP works.
 
