@@ -576,11 +576,16 @@ contains
     real(dp)                :: restored_request_time                            ! Requested time before the intermediate step got necessary
     logical                 :: force_no_interpolation
     real(dp)                :: upcoming_maneuver_epoch_mjd
+    character(len=255)      :: cmess
+    real(dp)                :: diff
+    integer                 :: i_next_calls         ! counting runs through getNext while-loop 
+    integer                 :: max_next_calls = 100
 
     restored_request_time = 0.d0
     prop_counter = 0.0d0
     propCounterAtReset = 0.0d0
     lastPropCounterSuccess = 0.0d0
+    diff = 0.d0
 
     if(isControlled()) then
       if(hasToReturn()) return
@@ -667,12 +672,18 @@ contains
     !   Initialise propagation time counter
     !
     !------------------------------------------------------------
+    
     if (size(epochs) > 2) then
       if (allocated(step_epochs_sec)) deallocate(step_epochs_sec)
       allocate(step_epochs_sec(size(epochs)-1))
       do i_epoch = 2, size(epochs)
+
         ! Handle intermediate steps
         step_epochs_sec(i_epoch-1) = (epochs(i_epoch)%mjd-epochs(i_epoch-1)%mjd)*86400.d0 ! in seconds
+      
+        ! write(cmess, '(a)') 'diff = '//date2longstring(epochs(i_epoch))//', step_epochs_sec = '//toString(step_epochs_sec(i_epoch-1))
+        ! call message(cmess, LOG_AND_STDOUT)
+        ! call message('Initial request: '//toString(step_epochs_sec(i_epoch-1)), LOG_AND_STDOUT)
       end do
       !write (*,*) step_epochs_sec
       nep_clock = Clock_class(start_epoch_sec, end_epoch_sec, step_epochs_sec)
@@ -750,6 +761,7 @@ contains
     suppressed_output = .false.
     intermediate_integrator_call = .false.
     restored_request_time = request_time
+
     do
       step_counter = step_counter + 1
       ! Check exit clause
@@ -790,6 +802,7 @@ contains
 
         if(neptune%getStoreDataFlag()) then
           dtmp = epochs(1)%mjd + prop_counter/86400.d0
+          ! call message("output epoch: "//toString(prop_counter), LOG_AND_STDOUT)
           call neptune%storeData(state_out%r, state_out%v, dtmp)
           ! store covariance matrix data if requested
           if(neptune%numerical_integrator%getCovariancePropagationFlag()) then
@@ -812,6 +825,7 @@ contains
       else
         ! No previous intermediate call - we can just proceed as planned
         request_time = nep_clock%get_next_step(neptune,prop_counter)
+        
         ! Save the current requested time in case we determine that an intermediate call must be done due to an immenant manoeuvre start or end
         restored_request_time = request_time
         ! Create a point to restore to when the propagation fails
@@ -826,23 +840,22 @@ contains
       intermediate_integrator_call = .false.
       if (neptune%derivatives_model%getPertSwitch(PERT_MANEUVERS)) then
 
-        !call message(' Maneuver change at '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
+        !call message(' Maneuver change at '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
+
+        ! Reset when we are starting into the new maneuver or no-maneuver interval
+        if (abs(prop_counter - manoeuvre_change_counter) < epsilon(1.d0)) then
+          reset = 1
+          !force_no_interpolation = .true.
+          ! reset also the count of subroutine calls to the integrator
+          call neptune%numerical_integrator%resetCountIntegrator()
+          call message(' - Performing reset of intergator now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
+        end if
 
         ! Get the next manoeuvre change epoch
         upcoming_maneuver_epoch_mjd = neptune%manoeuvres_model%get_upcoming_manoeuvre_change_epoch(epochs(1)%mjd + prop_counter/86400.d0)
         if (upcoming_maneuver_epoch_mjd > 0.d0) then
           manoeuvre_change_counter = (upcoming_maneuver_epoch_mjd - epochs(1)%mjd) * 86400.d0
-          ! Reset when we are starting into the new maneuver or no-maneuver interval
-          if (abs(prop_counter - manoeuvre_change_counter) < epsilon(1.d0)) then
-            reset = 1
-            force_no_interpolation = .true.
-            ! reset also the count of subroutine calls to the integrator
-            call neptune%numerical_integrator%resetCountIntegrator()
-            call message(' - Performing reset of intergator now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
-          end if
-
-          !call message(' New maneuver change at: '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
-          !call message(' - Intermediate integrator call now? '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for planned maneuver at '//toString(epochs(1)%mjd + request_time/86400.d0)//' ('//toString(request_time)//')', LOGFILE)
+          !call message(' New maneuver change at: '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
           ! Check whether the manoeuvre change is more immenent than the step proposed
           if (.not. flag_backward .and. (manoeuvre_change_counter < request_time .and. manoeuvre_change_counter > prop_counter) &
             .or. flag_backward .and. (manoeuvre_change_counter > request_time .and. manoeuvre_change_counter < prop_counter)) then
@@ -855,14 +868,14 @@ contains
             request_time = manoeuvre_change_counter
             intermediate_integrator_call = .true.
             force_no_interpolation = .true.
-            !neptune%manoeuvres_model%ignore_maneuver_start = .true.
+            neptune%manoeuvres_model%ignore_maneuver_start = .true.
             call message(' - Adding intermediate integrator call now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for planned maneuver at '//toString(epochs(1)%mjd + request_time/86400.d0)//' ('//toString(request_time)//')', LOGFILE)
           end if
         end if
       end if
 
-      !call message(' Going into integrator loop at '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'  ('//toString(prop_counter)//')', LOGFILE)
-      !call message(' prop counter: '//toString(prop_counter)//' request_time: '//toString(request_time)//' difference: '//toString(prop_counter - request_time), LOGFILE)
+      !call message(' Going into integrator loop at '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'  ('//toString(prop_counter)//')', LOG_AND_STDOUT)
+      !call message(' prop counter: '//toString(prop_counter)//' request_time: '//toString(request_time)//' difference: '//toString(prop_counter - request_time), LOG_AND_STDOUT)
 
 
       !====================================================================================
@@ -877,33 +890,43 @@ contains
             ! Reset when the timestep of the integrator is greater than
             if (.not. flag_backward .and. (manoeuvre_change_counter < (prop_counter + neptune%numerical_integrator%get_current_step_size()) .and. manoeuvre_change_counter > prop_counter) &
             .or. flag_backward .and. (manoeuvre_change_counter > (prop_counter - neptune%numerical_integrator%get_current_step_size()) .and. manoeuvre_change_counter < prop_counter)) then
-              ! Force the integrator not to overstep the requested epoch
+              !reset = 1
               force_no_interpolation = .true.
+              ! reset also the count of subroutine calls to the integrator
+              !call neptune%numerical_integrator%resetCountIntegrator()
               call message(' - Forcing no interpolation now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver due to time step size '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//') int step size: '//toString(neptune%numerical_integrator%get_current_step_size()), LOGFILE)
             end if
           end if
         end if
 
-        call neptune%numerical_integrator%integrateStep(         &
-                            neptune%gravity_model,               &              ! <->  TYPE  Gravity model
-                            neptune%atmosphere_model,            &              ! <->  TYPE  Atmosphere model
-                            neptune%manoeuvres_model,            &              ! <->  TYPE  Manoeuvres model
-                            neptune%radiation_model,             &              ! <->  TYPE  Radiation model
-                            neptune%satellite_model,             &              ! <->  TYPE  Satellite  model
-                            neptune%solarsystem_model,           &              ! <->  TYPE  Solarsysten model
-                            neptune%thirdbody_model,             &              ! <->  TYPE  Third body model
-                            neptune%tides_model,                 &              ! <->  TYPE  Tides model
-                            neptune%derivatives_model,           &              ! <->  TYPE  Derivatives model
-                            neptune%reduction,                   &              ! <->  TYPE  Reduction
-                            request_time,                        &              ! <--  DBL   requested time (s)
-                            force_no_interpolation,              &              ! <--  LOGI  indicates no interpolation => perfect last step for big changes in acceleration (i.e. maneuvers)
-                            prop_counter,                        &              ! <--> DBL   current time (s)
-                            state_out%r,                         &              ! <--> DBL() radius vector (km)
-                            state_out%v,                         &              ! <--> DBL() velocity vector (km/s)
-                            reset,                               &              ! <--> INT   reset flag
-                            delta_time                           &              ! -->  DBL   propagated time (s)
-                          )
+        ! write(cmess,'(a)') ' pre: request_time '//toString(request_time)//', prop_counter '//toString(prop_counter)//', delta_time '//toString(delta_time)//', reset: '//toString(reset)
+        ! call message(cmess, LOG_AND_STDOUT)
 
+        if (abs(request_time-prop_counter) > epsilon(1.0d0)) then
+          call neptune%numerical_integrator%integrateStep(         &
+                              neptune%gravity_model,               &              ! <->  TYPE  Gravity model
+                              neptune%atmosphere_model,            &              ! <->  TYPE  Atmosphere model
+                              neptune%manoeuvres_model,            &              ! <->  TYPE  Manoeuvres model
+                              neptune%radiation_model,             &              ! <->  TYPE  Radiation model
+                              neptune%satellite_model,             &              ! <->  TYPE  Satellite  model
+                              neptune%solarsystem_model,           &              ! <->  TYPE  Solarsysten model
+                              neptune%thirdbody_model,             &              ! <->  TYPE  Third body model
+                              neptune%tides_model,                 &              ! <->  TYPE  Tides model
+                              neptune%derivatives_model,           &              ! <->  TYPE  Derivatives model
+                              neptune%reduction,                   &              ! <->  TYPE  Reduction
+                              request_time,                        &              ! <--  DBL   requested time (s)
+                              force_no_interpolation,              &              ! <--  LOGI  indicates no interpolation => perfect last step for big changes in acceleration (i.e. maneuvers)
+                              prop_counter,                        &              ! <--> DBL   current time (s)
+                              state_out%r,                         &              ! <--> DBL() radius vector (km)
+                              state_out%v,                         &              ! <--> DBL() velocity vector (km/s)
+                              reset,                               &              ! <--> INT   reset flag
+                              delta_time                           &              ! -->  DBL   propagated time (s)
+                              )
+        end if
+        
+        ! write(cmess,'(a)') 'post: request_time '//toString(request_time)//', prop_counter '//toString(prop_counter)//', delta_time '//toString(delta_time)//', reset: '//toString(reset)
+        ! call message(cmess, LOG_AND_STDOUT)
+                  
         ! progress output immediately after integration step
         if(neptune%has_to_write_progress()) then
             dtmp = abs(prop_counter - start_epoch_sec)/abs(end_epoch_sec - start_epoch_sec)
@@ -914,6 +937,8 @@ contains
           call neptune%output%close_open_files(neptune%numerical_integrator)
           return
         end if
+
+        ! =================
 
         if(reset == 1) then     ! in case of a reset the last output state has to be re-established,
                                 ! as the original state_out is overwritten after each call
@@ -948,6 +973,11 @@ contains
           nresets = 0
           lastPropCounterSuccess = prop_counter
         end if
+      
+        
+        ! diff = abs(prop_counter - request_time)
+        ! write(cmess, '(a, D15.3, a)') 'diff = ', diff, toString(intermediate_integrator_call)
+        ! call message(cmess, LOG_AND_STDOUT)
 
         ! Exit the integration loop when the desired time is reached
         if (intermediate_integrator_call) then
@@ -955,6 +985,7 @@ contains
         else
           if(nep_clock%has_finished_step(prop_counter)) exit
         end if
+        ! =================
 
       end do
       !---------------------------------------------------------------------------------------------------------
