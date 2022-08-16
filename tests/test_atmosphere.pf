@@ -1,6 +1,6 @@
 module test_atmosphere
     use funit
-    use atmosphere,   only: Atmosphere_class, MSIS2000
+    use atmosphere,   only: Atmosphere_class, MSIS2000, NRLMSIS
     
     implicit none
 
@@ -22,8 +22,45 @@ module test_atmosphere
         atmosphere_model%nmodel = MSIS2000
         call atmosphere_model%initAtmosphere('../../work/data')
 
-        @assertRelativelyEqual(atmosphere_model%getDensityMSIS2000(500.d0, 0.d0, 0.d0, 51544.d0), 0.799d-003, tolerance=0.01)
+        @assertRelativelyEqual(atmosphere_model%getDensityMSIS2000(500.d0, 0.d0, 0.d0, 51544.d0), 0.5712d-003, tolerance=0.01)
 
    end subroutine test_getDensityMSIS2000
+
+   @test
+   subroutine test_getDensityNRLMSIS()
+        ! Tests that a density is computed by the NRLMSIS2.0 model
+        ! input:
+        !    MJD:       51544 ! Jan 1. 2000
+        !    Altitude:  500 km
+        !    Latitude:  0.0 ! rad
+        !    Longitude: 0.0 ! rad
+        type(Atmosphere_class) :: atmosphere_model
+
+        atmosphere_model = Atmosphere_class()
+
+        atmosphere_model%nmodel = NRLMSIS
+        call atmosphere_model%initAtmosphere('../../work/data')
+
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(400.d0, 0.d0, 0.d0, 51544.d0), 0.3094d-002, tolerance=0.01)
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(500.d0, 0.d0, 0.d0, 51544.d0), 0.5535d-003, tolerance=0.01)
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(600.d0, 0.d0, 0.d0, 51544.d0), 0.1129d-003, tolerance=0.01)
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(700.d0, 0.d0, 0.d0, 51544.d0), 0.2754d-004, tolerance=0.01)
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(800.d0, 0.d0, 0.d0, 51544.d0), 0.8994d-005, tolerance=0.01)
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(900.d0, 0.d0, 0.d0, 51544.d0), 0.4137d-005, tolerance=0.01)
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(1000.d0, 0.d0, 0.d0, 51544.d0), 0.2434d-005, tolerance=0.01)
+
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(500.d0, 22.d0, 0.1303d3, 0.537570509d5), 0.13386987801417753d-003, tolerance=0.01)
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(500.d0, -0.476d2, 0.1253d3, 0.5399221182d5), 0.18792801039886961d-003, tolerance=0.01)
+        ! respects the tolerance
+        @assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(500.d0, 0.65d1, 96.d0, 0.5276739668d5), 0.10168617826293667d-002, tolerance=0.001)
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(500.d0, 0.426d2, -0.715d2, 0.4756536457d5), 0.10338250997057917d-002, tolerance=0.01)
+        ! respects the tolerance
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(0.4688d3, -0.195d2, 0.446d2, 0.4389981823d5), 0.20788356929965501d-002, tolerance=0.01)
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(250.d0, -0.127d2, -0.749d2, 0.5609301766d5), 0.44707913450991663d-001, tolerance=0.01)
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(250.d0, -0.847d2, -0.135d3, 0.5397463889d5), 0.33946386961180089d-001, tolerance=0.01)
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(110.d0, 0.627d2, 0.23d1, 0.5463942097d5), 0.60414000191411077d002, tolerance=0.01)
+        !@assertRelativelyEqual(atmosphere_model%getDensityNRLMSIS(260.d0, 0.58d1, 0.1181d3, 0.5594296447d5), 0.42223176181539063d-001, tolerance=0.01)
+
+    end subroutine test_getDensityNRLMSIS
 
 end module test_atmosphere

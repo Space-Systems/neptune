@@ -19,19 +19,19 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
 endif (CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 if ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "GNU")
-	set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS} -O0 -cpp -g -fbounds-check -fbacktrace -ffree-line-length-none -finit-local-zero  -Wall")
-    set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} -O3 -ffree-line-length-none -cpp")
+	set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS} -O0 -cpp -DDBLE -g -fbounds-check -fbacktrace -ffree-line-length-none -finit-local-zero  -Wall")
+    set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} -O3 -DDBLE -ffree-line-length-none -cpp")
 elseif("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Intel")
     # Possible solution when segfaults arise with OpenMP is using the following flag: -heap-arrays 32768
     # Reason: some dynamically allocated arrays are replicated when OpenMP is used with the neptuneClass.
     # The (small) stack is used for the replication of the arrays. The flag moves arrays from the stack to the heap.
 	#set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -heap-arrays 32768")
-	set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -fpp -g -fno-omit-frame-pointer -traceback -check bounds -check output-conversion -check format -check pointers -check uninit -ftrapuv -assume realloc_lhs -fstack-protector -assume protect_parens")
-	set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -fpp")
+	set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -fpp -DDBLE -g -fno-omit-frame-pointer -traceback -check bounds -check output-conversion -check format -check pointers -check uninit -ftrapuv -assume realloc_lhs -fstack-protector -assume protect_parens")
+	set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -fpp -DDBLE")
 elseif ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Flang")
     set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -Mpreprocess")
-    set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS} -g -O")
-    set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} -O3")
+    set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS} -g -O -DDBLE")
+    set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} -O3 -DDBLE")
 endif()
 
 if (ENABLE_STATIC_SUPPORT)
