@@ -342,8 +342,8 @@ contains
             dm = 2
           end if
 
-          fac   = factorial(l-m)/factorial(l+m) ! consider transformation for unnormalized coefficients
-          templ = k(l,m)*dm*fac/muEarth
+          fac   = sqrt(factorial(l-m)/factorial(l+m)) ! consider transformation for unnormalized coefficients
+          templ = k(l,m)*sqrt(dm)*fac/(muEarth*sqrt(2.d0*l+1.d0))
 
           do i = SUN, MOON
             temp    = templ*mu(i)*(rekm/rabs_body(i))**(l+1.d0)*lp(i,l,m)
@@ -362,7 +362,8 @@ contains
           dm = 2
         end if
 
-        templ = kp(m)*dm*sqrt(1.8d0*(4-m)*(3-m)/(4.d0+m)/(3.d0+m))*factorial(2-m)/factorial(2+m)/muEarth
+        !templ = kp(m)*dm*sqrt(1.8d0*(4-m)*(3-m)/(4.d0+m)/(3.d0+m))*factorial(2-m)/factorial(2+m)/muEarth
+        templ = kp(m)*sqrt(dm*factorial(2-m)/factorial(2+m))/(muEarth*sqrt(5))
 
         do i = SUN, MOON
           temp    = templ*mu(i)*(rekm/rabs_body(i))**3*lp(i,2,m)
@@ -381,8 +382,10 @@ contains
         m1 = pom(1) - pomAvg(1)
         m2 = pomAvg(2) - pom(2)
 
-        dC(2,1) = dC(2,1) - 1.721d-9*(m1 - 0.0115*m2)
-        dS(2,1) = dS(2,1) - 1.721d-9*(m2 + 0.0115*m1)
+        !dC(2,1) = dC(2,1) - 1.721d-9*(m1 - 0.0115*m2)
+        dC(2,1) = dC(2,1) - 1.333d-9*(m1 - 0.0115*m2)
+        !dS(2,1) = dS(2,1) - 1.721d-9*(m2 + 0.0115*m1)
+        dS(2,1) = dS(2,1) - 1.333d-9*(m2 + 0.0115*m1)
 
       end if
 
