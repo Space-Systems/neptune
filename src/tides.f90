@@ -25,14 +25,15 @@
 !!------------------------------------------------------------------------------------------------
 module tides
 
-  use slam_astro,             only: getEarthRadius, getEarthGravity, getEarthMass
+  use slam_astro,             only: getEarthRadius, getEarthGravity, getEarthMass, getGMST
   use slam_astro_conversions, only: getGeodeticLatLon, getRadiusLatLon
   use neptune_error_handling, only: E_SOLAR_SYSTEM_INIT, setNeptuneError
   use slam_error_handling,    only: isControlled, hasToReturn, hasFailed, FATAL, checkIn, checkOut
-  use slam_math,              only: mag, pi, eps9, rad2deg, factorial
+  use slam_math,              only: mag, pi, eps9, rad2deg, factorial, deg2rad
   use slam_reduction_class,   only: Reduction_type
   use solarsystem,            only: Solarsystem_class, ID_SUN, ID_MOON
   use slam_types,             only: dp
+  use slam_io,                only: openFile, closeFile, SEQUENTIAL, IN_FORMATTED
 
   implicit none
 
@@ -165,9 +166,6 @@ contains
                                         accel               &  ! --> DBL(3) acceleration vector in inertial frame
                                       )
 
-    use slam_io,                only: openFile, closeFile, SEQUENTIAL, IN_FORMATTED
-    use slam_astro              
-    use slam_math,              only: pi, deg2rad
 
     !** interface
     !----------------------------------------------
@@ -244,17 +242,12 @@ contains
     integer                       :: ich, ios, temp_l, temp_m, ind
     character(len=255)            :: cbuf, Darw
     real(dp), dimension(5)        :: F_vect
-    integer, dimension(1:17, 1:5) :: N_mat = reshape((/0, 0, 0, 0, -1, 0, -1, 0, -1, 0, 0, 0, -2, -1, 0, 0, 0, &
-                                                       0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, &
-                                                       0, 0, 0, -2, 0, -2, -2, -2, -2, -2, -2, 0, -2, -2, -2, -2, 0, &
-                                                       0, 0, 0, 2, 0, 0, 0, -2, 0, 0, 2, 0, 0, 0, 0, 2, 0, &
-                                                       1, 2, 0, -2, 0, -2, -2, -2, -2, -2, -2, 0, -2, -2, -2, -2, 0 /), (/17, 5/))
-    real(dp) :: theta_g, temp_dCp, temp_dSp, temp_dCm, temp_dSm, arg, theta_f
+    real(dp) :: theta_g, temp_dCp, temp_dSp, temp_dCm, temp_dSm, theta_f
     real :: temp_Doodson
-    real(dp), dimension(1:17,2:6,0:6) :: dC_p, dS_p, dC_m, dS_m
-    real(dp), parameter :: ge = 9.7803278d-3, gravConstant = 6.67408d-20
+    real(dp), dimension(1:18,2:6,0:6), save :: dC_p, dS_p, dC_m, dS_m
     logical, save :: first_call = .true.
-
+    real, dimension(1:18), save :: doodson
+    integer :: ctheta_g, cl, cl_prime, cF, cD, cOmega
 
     if(isControlled()) then
       if(hasToReturn()) return
@@ -414,8 +407,6 @@ contains
       dC = 0.d0
       dS = 0.d0
 
-      const = 4*pi*gravConstant*densWater/ge
-
       !get Delaunay arguments in radians for the current time
       call getDelaunay_arg(time_mjd, F_vect)
       F_vect = F_vect*deg2rad
@@ -425,11 +416,12 @@ contains
       
       !read data only the first time (no need to repeat the operation at each call)
       if (first_call) then
+        !read data from external file
         ich = openFile("../work/data/fes2004_Cnm-Snm.dat", SEQUENTIAL, IN_FORMATTED)
-        do ind = 1, 54311
+        do ind = 1, 59462
           read(ich, '(a)', iostat=ios) cbuf
           read(cbuf, *) temp_Doodson, Darw, temp_l, temp_m, temp_dCp, temp_dSp, temp_dCm, temp_dSm
-
+          !collect data for the desired l values
           if (temp_l >= 2 .and. temp_l <= lmax) then
             !collect data for each tide constituent
             if (temp_Doodson >= 55.564 .and. temp_Doodson <= 55.566) then
@@ -437,91 +429,120 @@ contains
               dS_p(1, temp_l, temp_m) = temp_dSp
               dC_m(1, temp_l, temp_m) = temp_dCm
               dS_m(1, temp_l, temp_m) = temp_dSm
+              doodson(1) = temp_Doodson
             else if (temp_Doodson >= 55.574 .and. temp_Doodson <= 55.576) then
               dC_p(2, temp_l, temp_m) = temp_dCp
               dS_p(2, temp_l, temp_m) = temp_dSp
               dC_m(2, temp_l, temp_m) = temp_dCm
               dS_m(2, temp_l, temp_m) = temp_dSm
+              doodson(2) = temp_Doodson
             else if (temp_Doodson >= 56.553 .and. temp_Doodson <= 56.555) then
               dC_p(3, temp_l, temp_m) = temp_dCp
               dS_p(3, temp_l, temp_m) = temp_dSp
               dC_m(3, temp_l, temp_m) = temp_dCm
               dS_m(3, temp_l, temp_m) = temp_dSm
+              doodson(3) = temp_Doodson
             else if (temp_Doodson >= 57.554 .and. temp_Doodson <= 57.556) then
               dC_p(4, temp_l, temp_m) = temp_dCp
               dS_p(4, temp_l, temp_m) = temp_dSp
               dC_m(4, temp_l, temp_m) = temp_dCm
               dS_m(4, temp_l, temp_m) = temp_dSm
+              doodson(4) = temp_Doodson
             else if (temp_Doodson >= 65.454 .and. temp_Doodson <= 65.456) then
               dC_p(5, temp_l, temp_m) = temp_dCp
               dS_p(5, temp_l, temp_m) = temp_dSp
               dC_m(5, temp_l, temp_m) = temp_dCm
               dS_m(5, temp_l, temp_m) = temp_dSm
+              doodson(5) = temp_Doodson
             else if (temp_Doodson >= 75.554 .and. temp_Doodson <= 75.556) then
               dC_p(6, temp_l, temp_m) = temp_dCp
               dS_p(6, temp_l, temp_m) = temp_dSp
               dC_m(6, temp_l, temp_m) = temp_dCm
               dS_m(6, temp_l, temp_m) = temp_dSm
+              doodson(6) = temp_Doodson
             else if (temp_Doodson >= 85.454 .and. temp_Doodson <= 85.456) then
               dC_p(7, temp_l, temp_m) = temp_dCp
               dS_p(7, temp_l, temp_m) = temp_dSp
               dC_m(7, temp_l, temp_m) = temp_dCm
               dS_m(7, temp_l, temp_m) = temp_dSm
+              doodson(7) = temp_Doodson
             else if (temp_Doodson >= 93.554 .and. temp_Doodson <= 93.556) then
               dC_p(8, temp_l, temp_m) = temp_dCp
               dS_p(8, temp_l, temp_m) = temp_dSp
               dC_m(8, temp_l, temp_m) = temp_dCm
               dS_m(8, temp_l, temp_m) = temp_dSm
+              doodson(8) = temp_Doodson
             else if (temp_Doodson >= 135.654 .and. temp_Doodson <= 135.656) then
               dC_p(9, temp_l, temp_m) = temp_dCp
               dS_p(9, temp_l, temp_m) = temp_dSp
               dC_m(9, temp_l, temp_m) = temp_dCm
               dS_m(9, temp_l, temp_m) = temp_dSm
+              doodson(9) = temp_Doodson
             else if (temp_Doodson >= 145.554 .and. temp_Doodson <= 145.556) then
               dC_p(10, temp_l, temp_m) = temp_dCp
               dS_p(10, temp_l, temp_m) = temp_dSp
               dC_m(10, temp_l, temp_m) = temp_dCm
               dS_m(10, temp_l, temp_m) = temp_dSm
+              doodson(10) = temp_Doodson
             else if (temp_Doodson >= 163.554 .and. temp_Doodson <= 163.556) then
               dC_p(11, temp_l, temp_m) = temp_dCp
               dS_p(11, temp_l, temp_m) = temp_dSp
               dC_m(11, temp_l, temp_m) = temp_dCm
               dS_m(11, temp_l, temp_m) = temp_dSm
+              doodson(11) = temp_Doodson
             else if (temp_Doodson >= 165.554 .and. temp_Doodson <= 165.556) then
               dC_p(12, temp_l, temp_m) = temp_dCp
               dS_p(12, temp_l, temp_m) = temp_dSp
               dC_m(12, temp_l, temp_m) = temp_dCm
               dS_m(12, temp_l, temp_m) = temp_dSm
+              doodson(12) = temp_Doodson
             else if (temp_Doodson >= 235.754 .and. temp_Doodson <= 235.756) then
               dC_p(13, temp_l, temp_m) = temp_dCp
               dS_p(13, temp_l, temp_m) = temp_dSp
               dC_m(13, temp_l, temp_m) = temp_dCm
               dS_m(13, temp_l, temp_m) = temp_dSm
+              doodson(13) = temp_Doodson
             else if (temp_Doodson >= 245.654 .and. temp_Doodson <= 245.656) then
               dC_p(14, temp_l, temp_m) = temp_dCp
               dS_p(14, temp_l, temp_m) = temp_dSp
               dC_m(14, temp_l, temp_m) = temp_dCm
               dS_m(14, temp_l, temp_m) = temp_dSm
+              doodson(14) = temp_Doodson
             else if (temp_Doodson >= 255.554 .and. temp_Doodson <= 255.556) then
               dC_p(15, temp_l, temp_m) = temp_dCp
               dS_p(15, temp_l, temp_m) = temp_dSp
               dC_m(15, temp_l, temp_m) = temp_dCm
               dS_m(15, temp_l, temp_m) = temp_dSm
+              doodson(15) = temp_Doodson
             else if (temp_Doodson >= 273.554 .and. temp_Doodson <= 273.556) then
               dC_p(16, temp_l, temp_m) = temp_dCp
               dS_p(16, temp_l, temp_m) = temp_dSp
               dC_m(16, temp_l, temp_m) = temp_dCm
               dS_m(16, temp_l, temp_m) = temp_dSm
+              doodson(16) = temp_Doodson
             else if (temp_Doodson >= 275.554 .and. temp_Doodson <= 275.556) then
               dC_p(17, temp_l, temp_m) = temp_dCp
               dS_p(17, temp_l, temp_m) = temp_dSp
               dC_m(17, temp_l, temp_m) = temp_dCm
               dS_m(17, temp_l, temp_m) = temp_dSm
+              doodson(17) = temp_Doodson
+            else if (temp_Doodson >= 455.554 .and. temp_Doodson <= 455.556) then
+              dC_p(18, temp_l, temp_m) = temp_dCp
+              dS_p(18, temp_l, temp_m) = temp_dSp
+              dC_m(18, temp_l, temp_m) = temp_dCm
+              dS_m(18, temp_l, temp_m) = temp_dSm
+              doodson(18) = temp_Doodson
             end if
           end if
         end do
         ich  = closeFile(ich)
+        !update the first call status
         first_call = .false.
+        !assign the right order of magnitude to harmonic coefficients
+        dC_p = dC_p * 1.d-11
+        dC_m = dC_m * 1.d-11
+        dS_p = dS_p * 1.d-11
+        dS_m = dS_m * 1.d-11
       end if
 
       do l = 2, lmax
@@ -531,17 +552,22 @@ contains
           else
             dm = 2
           end if 
-          fac = const*(1.d0 + kld(l))/(2.d0*l + 1.d0)*sqrt(factorial(l - m)*dm*(2.d0*l + 1.d0)/factorial(l + m))
-          do i = 1, 17
-            !compute the argument for each tide constituent
-            arg = dot_product(N_mat(i, :), F_vect)
-            theta_f = m*(theta_g + pi) - arg
+          !compute the corresponding unnormalization factor
+          fac = sqrt(factorial(l - m)*dm*(2.d0*l + 1.d0)/factorial(l + m))
+          do i = 1, 18
+            !compute the argument for each tide constituent            
+            call getDoodson_arg(doodson(i), ctheta_g, cl, cl_prime, cF, cD, cOmega)
+            theta_f = ctheta_g * theta_g + cl * F_vect(1) + cl_prime * F_vect(2) + cF * F_vect(3) + &
+                      cD * F_vect(4) + cOmega * F_vect(5)
+
             !get the produced gravity field corrections
-            dC(l, m) = dC(l, m) + fac*((dC_p(i, l, m) + dC_m(i, l, m))*cos(theta_f) + (dS_p(i, l, m) + dS_m(i, l, m))*sin(theta_f))
+            dC(l, m) = dC(l, m) + fac*((dC_p(i, l, m) + dC_m(i, l, m))*cos(theta_f) + &
+                       (dS_p(i, l, m) + dS_m(i, l, m))*sin(theta_f))
             if (m == 0) then
               dS(l, m) = 0
             else
-              dS(l, m) = dS(l, m) + fac*((dC_m(i, l, m) - dC_p(i, l, m))*sin(theta_f) + (dS_p(i, l, m) - dS_m(i, l, m))*cos(theta_f))
+              dS(l, m) = dS(l, m) + fac*((dS_p(i, l, m) - dS_m(i, l, m))*cos(theta_f) - &
+                         (dC_p(i, l, m) - dC_m(i, l, m))*sin(theta_f))
             end if
           end do
         end do
@@ -556,8 +582,8 @@ contains
         m1 = pom(1) - pomAvg(1)
         m2 = pomAvg(2) - pom(2)
 
-        dC(2,1) = dC(2,1) - 2.1778d-10*(m1 - 0.01724*m2)*sqrt(5/3)
-        dS(2,1) = dS(2,1) - 1.7232d-10*(m2 - 0.03365*m1)*sqrt(5/3)
+        dC(2,1) = dC(2,1) - 2.1778d-10*(m1 - 0.01724*m2)*sqrt(5.d0/3.d0)
+        dS(2,1) = dS(2,1) - 1.7232d-10*(m2 - 0.03365*m1)*sqrt(5.d0/3.d0)
 
       end if
 
@@ -742,11 +768,11 @@ contains
 
   end subroutine setTidesInitFlag
 
-  !=========================================================================
+!=========================================================================
 !
 !> @anchor      getDelaunay_arg
 !!
-!> @brief       Compute the Delaunay arguments
+!> @brief       Compute the Delaunay arguments (IERS chapter 5)
 !> @author      Andrea Turchi (ATU)
 !!
 !> @date        <ul>
@@ -758,6 +784,8 @@ contains
 
     implicit none
     real(dp), intent(in)                :: time_mjd
+    real(dp), parameter                 :: jd2000 = 2451545.0, conv = 360.0/1296000.0
+    real(dp)                            :: time_jd, jd_cent
     real(dp)                            :: l
     real(dp)                            :: l_prime
     real(dp)                            :: F
@@ -765,14 +793,59 @@ contains
     real(dp)                            :: Omega
     real(dp), dimension(5), intent(out) :: F_vect
 
-    l = 134.96 + 13.064993 * (time_mjd - 51544.5)
-    l_prime = 357.53 + 0.985600 * (time_mjd - 51544.5)
-    F = 93.27 + 13.229350 * (time_mjd - 51544.5)
-    D = 297.85 + 12.190749 * (time_mjd - 51544.5)
-    Omega = 125.04 - 0.052954 * (time_mjd - 51544.5)
+    !get input time in Julian centuries
+    time_jd = time_mjd + 2400000.5
+    jd_cent = (time_jd - jd2000)/36525.0
+    
+    !compute Delaunay arguments in degrees 
+    l = 134.96340251 + (1717915923.217800 * jd_cent + 31.879200 * jd_cent**2 &
+        + 0.05163500 * jd_cent**3 - 0.0002447000 * jd_cent**4) * conv
+    l_prime = 357.52910918 + (129596581.048100 * jd_cent - 0.553200 * jd_cent**2 &
+              + 0.00013600 * jd_cent**3 - 0.0000114900 * jd_cent**4) * conv
+    F = 93.27209062 + (1739527262.847800 * jd_cent - 12.751200 * jd_cent**2 &
+        - 0.00103700 * jd_cent**3 + 0.0000041700 * jd_cent**4) * conv
+    D = 297.85019547 + (1602961601.209000 * jd_cent - 6.370600 * jd_cent**2 &
+        + 0.00659300 * jd_cent**3 - 0.0000316900 * jd_cent**4) * conv
+    Omega = 125.04455501 + (- 6962890.543100 * jd_cent + 7.472200 * jd_cent**2 &
+            + 0.00770200 * jd_cent**3 - 0.0000593900 * jd_cent**4) * conv
 
     F_vect = (/l, l_prime, F, D, Omega/)
 
   end subroutine getDelaunay_arg
+
+!=========================================================================
+!
+!> @anchor      getDoodson_arg
+!!
+!> @brief       Compute the Doodson arguments (as Orekit)
+!> @author      Andrea Turchi (ATU)
+!!
+!> @date        <ul>
+!!                <li> 23.08.22 (initial design) </li>
+!!              </ul>
+!!
+!!-----------------------------------------------------------------------
+  subroutine getDoodson_arg(doodson, ctheta_g, cl, cl_prime, cF, cD, cOmega)
+
+    implicit none
+    real, intent(in) :: doodson
+    integer :: cPs, cNPrime, cP, cH, cS, cTau
+    integer, intent(out) :: ctheta_g, cl, cl_prime, cF, cD, cOmega
+
+    cPs     = mod(doodson, 10.0) - 5
+    cNPrime = mod((doodson / 10.0), 10.0) - 5
+    cP      = mod((doodson / 100.0), 10.0) - 5
+    cH      = mod((doodson / 1000.0), 10.0) - 5
+    cS      = mod((doodson / 10000.0), 10.0) - 5
+    cTau    = mod((doodson / 100000.0), 10.0)
+
+    ctheta_g = cTau
+    cl       = -cP
+    cl_prime = -cPs
+    cF       = -cTau + cS + cH + cP + cPs
+    cD       = -cH - cPs
+    cOmega   = -cTau + cS + cH + cP - cNPrime + cPs
+
+  end subroutine getDoodson_arg
 
 end module tides
