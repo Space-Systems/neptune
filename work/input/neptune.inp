@@ -109,8 +109,8 @@
   1   Moon gravity
   1   Solar radiation pressure
   1   Earth albedo
-  1   Solid Earth tides
-  0   Ocean tides
+  0   Solid Earth tides
+  1   Ocean tides
   0   Orbital maneuvers   ! specification to be provided in file as given below in section 'File paths'
 #
 #   Geopotential model to be used (if geopotential perturbation /= 0):
@@ -126,7 +126,7 @@
 #     3 = JB2008
 #     4 = NRLMSIS2.0
 #
-  4
+  2
 #
 #   Use only a subset of spherical harmonics of the geopotential
 #     - First set switch to '1', then provide harmonics in the

@@ -34,7 +34,6 @@ set(SRC_FILES
     msis_gtd8d.f90
     msis_init.f90
     msis_tfn.f90
-    msis20_test.f90
 )
 
 # Build the neptune library

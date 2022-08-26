@@ -5,6 +5,7 @@
 !> @author      Vitali Braun (VB)
 !> @author      Christopher Kebschull (CHK)
 !> @author      Daniel Lück (DLU)
+!> @author      Andrea Turchi (ATU)
 !!
 !> @date        <ul>
 !!                <li>VB:  17.01.2013 (initial design)</li>
@@ -18,6 +19,7 @@
 !!                <li>CHK: 05.01.2018 (Moved variables with save statements to Atmosphere class)
 !!                <li>CHK: 16.02.2018 (Moving to object-oriented nrlmsise-00 implementation)
 !!                <li>DLU: 12.01.2021 (Added JB2008 atmosphere model)</li>
+!!                <li>ATU: 24.08.2022 (Added NRLMSISv2 atmosphere model)</li>
 !!              </ul>
 !!
 !> @details     This module contains parameters, subroutines and functions required for Earth's
@@ -67,7 +69,7 @@ module atmosphere
 
     integer,public,parameter :: n_supported_sga_file_types = 3                  ! Number of different supported data file types for solar and geomagnetic activity
 
-    integer,public,parameter :: NRLMSIS     = 4
+    integer,public,parameter :: NRLMSISv2   = 4
     integer,public,parameter :: JB08        = 3
     integer,public,parameter :: MSIS2000    = 2
     integer,public,parameter :: EXPONENTIAL = 1
@@ -209,7 +211,7 @@ module atmosphere
         procedure :: getDensityExponential
         procedure :: getDensityMSIS2000
         procedure :: getDensityJB2008
-        procedure :: getDensityNRLMSIS
+        procedure :: getDensityNRLMSISv2
 
     end type
 
@@ -388,10 +390,10 @@ contains
     real(dp)                    :: mjd_end                                      ! MJD of last SGA data entry
     real(dp)                    :: mjd_start                                    ! MJD of first SGA data entry
     character(len=255)          :: cmess                                        ! message string
-    real, dimension(25)         :: switch_legacy
-    logical, dimension(512)     :: switch_gfn
-    integer                     :: j
-    integer, parameter          :: iun = 67
+    real, dimension(25)         :: switch_legacy                                ! flag to activate all geomagnetic activity indexes in NRLMSISv2
+    logical, dimension(512)     :: switch_gfn                                   ! logical switches for NRLMSISv2 model
+    integer                     :: j                                            ! counter
+    integer, parameter          :: iun = 67                                     ! file unit number for NRLMSISv2 model
 
 
     if(isControlled()) then
@@ -467,26 +469,25 @@ contains
 
     end if
 
-    do j=1,512
+    do j = 1, 512
       switch_gfn(j) = .true.
     end do
 
-    do j=1,14
+    do j = 1, 14
       if (j == 9) then
         switch_legacy(j) = -1.0
-        !switch_legacy(j) = 1.0
       else
         switch_legacy(j) = 1.0
       end if
     end do
 
-    if(sgaDataType == FILE_FAPDAY .and. this%nmodel == NRLMSIS) then            ! F10.7 81-day centered will be required, but ESA daily data provides last 81-day data only,
+    if(sgaDataType == FILE_FAPDAY .and. this%nmodel == NRLMSISv2) then          ! F10.7 81-day centered will be required, but ESA daily data provides last 81-day data only,
                                                                                 ! so 41 additional days are required for a shift later on
       mjd_start = mjd_start - 81.d0                                             ! in order to compute F10.7 last 81-day averages
       mjd_end   = mjd_end   + 41.d0
       call msisinit(cpath, '/msis20.parm', iun, switch_gfn, switch_legacy)
 
-    else if (sgaDataType == FILE_JB08 .and. this%nmodel == NRLMSIS) then
+    else if (sgaDataType == FILE_JB08 .and. this%nmodel == NRLMSISv2) then
       
       cmess = "Wrong input file (JB08) specified for the selected NRLMSIS2.0 atmospheric model."
       call setNeptuneError(E_SPECIAL, FATAL, (/cmess/))
@@ -795,8 +796,8 @@ contains
         call setNeptuneError(E_SPECIAL, FATAL, (/cmess/))
         return
       end if
-    else if(this%nmodel == NRLMSIS) then
-      rho = this%getDensityNRLMSIS(altitude, lat_gd, lon_gd, time_mjd)
+    else if(this%nmodel == NRLMSISv2) then
+      rho = this%getDensityNRLMSISv2(altitude, lat_gd, lon_gd, time_mjd)
     end if
 
     this%last_rho      = rho
@@ -1084,7 +1085,7 @@ contains
   !!              </ul>
   !!
   !> @param[in]   altitude          geodetic altitude / km    (althought this might also be geocentric)
-  !> @param[in]   latitude          geocenric latitude / rad
+  !> @param[in]   latitude          geocentric latitude / rad
   !> @param[in]   right ascension   right ascension / rad
   !> @param[in]   time_mjd          MJD
   !!
@@ -1253,7 +1254,7 @@ contains
 
   !!------------------------------------------------------------------------------------------------
   !
-  !> @anchor      getDensityNRLMSIS
+  !> @anchor      getDensityNRLMSISv2
   !!
   !> @brief       Gets the density from the NRLMSIS2.0 atmosphere model
   !> @author      Andrea Turchi (ATU)
@@ -1273,12 +1274,10 @@ contains
   !!              for the passed altitude and the MJD.
   !!
   !!------------------------------------------------------------------------------------------------
-  real(dp) function getDensityNRLMSIS(this, altitude, latitude, longitude, time_mjd) result(rho)
+  real(dp) function getDensityNRLMSISv2(this, altitude, latitude, longitude, time_mjd) result(rho)
   use msis_constants
   use msis_calc
-  use msis_gtd8d
-  use test20
-  
+  use msis_gtd8d  
 
   implicit none
 
@@ -1306,10 +1305,10 @@ contains
   integer                 :: offset                                           ! index offset in space weather data array
   integer, parameter      :: mass = 8                                         ! mass number
 
-  real, dimension(7)  :: ap, ap_test                                               ! planetary amplitude Ap
+  real, dimension(7)      :: ap                                               ! geomagnetic activity index array
 
-  real, dimension(2)      :: tn_NRLMSIS, t_test                                       ! temperature in K at requested altitude
-  real, dimension(10)     :: dn_NRLMSIS, d_test                                       ! densities
+  real, dimension(2)      :: tn_NRLMSISv2                                     ! temperature in K at requested altitude
+  real, dimension(10)     :: dn_NRLMSISv2                                     ! densities at requested altitude
 
   ! Convert to time format YYDDD with DDD being the day of the year
   idate = mjd2yyddd(time_mjd)
@@ -1392,44 +1391,12 @@ contains
   sflu_81  = sga_data(idx)%f81ctr                                             ! 81 day average of F10.7 flux (centered on doy)
   sflu_pre = sga_data(idx-1)%f107                                             ! daily F10.7 flux for previous day
 
-  !call msiscalc(doy+sec/86400.d0, sec, altitude, lat_deg, lon_deg, sflu_81, sflu_pre, ap, tn_NRLMSIS, dn_NRLMSIS)
-  call gtd8d(idate, real(sec), real(altitude), real(lat_deg), real(lon_deg), real(loc_solar_time), real(sflu_81), real(sflu_pre), ap, mass, &
-             dn_NRLMSIS, tn_NRLMSIS)
-  !write (*,*) doy+sec/86400.d0, sec, mod(time_mjd, 1.d0)*86400.d0
+  call gtd8d(idate, real(sec), real(altitude), real(lat_deg), real(lon_deg), real(loc_solar_time), real(sflu_81), real(sflu_pre), &
+             ap, mass, dn_NRLMSISv2, tn_NRLMSISv2)
 
-  rho = dn_NRLMSIS(6)*1.d012                                                   ! total atmospheric density in kg/km**3
+  rho = dn_NRLMSISv2(6)*1.d012                                                ! total atmospheric density in kg/km**3
   
-  !ap_test(1) = 6.0
-  !call gtd8d(06022, 4328.0, 500.0, 22.0, 130.3, 9.89, 82.1, 93.9, real(ap_test), mass, d_test, t_test)
-
-  !ap_test(1) = 4.0
-  !call gtd8d(06257, 18301.0, 500.0, -47.6, 125.3, 13.44, 77.6, 82.9, real(ap_test), mass, d_test, t_test)
-
-  ! respects the tolerance
-  !ap_test(1) = 39.0
-  !call gtd8d(03128, 34273.0, 500.0, 6.5, 96.0, 15.92, 125.8, 110.2, real(ap_test), mass, d_test, t_test)
-
-  !ap_test(1) = 14.0
-  !call gtd8d(89039, 31499.0, 500.0, 42.6, -71.5, 3.98, 225.1, 216.4, real(ap_test), mass, d_test, t_test)
-
-  ! respecs the tolerance
-  !ap_test(1) = 28.0  
-  !call gtd8d(79026, 70695.0, 468.8, -19.5, 44.6, 22.61, 193.1, 212.7, real(ap_test), mass, d_test, t_test)
-
-  !ap_test(1) = 2.0
-  !call gtd8d(12167, 1526.0, 250.0, -12.7, -74.9, 19.43, 126.8, 148.6, real(ap_test), mass, d_test, t_test)
-
-  !ap_test(1) = 17.0
-  !call gtd8d(06239, 55200.0, 250.0, -84.7, -135.0, 6.33, 77.6, 75.7, real(ap_test), mass, d_test, t_test)
-
-  !ap_test(1) = 3.0
-  !call gtd8d(08174, 36372.0, 110.0, 62.7, 2.3, 10.25, 66.5, 64.9, real(ap_test), mass, d_test, t_test)
-
-  !ap_test(1) = 9.0
-  !call gtd8d(12016, 83330.0, 260.0, 5.8, 118.1, 7.02, 126.0, 133.5, real(ap_test), mass, d_test, t_test)
-  !write(*,*) d_test(6)*1.d012
-  
-  end function getDensityNRLMSIS
+  end function getDensityNRLMSISv2
 
   !==============================================================
   !
@@ -1802,8 +1769,8 @@ contains
         this%nmodel = MSIS2000
       case(EXPONENTIAL)
         this%nmodel = EXPONENTIAL
-      case(NRLMSIS)
-        this%nmodel = NRLMSIS
+      case(NRLMSISv2)
+        this%nmodel = NRLMSISv2
       case default
         write(cerr,'(i3)') imodel
         call setNeptuneError(E_UNKNOWN_PARAMETER, FATAL, (/cerr/))
