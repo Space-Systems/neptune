@@ -1,0 +1,32 @@
+module test_tides
+    use funit
+    use tides
+    use slam_reduction_class,   only: Reduction_type
+    use slam_types,             only: dp
+
+    implicit none
+
+    contains
+
+    @test
+    subroutine test_getFES2004_dCdS()
+        !test the correction on the C20 harmonic 
+        !coefficient by the FES2004 model 
+        !input:
+            !MJD = 51544.5
+            !lmax = 6
+            !reduction
+
+        type(Tides_class)            :: this
+        type(Reduction_type)         :: reduction
+        real(dp), dimension(2:6,0:6) :: dC
+        real(dp), dimension(2:6,0:6) :: dS
+
+        call this%getFES2004_corrections("../../work/data/fes2004_Cnm-Snm.dat", 0.515445d5, 6, reduction, dC, dS)
+
+        !@assertRelativelyEqual(dC(2, 0), -0.44319d-11, tolerance=0.01)
+        @assertRelativelyEqual(dC(2, 1), 0.18352d-10, tolerance=0.01)
+
+    end subroutine test_getFES2004_dCdS
+
+end module test_tides
