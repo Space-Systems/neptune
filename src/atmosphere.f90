@@ -1275,127 +1275,127 @@ contains
   !!
   !!------------------------------------------------------------------------------------------------
   real(dp) function getDensityNRLMSISv2(this, altitude, latitude, longitude, time_mjd) result(rho)
-  use msis_constants
-  use msis_calc
-  use msis_gtd8d  
+    use msis_constants
+    use msis_calc
+    use msis_gtd8d  
 
-  implicit none
+    implicit none
 
-  class(Atmosphere_class) :: this
-  real(dp), intent(in)    :: altitude
-  real(dp), intent(in)    :: latitude
-  real(dp), intent(in)    :: longitude
-  real(dp), intent(in)    :: time_mjd
+    class(Atmosphere_class) :: this
+    real(dp), intent(in)    :: altitude
+    real(dp), intent(in)    :: latitude
+    real(dp), intent(in)    :: longitude
+    real(dp), intent(in)    :: time_mjd
 
-  integer                 :: idate                                            ! date in YYDDD format for NRLMSIS2.0 atmosphere model
-  integer                 :: year                                             ! date in YY format for NRLMSIS2.0 atmosphere model
-  real(dp)                :: doy                                              ! date in DDD format for NRLMSIS2.0 atmosphere model
+    integer                 :: idate                                            ! date in YYDDD format for NRLMSIS2.0 atmosphere model
+    integer                 :: year                                             ! date in YY format for NRLMSIS2.0 atmosphere model
+    real(dp)                :: doy                                              ! date in DDD format for NRLMSIS2.0 atmosphere model
 
-  real(dp)                :: sec                                              ! universal time in seconds
-  real(dp)                :: loc_solar_time                                   ! local solar time in hours
-  real(dp)                :: lat_deg                                          ! geodetic latitude in degrees
-  real(dp)                :: lon_deg                                          ! geodetic longitude in degrees
-  real(dp)                :: sflu_81                                          ! 81 day average, centered on doy, of F10.7 solar activity index
-  real(dp)                :: sflu_pre                                         ! daily F10.7 for previous day
+    real(dp)                :: sec                                              ! universal time in seconds
+    real(dp)                :: loc_solar_time                                   ! local solar time in hours
+    real(dp)                :: lat_deg                                          ! geodetic latitude in degrees
+    real(dp)                :: lon_deg                                          ! geodetic longitude in degrees
+    real(dp)                :: sflu_81                                          ! 81 day average, centered on doy, of F10.7 solar activity index
+    real(dp)                :: sflu_pre                                         ! daily F10.7 for previous day
 
-  integer                 :: hour                                             ! hour
-  integer                 :: ap_pointer                                       ! Ap pointer
-  integer                 :: i                                                ! loop counter
-  integer                 :: idx
-  integer                 :: offset                                           ! index offset in space weather data array
-  integer, parameter      :: mass = 8                                         ! mass number
+    integer                 :: hour                                             ! hour
+    integer                 :: ap_pointer                                       ! Ap pointer
+    integer                 :: i                                                ! loop counter
+    integer                 :: idx
+    integer                 :: offset                                           ! index offset in space weather data array
+    integer, parameter      :: mass = 8                                         ! mass number
 
-  real, dimension(7)      :: ap                                               ! geomagnetic activity index array
+    real, dimension(7)      :: ap                                               ! geomagnetic activity index array
 
-  real, dimension(2)      :: tn_NRLMSISv2                                     ! temperature in K at requested altitude
-  real, dimension(10)     :: dn_NRLMSISv2                                     ! densities at requested altitude
+    real, dimension(2)      :: tn_NRLMSISv2                                     ! temperature in K at requested altitude
+    real, dimension(10)     :: dn_NRLMSISv2                                     ! densities at requested altitude
 
-  ! Convert to time format YYDDD with DDD being the day of the year
-  idate = mjd2yyddd(time_mjd)
+    ! Convert to time format YYDDD with DDD being the day of the year
+    idate = mjd2yyddd(time_mjd)
 
-  ! Get only day of year, as years are ignored anyhow
-  year = int(idate / 1d3)
-  doy = idate - (year * 1d3)
+    ! Get only day of year, as years are ignored anyhow
+    year = int(idate / 1d3)
+    doy = idate - (year * 1d3)
 
-  ! Get universal time in seconds
-  sec = mjd2daySeconds(time_mjd)
-  hour = int(sec/3600.d0)
+    ! Get universal time in seconds
+    sec = mjd2daySeconds(time_mjd)
+    hour = int(sec/3600.d0)
 
-  !** get local solar time (in hrs.)
-  loc_solar_time = getLocalSolarTime(time_mjd, longitude)
+    !** get local solar time (in hrs.)
+    loc_solar_time = getLocalSolarTime(time_mjd, longitude)
 
-  ! Convert geodetic coordinates in degrees
-  lat_deg = latitude*rad2deg
-  lon_deg = longitude*rad2deg
+    ! Convert geodetic coordinates in degrees
+    lat_deg = latitude*rad2deg
+    lon_deg = longitude*rad2deg
 
-  !** find index in space weather data for current date
-  idx = int(time_mjd - int(sga_data(1)%mjd)) + 1
+    !** find index in space weather data for current date
+    idx = int(time_mjd - int(sga_data(1)%mjd)) + 1
 
-  !** build ap array
-  !------------------------------------------
-  ap_pointer = int(hour/3.d0) + 1
-  offset     = 0
+    !** build ap array
+    !------------------------------------------
+    ap_pointer = int(hour/3.d0) + 1
+    offset     = 0
 
-  ! (1) DAILY AP
-  ap(1) = 0.d0
+    ! (1) DAILY AP
+    ap(1) = 0.d0
 
-  do i = 1,8
-    ap(1) = ap(1) + sga_data(idx)%ap(i)
-  end do
+    do i = 1,8
+      ap(1) = ap(1) + sga_data(idx)%ap(i)
+    end do
 
-  ap(1) = ap(1)/8.d0
+    ap(1) = ap(1)/8.d0
 
-  ! (2) 3 HR AP INDEX FOR CURRENT TIME
-  ap(2) = sga_data(idx)%ap(ap_pointer)
+    ! (2) 3 HR AP INDEX FOR CURRENT TIME
+    ap(2) = sga_data(idx)%ap(ap_pointer)
 
-  do i=3,5  ! (3,4,5) 3 HR AP INDEX FOR 3 HR, 6 HR and 9 HR BEFORE CURRENT TIME
-    ap_pointer = ap_pointer - 1
-    if(ap_pointer < 1) then
-      ap_pointer = 8
-      offset     = offset + 1
-    end if
-    ap(i) = sga_data(idx - offset)%ap(ap_pointer)
-  end do
+    do i=3,5  ! (3,4,5) 3 HR AP INDEX FOR 3 HR, 6 HR and 9 HR BEFORE CURRENT TIME
+      ap_pointer = ap_pointer - 1
+      if(ap_pointer < 1) then
+        ap_pointer = 8
+        offset     = offset + 1
+      end if
+      ap(i) = sga_data(idx - offset)%ap(ap_pointer)
+    end do
 
-  ! (6) AVERAGE OF EIGHT 3 HR AP INDICES FROM 12 TO 33 HRS PRIOR
-  !     TO CURRENT TIME
-  ap(6) = 0.d0
+    ! (6) AVERAGE OF EIGHT 3 HR AP INDICES FROM 12 TO 33 HRS PRIOR
+    !     TO CURRENT TIME
+    ap(6) = 0.d0
 
-  do i=1,8
-    ap_pointer = ap_pointer - 1
-    if(ap_pointer < 1) then
-      ap_pointer = 8
-      offset     = offset + 1
-    end if
-    ap(6) = ap(6) + sga_data(idx-offset)%ap(ap_pointer)
-  end do
+    do i=1,8
+      ap_pointer = ap_pointer - 1
+      if(ap_pointer < 1) then
+        ap_pointer = 8
+        offset     = offset + 1
+      end if
+      ap(6) = ap(6) + sga_data(idx-offset)%ap(ap_pointer)
+    end do
 
-  ap(6) = ap(6)/8.d0
+    ap(6) = ap(6)/8.d0
 
-  ! (7) AVERAGE OF EIGHT 3 HR AP INDICES FROM 36 TO 57 HRS PRIOR
-  !     TO CURRENT TIME
-  ap(7) = 0.d0
+    ! (7) AVERAGE OF EIGHT 3 HR AP INDICES FROM 36 TO 57 HRS PRIOR
+    !     TO CURRENT TIME
+    ap(7) = 0.d0
 
-  do i=1,8
-    ap_pointer = ap_pointer - 1
-    if(ap_pointer < 1) then
-      ap_pointer = 8
-      offset     = offset + 1
-    end if
-    ap(7) = ap(7) + sga_data(idx-offset)%ap(ap_pointer)
-  end do
+    do i=1,8
+      ap_pointer = ap_pointer - 1
+      if(ap_pointer < 1) then
+        ap_pointer = 8
+        offset     = offset + 1
+      end if
+      ap(7) = ap(7) + sga_data(idx-offset)%ap(ap_pointer)
+    end do
 
-  ap(7) = ap(7)/8.d0
+    ap(7) = ap(7)/8.d0
 
-  ! Get F10.7 solar activity indexes
-  sflu_81  = sga_data(idx)%f81ctr                                             ! 81 day average of F10.7 flux (centered on doy)
-  sflu_pre = sga_data(idx-1)%f107                                             ! daily F10.7 flux for previous day
+    ! Get F10.7 solar activity indexes
+    sflu_81  = sga_data(idx)%f81ctr                                             ! 81 day average of F10.7 flux (centered on doy)
+    sflu_pre = sga_data(idx-1)%f107                                             ! daily F10.7 flux for previous day
 
-  call gtd8d(idate, real(sec), real(altitude), real(lat_deg), real(lon_deg), real(loc_solar_time), real(sflu_81), real(sflu_pre), &
-             ap, mass, dn_NRLMSISv2, tn_NRLMSISv2)
+    call gtd8d(idate, real(sec), real(altitude), real(lat_deg), real(lon_deg), real(loc_solar_time), real(sflu_81), real(sflu_pre), &
+              ap, mass, dn_NRLMSISv2, tn_NRLMSISv2)
 
-  rho = dn_NRLMSISv2(6)*1.d012                                                ! total atmospheric density in kg/km**3
-  
+    rho = dn_NRLMSISv2(6)*1.d012                                                ! total atmospheric density in kg/km**3
+    
   end function getDensityNRLMSISv2
 
   !==============================================================
