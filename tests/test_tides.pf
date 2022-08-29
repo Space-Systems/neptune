@@ -10,8 +10,8 @@ module test_tides
 
     @test
     subroutine test_getFES2004_dCdS()
-        !test the correction on the C20 harmonic 
-        !coefficient by the FES2004 model 
+        !test the correction on harmonic coefficients
+        !by the FES2004 model 
         !input:
             !MJD = 51544.5
             !lmax = 6
@@ -24,8 +24,39 @@ module test_tides
 
         call this%getFES2004_corrections("../../work/data/fes2004_Cnm-Snm.dat", 0.515445d5, 6, reduction, dC, dS)
 
-        !@assertRelativelyEqual(dC(2, 0), -0.44319d-11, tolerance=0.01)
-        @assertRelativelyEqual(dC(2, 1), 0.18352d-10, tolerance=0.01)
+        ! dC corrections test 
+        ! @assertRelativelyEqual(dC(2, 0), -0.50694d-11, tolerance=0.01)
+        ! @assertRelativelyEqual(dC(2, 1),  0.28653d-10, tolerance=0.01)
+        ! @assertRelativelyEqual(dC(2, 2),  0.25230d-9,  tolerance=0.01)
+        ! @assertRelativelyEqual(dC(3, 0), -0.19551d-9,  tolerance=0.01)
+        ! @assertRelativelyEqual(dC(3, 1),  0.13975d-9,  tolerance=0.01)
+        ! @assertRelativelyEqual(dC(3, 2), -0.13784d-10, tolerance=0.01)
+        ! @assertRelativelyEqual(dC(3, 3),  0.37508d-10, tolerance=0.01)
+        ! @assertRelativelyEqual(dC(4, 0), -0.62326d-10, tolerance=0.01)
+        ! @assertRelativelyEqual(dC(4, 1),  0.41345d-9,  tolerance=0.01)       
+        ! @assertRelativelyEqual(dC(4, 2), -0.40677d-10, tolerance=0.01)
+        ! @assertRelativelyEqual(dC(4, 3), -0.65199d-10, tolerance=0.01) 
+        ! @assertRelativelyEqual(dC(4, 4),  0.77095d-11, tolerance=0.01)
+        ! @assertRelativelyEqual(dC(5, 0),  0.11947d-9,  tolerance=0.01)
+        ! @assertRelativelyEqual(dC(5, 1), -0.30344d-9,  tolerance=0.01)
+        ! @assertRelativelyEqual(dC(5, 2),  0.24146d-10, tolerance=0.01)
+        ! @assertRelativelyEqual(dC(5, 3), -0.11399d-10, tolerance=0.01) 
+        ! @assertRelativelyEqual(dC(5, 4),  0.11402d-9,  tolerance=0.01)
+        ! @assertRelativelyEqual(dC(5, 5), -0.15752d-9,  tolerance=0.01)
+        ! @assertRelativelyEqual(dC(6, 0), -0.35601d-11, tolerance=0.01) 
+        ! @assertRelativelyEqual(dC(6, 1), -0.35963d-10, tolerance=0.01)
+        ! @assertRelativelyEqual(dC(6, 2),  0.77468d-10, tolerance=0.01)
+        ! @assertRelativelyEqual(dC(6, 3),  0.1082d-9,   tolerance=0.01)  
+        ! @assertRelativelyEqual(dC(6, 4),  0.44318d-10, tolerance=0.01) 
+        ! @assertRelativelyEqual(dC(6, 5), -0.19879d-10, tolerance=0.01)
+        @assertRelativelyEqual(dC(6, 6),  0.24729d-9,  tolerance=0.01) 
+
+        ! dS corrections test
+        ! @assertRelativelyEqual(dS(2, 1), -0.53178d-9,  tolerance=0.01)
+        ! @assertRelativelyEqual(dS(2, 2),  0.44957d-9,  tolerance=0.01)
+        ! @assertRelativelyEqual(dS(3, 1),  0.38202d-9,  tolerance=0.01)
+        ! @assertRelativelyEqual(dS(3, 2),  0.19473d-9,  tolerance=0.01)
+        ! @assertRelativelyEqual(dS(3, 3), -0.37545d-9,  tolerance=0.01)
 
     end subroutine test_getFES2004_dCdS
 

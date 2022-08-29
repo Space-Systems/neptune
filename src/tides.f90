@@ -3,6 +3,7 @@
 !> @brief       Solid and ocean tides modeling
 !> @author      Vitali Braun (VB)
 !> @author      Christopher Kebschull (CHK)
+!> @author      Andrea Turchi (ATU)
 !!
 !> @date        <ul>
 !!                <li>VB:  16.07.2013 (initial design)    </li>
