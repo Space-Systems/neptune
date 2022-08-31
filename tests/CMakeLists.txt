@@ -13,3 +13,4 @@ add_pfunit_ctest (tides_tests
     TEST_SOURCES test_tides.pf
     LINK_LIBRARIES neptune ${LIBSLAM}
     )
+    
