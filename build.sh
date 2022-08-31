@@ -2,7 +2,7 @@
 #
 # Define how to build the libraries and executables:
 BUILD_TYPE=Debug
-Fortran_COMPILER=gfortran-8
+Fortran_COMPILER=gfortran
 LIBSUFFIX="so"
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
   LIBSUFFIX="so"

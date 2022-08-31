@@ -26,6 +26,14 @@ set(SRC_FILES
     rdinp.f90
     neptune.f90
     JB2008module.for
+    alt2gph.f90
+    msis_calc.f90
+    msis_constants.f90
+    msis_dfn.f90
+    msis_gfn.f90
+    msis_gtd8d.f90
+    msis_init.f90
+    msis_tfn.f90
 )
 
 # Build the neptune library
