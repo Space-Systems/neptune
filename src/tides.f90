@@ -342,7 +342,8 @@ contains
             dm = 2
           end if
 
-          fac   = sqrt(real(factorial(l-m)/factorial(l+m))) ! consider transformation for unnormalized coefficients
+          ! consider transformation for unnormalized coefficients
+          fac   = sqrt(real(factorial(l-m)/factorial(l+m))) 
           templ = k(l,m)*sqrt(real(dm))*fac/(muEarth*sqrt(2.d0*l+1.d0))
 
           do i = SUN, MOON
@@ -362,7 +363,6 @@ contains
           dm = 2
         end if
 
-        !templ = kp(m)*dm*sqrt(1.8d0*(4-m)*(3-m)/(4.d0+m)/(3.d0+m))*factorial(2-m)/factorial(2+m)/muEarth
         templ = kp(m)*sqrt(real(dm*factorial(2-m)/factorial(2+m)))/(muEarth*sqrt(5.d0))
 
         do i = SUN, MOON
@@ -382,9 +382,7 @@ contains
         m1 = pom(1) - pomAvg(1)
         m2 = pomAvg(2) - pom(2)
 
-        !dC(2,1) = dC(2,1) - 1.721d-9*(m1 - 0.0115*m2)
         dC(2,1) = dC(2,1) - 1.333d-9*(m1 - 0.0115*m2)*sqrt(5.d0/3.d0)
-        !dS(2,1) = dS(2,1) - 1.721d-9*(m2 + 0.0115*m1)
         dS(2,1) = dS(2,1) - 1.333d-9*(m2 + 0.0115*m1)*sqrt(5.d0/3.d0)
 
       end if
