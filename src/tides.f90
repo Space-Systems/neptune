@@ -21,8 +21,6 @@
 !!
 !> @anchor      tides
 !!
-!> @todo        Find bug in Solid tides (comparing to 2-body trajectory -> discontinuity?!)
-!> @todo        Ocean tide model implementation incorrect? No reference and Vallado seems to be wrong. Consider implementing a REAL IERS model
 !!------------------------------------------------------------------------------------------------
 module tides
 
@@ -197,63 +195,49 @@ contains
 
     real(dp), dimension(2)         :: body_lat
     real(dp), dimension(2)         :: body_lon
-    real(dp), dimension(0:6)       :: costerm, sinterm    ! cos(ml) and sin(ml)
-    real(dp), dimension(2:6,0:6)   :: dC, dS      ! deviations in coefficients C and S due to tides
-    real(dp), parameter            :: densWater = 1025.d9             ! water density in kg/km**3
-    real(dp), dimension(2:3,0:3)   :: k = reshape((/0.29525d0, 0.093d0, &     ! nominal love numbers for degree and order
+    real(dp), dimension(0:6)       :: costerm, sinterm                            ! cos(ml) and sin(ml)
+    real(dp), dimension(2:6,0:6)   :: dC, dS                                      ! deviations in coefficients C and S due to tides
+    real(dp), dimension(2:3,0:3)   :: k = reshape((/0.29525d0, 0.093d0, &         ! nominal love numbers for degree and order
                                                     0.29470d0, 0.093d0, &
                                                     0.29801d0, 0.093d0, &
                                                     0.d0,      0.094d0/), (/2,4/))
-    real(dp), dimension(2:6)       :: kld = (/-0.3075d0, -0.1950d0, & ! load deformation coefficients
-                                              -0.1320d0, -0.1032d0, &
-                                              -0.0892d0/)
     real(dp), dimension(0:2)       :: kp =(/-0.00087d0, -0.00079d0, -0.00057d0/)  ! nominal love numbers for correction of fourth degree term (k+nm)
-    real(dp), dimension(2,0:6,0:6) :: lp          ! legendre polynomials for Sun and Moon
-    real(dp), dimension(0:7,0:7)   :: lpsat       ! legendre polynomials for satellite
-    real(dp), dimension(2)         :: mu          ! GM parameter of Sun and Moon
-    real(dp), dimension(2)         :: pom, pomAvg ! polar motion variables xp,yp (current and running average) / rad
+    real(dp), dimension(2,0:6,0:6) :: lp                                          ! legendre polynomials for Sun and Moon
+    real(dp), dimension(0:7,0:7)   :: lpsat                                       ! legendre polynomials for satellite
+    real(dp), dimension(2)         :: mu                                          ! GM parameter of Sun and Moon
+    real(dp), dimension(2)         :: pom, pomAvg                                 ! polar motion variables xp,yp (current and running average) / rad
     real(dp), dimension(2)         :: rabs_body
     real(dp), dimension(3,2)       :: rBodyGCRF
     real(dp), dimension(3,2)       :: rBodyITRF
 
-    real(dp) :: const         ! constant factor
-    real(dp) :: dudlambda     ! dU/d(lambda)
-    real(dp) :: dudphi        ! dU/d(phi_gc)
-    real(dp) :: dudr          ! dU/d(rabs)
-    real(dp) :: fac           ! factorial term for the conversion to unnormalized coefficients
+    real(dp) :: const                   ! constant factor
+    real(dp) :: dudlambda               ! dU/d(lambda)
+    real(dp) :: dudphi                  ! dU/d(phi_gc)
+    real(dp) :: dudr                    ! dU/d(rabs)
+    real(dp) :: fac                     ! factorial term for the conversion to unnormalized coefficients
     real(dp) :: insig1, insig2, insig3  ! cumulated sums
-    real(dp) :: lambda              ! longitude
-    real(dp) :: m1, m2              ! auxiliaries to account for pole tide
-    real(dp) :: muEarth             ! Earth's gravity constant
-    real(dp) :: oorabs              ! 1/rabs
-    real(dp) :: oorabs2             ! 1/rabs2
-    real(dp) :: oorabs3             ! 1/rabs3
-    real(dp) :: oosqrt_r1r2         ! 1/sqrt(r1r2)
-    real(dp) :: phi_gc              ! latitude geocentric
-    real(dp) :: r1r2                ! radius(1)**2 + radius(2)**2
-    real(dp) :: rabs                ! magnitude of radius vector
-    real(dp) :: rabs2               ! squared radius magnitude
-    real(dp) :: rabs3               ! cubed radius magnitude
-    real(dp) :: rekm                ! Earth's radius in km
-    real(dp) :: rrfac               ! temporary
-    real(dp) :: sqrt_r1r2           ! sqrt(r1r2)
-    real(dp) :: tanphi              ! tan(phi_gc)
-    real(dp) :: temp, templ, temp2  ! temporary
-    real(dp) :: temp_t1             ! temporary (used to support tides)
-    real(dp) :: temp_t2             ! temporary (used to support tides)
-    real(dp) :: temp_t3             ! temporary (used to support tides)
-    real(dp) :: temp_t4             ! temporary (used to support tides)
-    real(dp) :: temp_t5             ! temporary (used to support tides)
-
-    ! integer                       :: ich, ios, temp_l, temp_m, ind
-    ! character(len=255)            :: cbuf, Darw
-    ! real(dp), dimension(5)        :: F_vect
-    ! real(dp) :: theta_g, temp_dCp, temp_dSp, temp_dCm, temp_dSm, theta_f
-    ! real :: temp_Doodson
-    ! real(dp), dimension(1:18,2:6,0:6), save :: dC_p, dS_p, dC_m, dS_m
-    ! logical, save :: first_call = .true.
-    ! real, dimension(1:18), save :: doodson
-    ! integer :: ctheta_g, cl, cl_prime, cF, cD, cOmega
+    real(dp) :: lambda                  ! longitude
+    real(dp) :: m1, m2                  ! auxiliaries to account for pole tide
+    real(dp) :: muEarth                 ! Earth's gravity constant
+    real(dp) :: oorabs                  ! 1/rabs
+    real(dp) :: oorabs2                 ! 1/rabs2
+    real(dp) :: oorabs3                 ! 1/rabs3
+    real(dp) :: oosqrt_r1r2             ! 1/sqrt(r1r2)
+    real(dp) :: phi_gc                  ! latitude geocentric
+    real(dp) :: r1r2                    ! radius(1)**2 + radius(2)**2
+    real(dp) :: rabs                    ! magnitude of radius vector
+    real(dp) :: rabs2                   ! squared radius magnitude
+    real(dp) :: rabs3                   ! cubed radius magnitude
+    real(dp) :: rekm                    ! Earth's radius in km
+    real(dp) :: rrfac                   ! temporary
+    real(dp) :: sqrt_r1r2               ! sqrt(r1r2)
+    real(dp) :: tanphi                  ! tan(phi_gc)
+    real(dp) :: temp, templ, temp2      ! temporary
+    real(dp) :: temp_t1                 ! temporary (used to support tides)
+    real(dp) :: temp_t2                 ! temporary (used to support tides)
+    real(dp) :: temp_t3                 ! temporary (used to support tides)
+    real(dp) :: temp_t4                 ! temporary (used to support tides)
+    real(dp) :: temp_t5                 ! temporary (used to support tides)
 
     if(isControlled()) then
       if(hasToReturn()) return
@@ -411,222 +395,8 @@ contains
     !----------------------------------------------------------------------
     else if(tidetype == OCEAN_TIDES) then
 
+      ! get all ocean tides corrections on harmonic coefficients (including the pole tide ones) 
       call getFES2004_corrections(this, "../work/data/fes2004_Cnm-Snm.dat", time_mjd, lmax, reduction, dC, dS)
-
-      !dC = 0.d0
-      !dS = 0.d0
-
-      !get Delaunay arguments in radians for the current time
-      ! call getDelaunay_arg(time_mjd, F_vect)
-      ! F_vect = F_vect*deg2rad
-
-      !get Greenwich Mean Sidereal Time
-      ! theta_g = getGMST(time_mjd)
-      
-      ! !read data only the first time (no need to repeat the operation at each call)
-      ! if (first_call) then
-      !   !read data from external file
-      !   ich = openFile("../work/data/fes2004_Cnm-Snm.dat", SEQUENTIAL, IN_FORMATTED)
-      !   do ind = 1, 59462
-      !     read(ich, '(a)', iostat=ios) cbuf
-      !     read(cbuf, *) temp_Doodson, Darw, temp_l, temp_m, temp_dCp, temp_dSp, temp_dCm, temp_dSm
-      !     !collect data for the desired l values
-      !     if (temp_l >= 2 .and. temp_l <= lmax) then
-      !       !collect data for each tide constituent
-      !       if (temp_Doodson >= 55.564 .and. temp_Doodson <= 55.566) then
-      !         dC_p(1, temp_l, temp_m) = temp_dCp
-      !         dS_p(1, temp_l, temp_m) = temp_dSp
-      !         dC_m(1, temp_l, temp_m) = temp_dCm
-      !         dS_m(1, temp_l, temp_m) = temp_dSm
-      !         doodson(1) = temp_Doodson
-      !       else if (temp_Doodson >= 55.574 .and. temp_Doodson <= 55.576) then
-      !         dC_p(2, temp_l, temp_m) = temp_dCp
-      !         dS_p(2, temp_l, temp_m) = temp_dSp
-      !         dC_m(2, temp_l, temp_m) = temp_dCm
-      !         dS_m(2, temp_l, temp_m) = temp_dSm
-      !         doodson(2) = temp_Doodson
-      !       else if (temp_Doodson >= 56.553 .and. temp_Doodson <= 56.555) then
-      !         dC_p(3, temp_l, temp_m) = temp_dCp
-      !         dS_p(3, temp_l, temp_m) = temp_dSp
-      !         dC_m(3, temp_l, temp_m) = temp_dCm
-      !         dS_m(3, temp_l, temp_m) = temp_dSm
-      !         doodson(3) = temp_Doodson
-      !       else if (temp_Doodson >= 57.554 .and. temp_Doodson <= 57.556) then
-      !         dC_p(4, temp_l, temp_m) = temp_dCp
-      !         dS_p(4, temp_l, temp_m) = temp_dSp
-      !         dC_m(4, temp_l, temp_m) = temp_dCm
-      !         dS_m(4, temp_l, temp_m) = temp_dSm
-      !         doodson(4) = temp_Doodson
-      !       else if (temp_Doodson >= 65.454 .and. temp_Doodson <= 65.456) then
-      !         dC_p(5, temp_l, temp_m) = temp_dCp
-      !         dS_p(5, temp_l, temp_m) = temp_dSp
-      !         dC_m(5, temp_l, temp_m) = temp_dCm
-      !         dS_m(5, temp_l, temp_m) = temp_dSm
-      !         doodson(5) = temp_Doodson
-      !       else if (temp_Doodson >= 75.554 .and. temp_Doodson <= 75.556) then
-      !         dC_p(6, temp_l, temp_m) = temp_dCp
-      !         dS_p(6, temp_l, temp_m) = temp_dSp
-      !         dC_m(6, temp_l, temp_m) = temp_dCm
-      !         dS_m(6, temp_l, temp_m) = temp_dSm
-      !         doodson(6) = temp_Doodson
-      !       else if (temp_Doodson >= 85.454 .and. temp_Doodson <= 85.456) then
-      !         dC_p(7, temp_l, temp_m) = temp_dCp
-      !         dS_p(7, temp_l, temp_m) = temp_dSp
-      !         dC_m(7, temp_l, temp_m) = temp_dCm
-      !         dS_m(7, temp_l, temp_m) = temp_dSm
-      !         doodson(7) = temp_Doodson
-      !       else if (temp_Doodson >= 93.554 .and. temp_Doodson <= 93.556) then
-      !         dC_p(8, temp_l, temp_m) = temp_dCp
-      !         dS_p(8, temp_l, temp_m) = temp_dSp
-      !         dC_m(8, temp_l, temp_m) = temp_dCm
-      !         dS_m(8, temp_l, temp_m) = temp_dSm
-      !         doodson(8) = temp_Doodson
-      !       else if (temp_Doodson >= 135.654 .and. temp_Doodson <= 135.656) then
-      !         dC_p(9, temp_l, temp_m) = temp_dCp
-      !         dS_p(9, temp_l, temp_m) = temp_dSp
-      !         dC_m(9, temp_l, temp_m) = temp_dCm
-      !         dS_m(9, temp_l, temp_m) = temp_dSm
-      !         doodson(9) = temp_Doodson
-      !       else if (temp_Doodson >= 145.554 .and. temp_Doodson <= 145.556) then
-      !         dC_p(10, temp_l, temp_m) = temp_dCp
-      !         dS_p(10, temp_l, temp_m) = temp_dSp
-      !         dC_m(10, temp_l, temp_m) = temp_dCm
-      !         dS_m(10, temp_l, temp_m) = temp_dSm
-      !         doodson(10) = temp_Doodson
-      !       else if (temp_Doodson >= 163.554 .and. temp_Doodson <= 163.556) then
-      !         dC_p(11, temp_l, temp_m) = temp_dCp
-      !         dS_p(11, temp_l, temp_m) = temp_dSp
-      !         dC_m(11, temp_l, temp_m) = temp_dCm
-      !         dS_m(11, temp_l, temp_m) = temp_dSm
-      !         doodson(11) = temp_Doodson
-      !       else if (temp_Doodson >= 165.554 .and. temp_Doodson <= 165.556) then
-      !         dC_p(12, temp_l, temp_m) = temp_dCp
-      !         dS_p(12, temp_l, temp_m) = temp_dSp
-      !         dC_m(12, temp_l, temp_m) = temp_dCm
-      !         dS_m(12, temp_l, temp_m) = temp_dSm
-      !         doodson(12) = temp_Doodson
-      !       else if (temp_Doodson >= 235.754 .and. temp_Doodson <= 235.756) then
-      !         dC_p(13, temp_l, temp_m) = temp_dCp
-      !         dS_p(13, temp_l, temp_m) = temp_dSp
-      !         dC_m(13, temp_l, temp_m) = temp_dCm
-      !         dS_m(13, temp_l, temp_m) = temp_dSm
-      !         doodson(13) = temp_Doodson
-      !       else if (temp_Doodson >= 245.654 .and. temp_Doodson <= 245.656) then
-      !         dC_p(14, temp_l, temp_m) = temp_dCp
-      !         dS_p(14, temp_l, temp_m) = temp_dSp
-      !         dC_m(14, temp_l, temp_m) = temp_dCm
-      !         dS_m(14, temp_l, temp_m) = temp_dSm
-      !         doodson(14) = temp_Doodson
-      !       else if (temp_Doodson >= 255.554 .and. temp_Doodson <= 255.556) then
-      !         dC_p(15, temp_l, temp_m) = temp_dCp
-      !         dS_p(15, temp_l, temp_m) = temp_dSp
-      !         dC_m(15, temp_l, temp_m) = temp_dCm
-      !         dS_m(15, temp_l, temp_m) = temp_dSm
-      !         doodson(15) = temp_Doodson
-      !       else if (temp_Doodson >= 273.554 .and. temp_Doodson <= 273.556) then
-      !         dC_p(16, temp_l, temp_m) = temp_dCp
-      !         dS_p(16, temp_l, temp_m) = temp_dSp
-      !         dC_m(16, temp_l, temp_m) = temp_dCm
-      !         dS_m(16, temp_l, temp_m) = temp_dSm
-      !         doodson(16) = temp_Doodson
-      !       else if (temp_Doodson >= 275.554 .and. temp_Doodson <= 275.556) then
-      !         dC_p(17, temp_l, temp_m) = temp_dCp
-      !         dS_p(17, temp_l, temp_m) = temp_dSp
-      !         dC_m(17, temp_l, temp_m) = temp_dCm
-      !         dS_m(17, temp_l, temp_m) = temp_dSm
-      !         doodson(17) = temp_Doodson
-      !       else if (temp_Doodson >= 455.554 .and. temp_Doodson <= 455.556) then
-      !         dC_p(18, temp_l, temp_m) = temp_dCp
-      !         dS_p(18, temp_l, temp_m) = temp_dSp
-      !         dC_m(18, temp_l, temp_m) = temp_dCm
-      !         dS_m(18, temp_l, temp_m) = temp_dSm
-      !         doodson(18) = temp_Doodson
-      !       end if
-      !     end if
-      !   end do
-      !   ich  = closeFile(ich)
-      !   !update the first call status
-      !   first_call = .false.
-      !   !assign the right order of magnitude to harmonic coefficients
-      !   dC_p = dC_p * 1.d-11
-      !   dC_m = dC_m * 1.d-11
-      !   dS_p = dS_p * 1.d-11
-      !   dS_m = dS_m * 1.d-11
-      ! end if
-
-      ! do l = 2, lmax
-      !   do m = 0, l
-      !     if (m == 0) then
-      !       dm = 1
-      !     else
-      !       dm = 2
-      !     end if 
-      !     !compute the corresponding unnormalization factor
-      !     fac = sqrt(factorial(l - m)*dm*(2.d0*l + 1.d0)/factorial(l + m))
-      !     do i = 1, 18
-      !       !compute the argument for each tide constituent            
-      !       call getDoodson_arg(doodson(i), ctheta_g, cl, cl_prime, cF, cD, cOmega)
-      !       theta_f = ctheta_g * theta_g + cl * F_vect(1) + cl_prime * F_vect(2) + cF * F_vect(3) + &
-      !                 cD * F_vect(4) + cOmega * F_vect(5)
-
-      !       !get the produced gravity field corrections
-      !       dC(l, m) = dC(l, m) + fac*((dC_p(i, l, m) + dC_m(i, l, m))*cos(theta_f) + &
-      !                  (dS_p(i, l, m) + dS_m(i, l, m))*sin(theta_f))
-      !       if (m == 0) then
-      !         dS(l, m) = 0
-      !       else
-      !         dS(l, m) = dS(l, m) + fac*((dS_p(i, l, m) - dS_m(i, l, m))*cos(theta_f) - &
-      !                    (dC_p(i, l, m) - dC_m(i, l, m))*sin(theta_f))
-      !       end if
-      !     end do
-      !   end do
-      ! end do
-
-      ! !Ocean pole tide correction
-      ! if(reduction%getEopInitFlag()) then
-
-      !   pom    = reduction%getPolarMotion(time_mjd)
-      !   pomAvg = reduction%getPolarMotionAvg(time_mjd)
-
-      !   m1 = pom(1) - pomAvg(1)
-      !   m2 = pomAvg(2) - pom(2)
-
-      !   dC(2,1) = dC(2,1) - 2.1778d-10*(m1 - 0.01724*m2)*sqrt(5.d0/3.d0)
-      !   dS(2,1) = dS(2,1) - 1.7232d-10*(m2 - 0.03365*m1)*sqrt(5.d0/3.d0)
-
-      ! end if
-
-     
-
-!      const = densWater/muEarth*4.d0*pi*rekm**2.d0/getEarthMass()
-
-!      do l = 2,lmax
-!
-!        templ = const/(2.d0*l + 1.d0)*(1.d0 + kld(l))
-
-!        do m = 0,l
-!          do i = SUN, MOON
-
-!            temp = templ*mu(i)*(rekm/rabs_body(i))**(l+1.d0)*lp(i,l,m)
-
-!            dC(l,m) = dC(l,m) + temp*cos(m*body_lon(i))
-!            dS(l,m) = dS(l,m) + temp*sin(m*body_lon(i))
-
-!          end do
-!        end do
-!      end do
-
-      !** DEBUG
-!     write(*,*) "---", time_mjd, "----"
-!     do l = 2, lmax
-!       do m=0,l
-!         write(*,*) "l, m, dC, dS = ", l, m, dC(l,m), dS(l,m)
-!         if(l==6 .and. m==5) then
-!           write(*,*) "lp = ", lp(1,l,m), lp(2,l,m)
-!         end if
-!       end do
-!     end do
-!     write(*,*) "--------------"
 
     end if
 
@@ -793,17 +563,17 @@ contains
 
     implicit none
     class(Tides_class)                  :: this
-    real(dp), intent(in)                :: time_mjd
-    real(dp), parameter                 :: jd2000 = 2451545.0
-    real(dp), parameter                 :: conv = 360.0/1296000.0
-    real(dp)                            :: time_jd
-    real(dp)                            :: jd_cent
-    real(dp)                            :: l
-    real(dp)                            :: l_prime
-    real(dp)                            :: F
-    real(dp)                            :: D
-    real(dp)                            :: Omega
-    real(dp), dimension(5), intent(out) :: F_vect
+    real(dp), intent(in)                :: time_mjd                ! time in modified julian date
+    real(dp), parameter                 :: jd2000 = 2451545.0      ! factor to count julian days in jd2000 time reference
+    real(dp), parameter                 :: conv = 360.0/1296000.0  ! conversion factor from arcseconds to degrees 
+    real(dp)                            :: time_jd                 ! time in julian date
+    real(dp)                            :: jd_cent                 ! time in julian centuries
+    real(dp)                            :: l                       ! mean anomaly of the Moon
+    real(dp)                            :: l_prime                 ! mean anomaly of the Sun
+    real(dp)                            :: F                       ! mean longitude of the Moon minus Omega
+    real(dp)                            :: D                       ! mean elongation of the Moon from the Sun
+    real(dp)                            :: Omega                   ! mean longitude of the ascending node of the Moon
+    real(dp), dimension(5), intent(out) :: F_vect                  ! Delaunay arguments vector
 
     !get input time in Julian centuries
     time_jd = time_mjd + 2400000.5
@@ -821,7 +591,8 @@ contains
     Omega = 125.04455501 + (- 6962890.543100 * jd_cent + 7.472200 * jd_cent**2 &
             + 0.00770200 * jd_cent**3 - 0.0000593900 * jd_cent**4) * conv
 
-    F_vect = (/l, l_prime, F, D, Omega/)
+    ! insert Delaunay arguments inside a vector
+    F_vect = (/l, l_prime, F, D, Omega/)                           
 
   end subroutine getDelaunay_arg
 
@@ -841,10 +612,11 @@ contains
 
     implicit none
     class(Tides_class)   :: this
-    real, intent(in)     :: doodson
-    integer              :: cPs, cNPrime, cP, cH, cS, cTau
-    integer, intent(out) :: ctheta_g, cl, cl_prime, cF, cD, cOmega
+    real, intent(in)     :: doodson                                 ! Doodson number of the ocean tide
+    integer              :: cPs, cNPrime, cP, cH, cS, cTau          ! coefficients extracted from the Doodson number
+    integer, intent(out) :: ctheta_g, cl, cl_prime, cF, cD, cOmega  ! Doodson arguments
 
+    ! extract coefficients from the tide's Doodson number
     cPs     = mod(doodson, 10.0) - 5
     cNPrime = mod((doodson / 10.0), 10.0) - 5
     cP      = mod((doodson / 100.0), 10.0) - 5
@@ -852,6 +624,7 @@ contains
     cS      = mod((doodson / 10000.0), 10.0) - 5
     cTau    = mod((doodson / 100000.0), 10.0)
 
+    ! compute Doodson arguments
     ctheta_g = cTau
     cl       = -cP
     cl_prime = -cPs
@@ -879,26 +652,25 @@ contains
 
     implicit none
     class(Tides_class)                             :: this
-    character(len=*), intent(in)                   :: path
-    logical, intent(inout)                         :: first_call
-    integer, intent(in)                            :: lmax
-    integer                                        :: ich
-    integer                                        :: ios
-    integer                                        :: temp_l
-    integer                                        :: temp_m
-    integer                                        :: ind
-    character(len=255)                             :: cbuf
-    character(len=255)                             :: Darw
-    real(dp)                                       :: temp_dCp
-    real(dp)                                       :: temp_dSp
-    real(dp)                                       :: temp_dCm
-    real(dp)                                       :: temp_dSm
-    real                                           :: temp_Doodson
-    real(dp), dimension(1:18,2:6,0:6), intent(out) :: dC_p
-    real(dp), dimension(1:18,2:6,0:6), intent(out) :: dS_p
-    real(dp), dimension(1:18,2:6,0:6), intent(out) :: dC_m
-    real(dp), dimension(1:18,2:6,0:6), intent(out) :: dS_m
-    real, dimension(1:18), intent(out)             :: doodson
+    character(len=*), intent(in)                   :: path          ! path for the input file
+    logical, intent(inout)                         :: first_call    ! variable to load data only during subroutine first call
+    integer, intent(in)                            :: lmax          ! maximum degree of harmonic coefficients
+    integer                                        :: ich, ios      ! variables for data loading          
+    integer                                        :: temp_l        ! temporary degree value
+    integer                                        :: temp_m        ! temporary order value
+    integer                                        :: ind           ! index
+    character(len=255)                             :: cbuf          ! variable for data loading
+    character(len=255)                             :: Darw          ! Darwin symbol of the ocean tide
+    real(dp)                                       :: temp_dCp      ! temporary prograde C coefficient
+    real(dp)                                       :: temp_dSp      ! temporary prograde S coefficient
+    real(dp)                                       :: temp_dCm      ! temporary retrograde C coefficient
+    real(dp)                                       :: temp_dSm      ! temporary retrograde S coefficient
+    real                                           :: temp_Doodson  ! temporary Doodson number of the ocean tide
+    real(dp), dimension(1:18,2:6,0:6), intent(out) :: dC_p          ! 3-D array of the prograde C coefficients of all tides
+    real(dp), dimension(1:18,2:6,0:6), intent(out) :: dS_p          ! 3-D array of the prograde S coefficients of all tides
+    real(dp), dimension(1:18,2:6,0:6), intent(out) :: dC_m          ! 3-D array of the retrograde C coefficients of all tides
+    real(dp), dimension(1:18,2:6,0:6), intent(out) :: dS_m          ! 3-D array of the retrograde C coefficients of all tides
+    real, dimension(1:18), intent(out)             :: doodson       ! vector of the Doodson numbers of all tides
 
     !read data only the first time (no need to repeat the operation at each call)
     if (first_call) then
@@ -1051,36 +823,29 @@ contains
 
     implicit none
     class(Tides_class)                          :: this
-    character(len=*), intent(in)                :: path
-    real(dp), intent(in)                        :: time_mjd
-    integer, intent(in)                         :: lmax
+    character(len=*), intent(in)                :: path                                   ! path for the input file
+    real(dp), intent(in)                        :: time_mjd                               ! time in modified julian date
+    integer, intent(in)                         :: lmax                                   ! maximum degree of harmonic coefficients
     type(Reduction_type), intent(inout)         :: reduction
-    real(dp), dimension(5)                      :: F_vect
-    real(dp)                                    :: theta_g
-    real(dp)                                    :: theta_f
-    real(dp)                                    :: m1
-    real(dp)                                    :: m2 
-    real(dp)                                    :: fac
-    real(dp), dimension(1:18,2:6,0:6), save     :: dC_p
-    real(dp), dimension(1:18,2:6,0:6), save     :: dS_p
-    real(dp), dimension(1:18,2:6,0:6), save     :: dC_m
-    real(dp), dimension(1:18,2:6,0:6), save     :: dS_m
-    logical, save                               :: first_call = .true.
-    real, dimension(1:18), save                 :: doodson
-    integer                                     :: i
-    integer                                     :: l
-    integer                                     :: m
-    integer                                     :: dm  
-    integer                                     :: ctheta_g
-    integer                                     :: cl
-    integer                                     :: cl_prime
-    integer                                     :: cF
-    integer                                     :: cD
-    integer                                     :: cOmega
-    real(dp), dimension(2)                      :: pom
-    real(dp), dimension(2)                      :: pomAvg
-    real(dp), dimension(2:6,0:6), intent(inout) :: dC
-    real(dp), dimension(2:6,0:6), intent(inout) :: dS
+    real(dp), dimension(5)                      :: F_vect                                 ! Delaunay arguments vector
+    real(dp)                                    :: theta_g                                ! Greenwich mean sidereal time in radians
+    real(dp)                                    :: theta_f                                ! argument of the tide constituent
+    real(dp)                                    :: m1, m2                                 ! auxiliaries to account for pole tide
+    real(dp)                                    :: fac                                    ! unnormalization factor
+    real(dp), dimension(1:18,2:6,0:6), save     :: dC_p                                   ! 3-D array of the prograde C coefficients of all tides
+    real(dp), dimension(1:18,2:6,0:6), save     :: dS_p                                   ! 3-D array of the prograde S coefficients of all tides
+    real(dp), dimension(1:18,2:6,0:6), save     :: dC_m                                   ! 3-D array of the retrograde C coefficients of all tides
+    real(dp), dimension(1:18,2:6,0:6), save     :: dS_m                                   ! 3-D array of the retrograde C coefficients of all tides
+    logical, save                               :: first_call = .true.                    ! initialization of the first call status
+    real, dimension(1:18), save                 :: doodson                                ! vector of the Doodson numbers of all tides
+    integer                                     :: i                                      ! index
+    integer                                     :: l                                      ! coefficients degree
+    integer                                     :: m                                      ! coefficients order
+    integer                                     :: dm                                     ! coefficient in transformation between normalized and unnormalized quantities
+    integer                                     :: ctheta_g, cl, cl_prime, cF, cD, cOmega ! Doodson arguments
+    real(dp), dimension(2)                      :: pom, pomAvg                            ! polar motion variables xp,yp (current and running average) / rad
+    real(dp), dimension(2:6,0:6), intent(inout) :: dC                                     ! matrix with corrections on the C harmonic coefficients
+    real(dp), dimension(2:6,0:6), intent(inout) :: dS                                     ! matrix with corrections on the S harmonic coefficients
 
     !get Delaunay arguments in radians for the current time
     call getDelaunay_arg(this, time_mjd, F_vect)

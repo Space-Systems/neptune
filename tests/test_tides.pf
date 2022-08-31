@@ -18,7 +18,8 @@ module test_tides
             !reduction
 
         ! TO DO
-        ! at the moment EOT11a model is used as a comparison for the FES2004 results, but tests always fail
+        ! at the moment EOT11a model is used as a comparison for the FES2004 results, but tests ALWAYS FAIL!
+        ! discrepancy between FES2004 and EOT11a models
         ! on the other hand, the validation based on sentinel 1-b orbit propagation performs quite well
 
         type(Tides_class)            :: this
