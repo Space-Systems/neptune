@@ -33,7 +33,7 @@ module tides
   use slam_reduction_class,   only: Reduction_type
   use solarsystem,            only: Solarsystem_class, ID_SUN, ID_MOON
   use slam_types,             only: dp
-  use slam_io,                only: openFile, closeFile, SEQUENTIAL, IN_FORMATTED
+  use slam_io,                only: openFile, closeFile, SEQUENTIAL, IN_FORMATTED, cdelimit
   use slam_time,              only: jd2000, jd245, julian_century
 
   implicit none
@@ -43,7 +43,6 @@ module tides
     integer, parameter, public          :: SOLID_TIDES = 1
     integer, parameter, public          :: OCEAN_TIDES = 2
     integer, parameter, public          :: max_l = 6
-    character(len=*), parameter, public :: path = "../work/data/fes2004_Cnm-Snm.dat"
 
 
     type, public :: Tides_class
@@ -54,6 +53,9 @@ module tides
         real(dp), dimension(1:18,2:6,0:6), public :: dC_m      ! 3-D array of the retrograde C coefficients of all tides
         real(dp), dimension(1:18,2:6,0:6), public :: dS_m      ! 3-D array of the retrograde C coefficients of all tides
         real(dp), dimension(1:18), public         :: doodson   ! vector of the Doodson numbers of all tides
+
+        character(len=255) :: dataPath                         ! Path where input data files are located
+        character(len=255) :: fesDataFile                      ! Tides constituents data file
         
     contains
 
@@ -88,6 +90,9 @@ contains
     ! --------------------------------------------------------------------
     type(Tides_class) function constructor()
         constructor%tidesInitialized = .false.
+
+        constructor%dataPath         = "data"                   ! Path where input data files are located
+        constructor%fesDataFile      = "fes2004_Cnm-Snm.dat"    ! Tides constituents data file
 
     end function constructor
 
@@ -629,12 +634,12 @@ contains
     integer, intent(out) :: ctheta_g, cl, cl_prime, cF, cD, cOmega  ! Doodson arguments
 
     ! extract coefficients from the tide's Doodson number
-    cPs     = mod(doodson, 10.0) - 5
-    cNPrime = mod((doodson / 10.0), 10.0) - 5
-    cP      = mod((doodson / 100.0), 10.0) - 5
-    cH      = mod((doodson / 1000.0), 10.0) - 5
-    cS      = mod((doodson / 10000.0), 10.0) - 5
-    cTau    = mod((doodson / 100000.0), 10.0)
+    cPs     = mod(doodson, 10.d0) - 5
+    cNPrime = mod((doodson / 10.d0), 10.d0) - 5
+    cP      = mod((doodson / 100.d0), 10.d0) - 5
+    cH      = mod((doodson / 1000.d0), 10.d0) - 5
+    cS      = mod((doodson / 10000.d0), 10.d0) - 5
+    cTau    = mod((doodson / 100000.d0), 10.d0)
 
     ! compute Doodson arguments
     ctheta_g = cTau
@@ -678,38 +683,38 @@ contains
     real(dp)                                       :: temp_Doodson  ! temporary Doodson number of the ocean tide
 
     !read data from external file
-    ich = openFile(path, SEQUENTIAL, IN_FORMATTED)
+    ich = openFile(trim(adjustl(this%dataPath))//cdelimit//trim(adjustl(this%fesDataFile)), SEQUENTIAL, IN_FORMATTED)
     do ind = 1, 59462
       read(ich, '(a)', iostat=ios) cbuf
       read(cbuf, *) temp_Doodson, Darw, temp_l, temp_m, temp_dCp, temp_dSp, temp_dCm, temp_dSm
       !collect data for the desired l values
       if (temp_l >= 2 .and. temp_l <= lmax) then
         !collect data for each tide constituent
-        if (temp_Doodson >= 55.564 .and. temp_Doodson <= 55.566) then
+        if (temp_Doodson >= 55.564d0 .and. temp_Doodson <= 55.566d0) then
           this%dC_p(1, temp_l, temp_m)  = temp_dCp
           this%dS_p(1, temp_l, temp_m)  = temp_dSp
           this%dC_m(1, temp_l, temp_m)  = temp_dCm
           this%dS_m(1, temp_l, temp_m)  = temp_dSm
           this%doodson(1)               = temp_Doodson
-        else if (temp_Doodson >= 55.574 .and. temp_Doodson <= 55.576) then
+        else if (temp_Doodson >= 55.574d0 .and. temp_Doodson <= 55.576d0) then
           this%dC_p(2, temp_l, temp_m)  = temp_dCp
           this%dS_p(2, temp_l, temp_m)  = temp_dSp
           this%dC_m(2, temp_l, temp_m)  = temp_dCm
           this%dS_m(2, temp_l, temp_m)  = temp_dSm
           this%doodson(2)               = temp_Doodson
-        else if (temp_Doodson >= 56.553 .and. temp_Doodson <= 56.555) then
+        else if (temp_Doodson >= 56.553d0 .and. temp_Doodson <= 56.555d0) then
           this%dC_p(3, temp_l, temp_m)  = temp_dCp
           this%dS_p(3, temp_l, temp_m)  = temp_dSp
           this%dC_m(3, temp_l, temp_m)  = temp_dCm
           this%dS_m(3, temp_l, temp_m)  = temp_dSm
           this%doodson(3)               = temp_Doodson
-        else if (temp_Doodson >= 57.554 .and. temp_Doodson <= 57.556) then
+        else if (temp_Doodson >= 57.554d0 .and. temp_Doodson <= 57.556d0) then
           this%dC_p(4, temp_l, temp_m)  = temp_dCp
           this%dS_p(4, temp_l, temp_m)  = temp_dSp
           this%dC_m(4, temp_l, temp_m)  = temp_dCm
           this%dS_m(4, temp_l, temp_m)  = temp_dSm
           this%doodson(4)               = temp_Doodson
-        else if (temp_Doodson >= 65.454 .and. temp_Doodson <= 65.456) then
+        else if (temp_Doodson >= 65.454d0 .and. temp_Doodson <= 65.456d0) then
           this%dC_p(5, temp_l, temp_m)  = temp_dCp
           this%dS_p(5, temp_l, temp_m)  = temp_dSp
           this%dS_p(5, temp_l, temp_m)  = temp_dSp
@@ -717,79 +722,79 @@ contains
           this%dC_m(5, temp_l, temp_m)  = temp_dCm
           this%dS_m(5, temp_l, temp_m)  = temp_dSm
           this%doodson(5)               = temp_Doodson
-        else if (temp_Doodson >= 75.554 .and. temp_Doodson <= 75.556) then
+        else if (temp_Doodson >= 75.554d0 .and. temp_Doodson <= 75.556d0) then
           this%dC_p(6, temp_l, temp_m)  = temp_dCp
           this%dS_p(6, temp_l, temp_m)  = temp_dSp
           this%dC_m(6, temp_l, temp_m)  = temp_dCm
           this%dS_m(6, temp_l, temp_m)  = temp_dSm
           this%doodson(6)               = temp_Doodson
-        else if (temp_Doodson >= 85.454 .and. temp_Doodson <= 85.456) then
+        else if (temp_Doodson >= 85.454d0 .and. temp_Doodson <= 85.456d0) then
           this%dC_p(7, temp_l, temp_m)  = temp_dCp
           this%dS_p(7, temp_l, temp_m)  = temp_dSp
           this%dC_m(7, temp_l, temp_m)  = temp_dCm
           this%dS_m(7, temp_l, temp_m)  = temp_dSm
           this%doodson(7)               = temp_Doodson
-        else if (temp_Doodson >= 93.554 .and. temp_Doodson <= 93.556) then
+        else if (temp_Doodson >= 93.554d0 .and. temp_Doodson <= 93.556d0) then
           this%dC_p(8, temp_l, temp_m)  = temp_dCp
           this%dS_p(8, temp_l, temp_m)  = temp_dSp
           this%dC_m(8, temp_l, temp_m)  = temp_dCm
           this%dS_m(8, temp_l, temp_m)  = temp_dSm
           this%doodson(8)               = temp_Doodson
-        else if (temp_Doodson >= 135.654 .and. temp_Doodson <= 135.656) then
+        else if (temp_Doodson >= 135.654d0 .and. temp_Doodson <= 135.656d0) then
           this%dC_p(9, temp_l, temp_m)  = temp_dCp
           this%dS_p(9, temp_l, temp_m)  = temp_dSp
           this%dC_m(9, temp_l, temp_m)  = temp_dCm
           this%dS_m(9, temp_l, temp_m)  = temp_dSm
           this%doodson(9)               = temp_Doodson
-        else if (temp_Doodson >= 145.554 .and. temp_Doodson <= 145.556) then
+        else if (temp_Doodson >= 145.554d0 .and. temp_Doodson <= 145.556d0) then
           this%dC_p(10, temp_l, temp_m) = temp_dCp
           this%dS_p(10, temp_l, temp_m) = temp_dSp
           this%dC_m(10, temp_l, temp_m) = temp_dCm
           this%dS_m(10, temp_l, temp_m) = temp_dSm
           this%doodson(10)              = temp_Doodson
-        else if (temp_Doodson >= 163.554 .and. temp_Doodson <= 163.556) then
+        else if (temp_Doodson >= 163.554d0 .and. temp_Doodson <= 163.556d0) then
           this%dC_p(11, temp_l, temp_m) = temp_dCp
           this%dS_p(11, temp_l, temp_m) = temp_dSp
           this%dC_m(11, temp_l, temp_m) = temp_dCm
           this%dS_m(11, temp_l, temp_m) = temp_dSm
           this%doodson(11)              = temp_Doodson
-        else if (temp_Doodson >= 165.554 .and. temp_Doodson <= 165.556) then
+        else if (temp_Doodson >= 165.554d0 .and. temp_Doodson <= 165.556d0) then
           this%dC_p(12, temp_l, temp_m) = temp_dCp
           this%dS_p(12, temp_l, temp_m) = temp_dSp
           this%dC_m(12, temp_l, temp_m) = temp_dCm
           this%dS_m(12, temp_l, temp_m) = temp_dSm
           this%doodson(12)              = temp_Doodson
-        else if (temp_Doodson >= 235.754 .and. temp_Doodson <= 235.756) then
+        else if (temp_Doodson >= 235.754d0 .and. temp_Doodson <= 235.756d0) then
           this%dC_p(13, temp_l, temp_m) = temp_dCp
           this%dS_p(13, temp_l, temp_m) = temp_dSp
           this%dC_m(13, temp_l, temp_m) = temp_dCm
           this%dS_m(13, temp_l, temp_m) = temp_dSm
           this%doodson(13)              = temp_Doodson
-        else if (temp_Doodson >= 245.654 .and. temp_Doodson <= 245.656) then
+        else if (temp_Doodson >= 245.654d0 .and. temp_Doodson <= 245.656d0) then
           this%dC_p(14, temp_l, temp_m) = temp_dCp
           this%dS_p(14, temp_l, temp_m) = temp_dSp
           this%dC_m(14, temp_l, temp_m) = temp_dCm
           this%dS_m(14, temp_l, temp_m) = temp_dSm
           this%doodson(14)              = temp_Doodson
-        else if (temp_Doodson >= 255.554 .and. temp_Doodson <= 255.556) then
+        else if (temp_Doodson >= 255.554d0 .and. temp_Doodson <= 255.556d0) then
           this%dC_p(15, temp_l, temp_m) = temp_dCp
           this%dS_p(15, temp_l, temp_m) = temp_dSp
           this%dC_m(15, temp_l, temp_m) = temp_dCm
           this%dS_m(15, temp_l, temp_m) = temp_dSm
           this%doodson(15)              = temp_Doodson
-        else if (temp_Doodson >= 273.554 .and. temp_Doodson <= 273.556) then
+        else if (temp_Doodson >= 273.554d0 .and. temp_Doodson <= 273.556d0) then
           this%dC_p(16, temp_l, temp_m) = temp_dCp
           this%dS_p(16, temp_l, temp_m) = temp_dSp
           this%dC_m(16, temp_l, temp_m) = temp_dCm
           this%dS_m(16, temp_l, temp_m) = temp_dSm
           this%doodson(16)              = temp_Doodson
-        else if (temp_Doodson >= 275.554 .and. temp_Doodson <= 275.556) then
+        else if (temp_Doodson >= 275.554d0 .and. temp_Doodson <= 275.556d0) then
           this%dC_p(17, temp_l, temp_m) = temp_dCp
           this%dS_p(17, temp_l, temp_m) = temp_dSp
           this%dC_m(17, temp_l, temp_m) = temp_dCm
           this%dS_m(17, temp_l, temp_m) = temp_dSm
           this%doodson(17)              = temp_Doodson
-        else if (temp_Doodson >= 455.554 .and. temp_Doodson <= 455.556) then
+        else if (temp_Doodson >= 455.554d0 .and. temp_Doodson <= 455.556d0) then
           this%dC_p(18, temp_l, temp_m) = temp_dCp
           this%dS_p(18, temp_l, temp_m) = temp_dSp
           this%dC_m(18, temp_l, temp_m) = temp_dCm
