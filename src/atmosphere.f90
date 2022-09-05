@@ -2977,7 +2977,7 @@ contains
     !   interval
     !-------------------------------------------
     if(sga_obs_start%mjd .gt. mjd_start) then
-
+      
       call setNeptuneError(E_SGA_MISSING, FATAL)
       return
 
@@ -3331,7 +3331,7 @@ contains
                                   mjd_end    &  ! <-- DBL     MJD of last SGA entry
                                )
 
-    !** interface
+                               !** interface
     !-------------------------------------------
     class(Atmosphere_class)             :: this
     integer,  intent(in)                :: ich
@@ -3355,8 +3355,8 @@ contains
     integer :: month
     integer :: year                     ! last update year from fap_day data file
 
-    logical :: first = .true.           ! required to find first data set in data file
-    logical :: flag_daily_only = .false.         ! only data from fap_day is required
+    logical :: first                    ! required to find first data set in data file
+    logical :: flag_daily_only = .false.           ! only data from fap_day is required
     logical :: flag_daily_monthly  = .false.       ! data from fap_day and fap_mon required (monthlies)
     logical :: flag_monthly_only  = .false.        ! data from fap_mon only required
 
@@ -3373,6 +3373,7 @@ contains
       call checkIn(csubid)
     end if
 
+    first = .true. 
 
     rewind(ich)
 
