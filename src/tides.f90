@@ -42,8 +42,6 @@ module tides
 
     integer, parameter, public          :: SOLID_TIDES = 1
     integer, parameter, public          :: OCEAN_TIDES = 2
-    integer, parameter, public          :: max_l = 6
-
 
     type, public :: Tides_class
 
@@ -53,6 +51,7 @@ module tides
         real(dp), dimension(1:18,2:6,0:6), public :: dC_m      ! 3-D array of the retrograde C coefficients of all tides
         real(dp), dimension(1:18,2:6,0:6), public :: dS_m      ! 3-D array of the retrograde C coefficients of all tides
         real(dp), dimension(1:18), public         :: doodson   ! vector of the Doodson numbers of all tides
+        integer, public                           :: max_l     ! maximum degree of harmonic coefficients
 
         character(len=255) :: dataPath                         ! Path where input data files are located
         character(len=255) :: fesDataFile                      ! Tides constituents data file
@@ -66,7 +65,6 @@ module tides
         procedure :: get_Doodson_arg
         procedure :: init_FES2004
         procedure :: get_FES2004_corrections
-
 
     end type Tides_class
 
@@ -89,10 +87,14 @@ contains
     !!
     ! --------------------------------------------------------------------
     type(Tides_class) function constructor()
-        constructor%tidesInitialized = .false.
 
-        constructor%dataPath         = "data"                   ! Path where input data files are located
-        constructor%fesDataFile      = "fes2004_Cnm-Snm.dat"    ! Tides constituents data file
+        constructor%dataPath         = "data"                 ! Path where input data files are located
+        constructor%fesDataFile      = "fes2004_Cnm-Snm.dat"  ! Tides constituents data file
+
+        ! other variables
+        constructor%max_l            = 6                      ! maximum degree of harmonic coefficients
+
+        constructor%tidesInitialized = .false.
 
     end function constructor
 
@@ -108,11 +110,13 @@ contains
   !!              </ul>
   !!
   !!-----------------------------------------------------------------------------
-  subroutine initTides(this)
+  subroutine initTides( this, &
+                        cpath)
 
-    class(Tides_class)  :: this
+    class(Tides_class)            :: this
+    character(len=*), intent(in)  :: cpath
 
-    character(len=*), parameter  :: csubid = "initTides"
+    character(len=*), parameter   :: csubid = "initTides"
 
     if(isControlled()) then
       if(hasToReturn()) return
@@ -126,7 +130,10 @@ contains
       return
     end if
 
-    call init_FES2004(this, max_l)
+    !** set data path in module scope
+    this%dataPath = trim(adjustl(cpath(1:min(len(this%dataPath),len(cpath)))))
+
+    call init_FES2004(this)
     !update the initialization status
     this%tidesInitialized = .true.
 
@@ -617,7 +624,8 @@ contains
 !
 !> @anchor      getDoodson_arg
 !!
-!> @brief       Compute the Doodson arguments (as Orekit)
+!> @brief       Compute the Doodson arguments (it has been used the same approach as shown in Orekit at the following link:
+!               https://github.com/CS-SI/Orekit/blob/develop/src/main/java/org/orekit/forces/gravity/potential/OceanTidesWave.java)
 !> @author      Andrea Turchi (ATU)
 !!
 !> @date        <ul>
@@ -665,11 +673,10 @@ contains
 !!              </ul>
 !!
 !!------------------------------------------------------------------------
-  subroutine init_FES2004(this, lmax)
+  subroutine init_FES2004(this)
 
     implicit none
     class(Tides_class)                             :: this
-    integer, intent(in)                            :: lmax          ! maximum degree of harmonic coefficients
     integer                                        :: ich, ios      ! variables for data loading          
     integer                                        :: temp_l        ! temporary degree value
     integer                                        :: temp_m        ! temporary order value
@@ -688,7 +695,7 @@ contains
       read(ich, '(a)', iostat=ios) cbuf
       read(cbuf, *) temp_Doodson, Darw, temp_l, temp_m, temp_dCp, temp_dSp, temp_dCm, temp_dSm
       !collect data for the desired l values
-      if (temp_l >= 2 .and. temp_l <= lmax) then
+      if (temp_l >= 2 .and. temp_l <= this%max_l) then
         !collect data for each tide constituent
         if (temp_Doodson >= 55.564d0 .and. temp_Doodson <= 55.566d0) then
           this%dC_p(1, temp_l, temp_m)  = temp_dCp
