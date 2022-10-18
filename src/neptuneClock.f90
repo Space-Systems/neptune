@@ -165,7 +165,7 @@ contains
             ! -- looping, exhausting the allocated memory. 
             do i_index = this%last_index, size(this%step_epochs_sec)
                 this%cumulated_time = this%cumulated_time + this%step_epochs_sec(i_index)
-                if (this%cumulated_time > current_time .or. i_index <= this%last_index) then
+                if (abs(this%cumulated_time) > abs(current_time) .or. i_index <= this%last_index) then
                     this%last_index = i_index
                     if (i_index < size(this%step_epochs_sec)) then
                         this%last_index = i_index + 1
@@ -216,24 +216,24 @@ contains
             if (step > this%end_time) then
                 step = this%end_time
             end if
-        else
+        else ! backward prop
             if(this%cov_counter > this%out_counter) then
                 ! only covariance save/update step
                 step                  = this%cov_counter
-                this%cov_counter      = this%cov_counter - cov_step
+                this%cov_counter      = this%cov_counter + cov_step
                 this%flag_output_step = .false.
                 call this%update_cov_flags(neptune)
             else if(abs(this%cov_counter - this%out_counter) < eps3) then
                 ! simultaneous output and covariance save/update step
                 step = min(this%cov_counter, this%out_counter)
-                this%out_counter      = this%out_counter - this%step_size
-                this%cov_counter      = this%cov_counter - cov_step
+                this%out_counter      = this%out_counter + this%step_size
+                this%cov_counter      = this%cov_counter + cov_step
                 this%flag_output_step = .true.
                 call this%update_cov_flags(neptune)
             else
                 ! only output step
                 step                  = this%out_counter
-                this%out_counter      = this%out_counter - this%step_size
+                this%out_counter      = this%out_counter + this%step_size
                 this%flag_output_step = .true.
                 if (this%intermediate_steps_flag .and. this%cov_propagation_flag) then
                     ! Always update the set matrix and covariance to the desired time
@@ -397,12 +397,7 @@ contains
             end if
 
             this%flag_output_step = .true.
-
-            if(this%forward) then
-                this%out_counter = this%start_time + this%step_size
-            else
-                this%out_counter = this%start_time - this%step_size
-            end if
+            this%out_counter = this%start_time + this%step_size
 
         else
             if(neptune%getStoreDataFlag()) then
@@ -412,11 +407,7 @@ contains
                 else
                     this%step_size   = dble(neptune%getStep())
                 end if
-                if(this%forward) then
-                    this%out_counter = this%start_time + this%step_size
-                else
-                    this%out_counter = this%start_time - this%step_size
-                end if
+                this%out_counter = this%start_time + this%step_size
                 this%flag_output_step = .true.
             else
                 this%step_size   = abs(this%end_time - this%start_time)
