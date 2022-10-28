@@ -53,6 +53,7 @@ module libneptune
                                     PAR_MASS, PROP_CONSTANT, PROP_FILE, C_INITIAL_STATE, C_PAR_EARTH_RADIUS
     use numint,                 only: MAX_RESETS
     use satellite,              only: ORIENT_SPHERE
+    use maneuvers,              only: neptune_maneuver_t => maneuver_t
     use slam_strings,           only: toString
     use slam_time,              only: time_t, gd2mjd, date2longstring, operator(>)
     use slam_types,             only: dp
@@ -71,6 +72,7 @@ module libneptune
     public :: init_neptune                                                      ! initialization
     public :: propagate                                                         ! propagation of state vector and covariance
     public :: propagate_set                                                     ! propagation of state vector, covariance and state error transition matrix
+    public :: neptune_maneuver_t                                                ! Maneuver type
 
 contains
 
