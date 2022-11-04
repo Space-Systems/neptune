@@ -96,8 +96,8 @@ program valsent
 
     init_flag = .true.
 
-    epoch(1) = sentState(1)%epoch
-    epoch(2) = sentState(ndata)%epoch
+    ! epoch(1) = sentState(1)%epoch
+    ! epoch(2) = sentState(ndata)%epoch
 
     write(*,*) "Starting NEPTUNE..."
     call propagate(neptune_instance,state_in, dummy1, epoch, state_out, dummy2, init_flag)
