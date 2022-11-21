@@ -831,7 +831,7 @@ contains
         !call message(' Maneuver change at '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
 
         ! Get the next manoeuvre change epoch
-        upcoming_maneuver_epoch_mjd = neptune%manoeuvres_model%get_upcoming_manoeuvre_change_epoch(epochs(1)%mjd + prop_counter/86400.d0)
+        upcoming_maneuver_epoch_mjd = neptune%manoeuvres_model%get_upcoming_manoeuvre_change_epoch(epochs(1)%mjd + prop_counter/86400.d0, using_backwards_propagation=flag_backward)
         if (upcoming_maneuver_epoch_mjd > 0.d0) then
           manoeuvre_change_counter = (upcoming_maneuver_epoch_mjd - epochs(1)%mjd) * 86400.d0
           ! Reset when we are starting into the new maneuver or no-maneuver interval
