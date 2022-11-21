@@ -693,8 +693,10 @@ contains
     !---------------------------------------------
     if(epochs(2)%mjd < epochs(1)%mjd) then
       flag_backward = .true.
+      call message(" - Set to backward propagation", LOG_AND_STDOUT)
     else
       flag_backward = .false.
+      call message(" - Set to forward propagation", LOG_AND_STDOUT)
     end if
 
     !============================================================
@@ -840,7 +842,7 @@ contains
             force_no_interpolation = .true.
             ! reset also the count of subroutine calls to the integrator
             call neptune%numerical_integrator%resetCountIntegrator()
-            call message(' - Performing reset of intergator now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
+            !call message(' - Performing reset of integrator now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
           end if
 
           !call message(' New maneuver change at: '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
@@ -910,7 +912,11 @@ contains
         if(neptune%has_to_write_progress()) then
             dtmp = abs(prop_counter - start_epoch_sec)/abs(end_epoch_sec - start_epoch_sec)
             call write_progress(neptune%get_progress_file_name(), dtmp, neptune%get_progress_step())
+            ! write(*,*) dtmp, prop_counter
         end if
+        
+        ! dtmp = abs(prop_counter - start_epoch_sec)/abs(end_epoch_sec - start_epoch_sec)
+        ! write(*,"(A,F7.2,A,F15.4,A,F15.6)") "progress =",100*dtmp, " // prop_counter =", prop_counter," // mjd =",epochs(1)%mjd + prop_counter/86400.d0
 
         if(hasFailed()) then
           call neptune%output%close_open_files(neptune%numerical_integrator)
