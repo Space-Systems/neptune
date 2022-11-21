@@ -117,7 +117,7 @@ module neptuneClass
         type(Derivatives_class) :: derivatives_model                            ! Force model evaluation
         type(Output_class)      :: output                                       ! Output
         type(Version_class)     :: version_model                                ! Version model
-        type(Reduction_type)   :: reduction                                    ! Reduction model
+        type(Reduction_type)    :: reduction                                    ! Reduction model
         type(Correlation_class) :: correlation_model                            ! Correlation model
 
         !=======================================================================
@@ -267,6 +267,9 @@ contains
     !---------------------------------------------------------------------------
     type(Neptune_class) function constructor()
 
+        character(len=255) :: cmess !
+        
+
         ! Instantiate model classes
         constructor%gravity_model = Gravity_class()
         constructor%atmosphere_model = Atmosphere_class()
@@ -327,6 +330,9 @@ contains
         if (.not. allocated(ephem)) allocate(ephem(isize))
         if (.not. allocated(covMatrix)) allocate(covMatrix(isize))
         if (.not. allocated(setMatrix)) allocate(setMatrix(isize))
+
+        ! write(cmess,'(a)') 'Initialised index = '//toString(constructor%current_index)//' of '//toString(isize)
+        ! call message(cmess, LOG_AND_STDOUT)
 
     end function constructor
 
@@ -3198,7 +3204,7 @@ contains
       if(.not. this%warned) then                    ! warn that array is full
         cepoch = date2string(ephem(isize)%epoch)
         if(hasFailed()) return
-        write(cmess,'(a)') 'No more data can be added to array. Last element at epoch '//cepoch
+        write(cmess,'(a)') 'No more data can be added to cov-array. Last element at epoch '//cepoch
         call setNeptuneError(E_SPECIAL, WARNING, (/cmess/))
         this%warned = .true.
       end if
@@ -3257,13 +3263,13 @@ contains
 !    end if
 
     this%current_index_set = this%current_index_set + 1
-
+    
     if(this%current_index_set > isize) then  ! array is full
 
       if(.not. this%warned) then ! warn that array is full
 
         cepoch = date2string(ephem(isize)%epoch)
-        write(cmess,'(a)') 'No more data can be added to array. Last element at epoch '//cepoch
+        write(cmess,'(a)') 'No more data can be added to set-array. Last element at epoch '//cepoch
 
         call setNeptuneError(E_SPECIAL, WARNING, (/cmess/))
 
@@ -3310,6 +3316,8 @@ contains
 !------------------------------------
   subroutine storeData(this, r, v, mjd)
 
+    use slam_strings,       only: toString
+        
     class(Neptune_class)               :: this
     real(dp), dimension(3), intent(in) :: r
     real(dp), dimension(3), intent(in) :: v
@@ -3317,7 +3325,7 @@ contains
 
     character(len=*), parameter        :: csubid = 'storeData'
     character(len=20)                  :: cepoch
-    character(len=255)                  :: cmess
+    character(len=255)                 :: cmess
 
     if(isControlled()) then
       if(hasToReturn()) return
@@ -3335,7 +3343,7 @@ contains
       if(.not. this%warned) then ! warn that array is full
 
         cepoch = date2string(ephem(isize)%epoch)
-        write(cmess,'(a)') 'No more data can be added to array. Last element at epoch '//cepoch
+        write(cmess,'(a)') 'No more data can be added to eph-array ('//toString(this%current_index)//'). Last element at epoch: '//cepoch
 
         call setNeptuneError(E_SPECIAL, WARNING, (/cmess/))
 
@@ -3355,6 +3363,10 @@ contains
       ephem(this%current_index)%epoch%jd  = mjd + jd245
 
       call mjd2gd(ephem(this%current_index)%epoch)
+      
+      ! cepoch = date2string(ephem(this%current_index)%epoch)
+      ! write(cmess,'(a)') 'Added date '//cepoch//' at index '//toString(this%current_index)
+      ! call message(cmess, LOG_AND_STDOUT)
 
     end if
 
