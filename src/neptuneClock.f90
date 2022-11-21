@@ -151,7 +151,8 @@ contains
             ! Determine on which time step we are working
             do i_index = 1, size(this%step_epochs_sec)
                 cumulated_steps = cumulated_steps + this%step_epochs_sec(i_index)
-                if (cumulated_steps > current_time) then
+                if ((this%forward       .and. (cumulated_steps > current_time)) .or. &
+                    (.not. this%forward .and. (cumulated_steps < current_time))) then
                     next_i_index = i_index
                     if (i_index < size(this%step_epochs_sec)) then
                         next_i_index = i_index + 1
@@ -160,7 +161,7 @@ contains
                 end if
             end do
             ! Extract the step size
-            this%step_size = this%step_epochs_sec(next_i_index)
+            this%step_size = abs(this%step_epochs_sec(next_i_index))
         end if
 
         ! for the covariance step, it can depend on the integration method. For example, the RK4 method requires
