@@ -852,7 +852,7 @@ contains
           !force_no_interpolation = .true.
           ! reset also the count of subroutine calls to the integrator
           call neptune%numerical_integrator%resetCountIntegrator()
-          call message(' - Performing reset of intergator now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
+          call message(' - Performing reset of integrator now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
         end if
 
         ! Get the next manoeuvre change epoch
@@ -983,8 +983,8 @@ contains
         end if
       
         
-        ! diff = abs(prop_counter - request_time)
-        ! write(cmess, '(a, D15.3, a)') 'diff = ', diff, toString(intermediate_integrator_call)
+        ! diff = prop_counter - request_time
+        ! write(cmess, '(a, D15.6, a, a)') 'diff = ', diff, " // intermediate_integrator_call=", toString(intermediate_integrator_call)
         ! call message(cmess, LOG_AND_STDOUT)
 
         ! Exit the integration loop when the desired time is reached

@@ -84,6 +84,7 @@ contains
         real(dp),intent(in)             :: end_epoch_sec                        !< end time (in seconds)
         real(dp),dimension(:),optional  :: step_epochs_sec                      ! intermediate epochs in seconds (MJD)
 
+        ! write(*,*) "new call to constructor_time. step_epochs_sec is present?", present(step_epochs_sec)
 
         constructor_time%start_time                     = start_epoch_sec
         constructor_time%end_time                       = end_epoch_sec
@@ -152,6 +153,8 @@ contains
 
         character(len=255)                  :: cmess
 
+        ! write(*,*) "in: this%out_counter", this%out_counter
+
         ! update step_size with every request when in intermediate steps mode
         if (this%intermediate_steps_flag) then
             
@@ -163,6 +166,10 @@ contains
             ! -- neighbouring array-elements contain the same epoch (due to overlapping TDMs). 
             ! -- Previously, those situations led to wrong in-array indexing and infinite 
             ! -- looping, exhausting the allocated memory. 
+            ! write(*,*) "this%step_epochs_sec=", this%step_epochs_sec
+            ! write(*,*) "current_time=", current_time, "cumulated_time=",this%cumulated_time, &
+            !     "this%last_index=", this%last_index, "sum(this%step_epochs_sec(:last_idx)", sum(this%step_epochs_sec(1:this%last_index))
+
             do i_index = this%last_index, size(this%step_epochs_sec)
                 this%cumulated_time = this%cumulated_time + this%step_epochs_sec(i_index)
                 if ((this%forward       .and. (this%cumulated_time > current_time .or. i_index <= this%last_index)) .or. &
@@ -250,7 +257,7 @@ contains
         ! save the value for later reference (e.g. by has_finished_step)
         this%next_step = step
 
-        ! write(cmess,'(a)') 'this%step_size  = '//toString(this%step_size)//', this%next_step '//toString(this%next_step)
+        ! write(cmess,'(a)') 'this%step_size  = '//toString(this%step_size)//', this%next_step '//toString(this%next_step)//', this%out_counter='//toString(this%out_counter)
         ! call message(cmess, LOG_AND_STDOUT)        
         ! call message("request epoch: "//toString(this%next_step)//" this%last_index: "//toString(this%last_index), LOG_AND_STDOUT)
         
@@ -389,7 +396,7 @@ contains
         if(neptune%output%get_output_switch()) then
             if (this%intermediate_steps_flag) then
                 ! First step for intermediate steps is defined by the user
-                this%step_size = this%step_epochs_sec(1)
+                this%step_size = abs(this%step_epochs_sec(1))
             else if(neptune%getStoreDataFlag()) then
                 this%step_size = dble(neptune%getStep())
             else
@@ -408,7 +415,7 @@ contains
             if(neptune%getStoreDataFlag()) then
                 if (this%intermediate_steps_flag) then
                     ! First step for intermediate steps is defined by the user
-                    this%step_size = this%step_epochs_sec(1)
+                    this%step_size = abs(this%step_epochs_sec(1))
                 else
                     this%step_size   = dble(neptune%getStep())
                 end if
@@ -480,17 +487,18 @@ contains
         character(len=255)            :: cmess
         real(dp)                      :: diff 
 
-        ! diff = abs(this%next_step - current_time)
-        ! write(cmess, '(a, D15.3, a)') 'diff_nextStep = ', diff, toString((this%next_step - current_time) < epsilon(1.0d0))
-        ! call message(cmess, LOG_AND_STDOUT)
-        
+        diff = this%next_step - current_time
+
         hfs = .false.
         
         if(this%forward) then
-            if((this%next_step - current_time) < epsilon(1.0d0)) hfs = .true.
+            if(abs(diff) < epsilon(1.0d0) .and. diff >= 0d0 ) hfs = .true.
         else
-            if((current_time - this%next_step) < epsilon(1.0d0)) hfs = .true.
+            if(abs(diff) < epsilon(1.0d0) .and. diff <= 0d0) hfs = .true.
         end if
+
+        ! write(cmess, '(a, D15.3, D15.3, a)') 'diff_nextStep = ', diff, epsilon(1.0d0), "hfs = "//toString(hfs)
+        ! call message(cmess, LOG_AND_STDOUT)
         
         ! if (this%intermediate_steps_flag .and. hfs) then 
         !     if (this%intermediate_steps_index < size(this%step_epochs_sec)) then
@@ -518,15 +526,18 @@ contains
     !
     ! --------------------------------------------------------------------
     pure function has_finished(this, current_time) result(hf)
-        Class(Clock_class), intent(in) :: this
-        real(dp),     intent(in) :: current_time
-        logical :: hf
+        Class(Clock_class), intent(in)  :: this
+        real(dp),     intent(in)        :: current_time
+        logical                         :: hf
+        real(dp)                        :: diff
+
+        diff = this%end_time - current_time
 
         hf = .false.
         if(this%forward) then
-            if((this%end_time - current_time) < epsilon(1.0d0)) hf = .true.
+            if(abs(diff) < epsilon(1.0d0) .and. diff >= 0d0 ) hf = .true.
         else
-            if((current_time - this%end_time) < epsilon(1.0d0)) hf = .true.
+            if(abs(diff) < epsilon(1.0d0) .and. diff <= 0d0) hf = .true.
         end if
         return
     end function

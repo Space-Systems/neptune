@@ -424,13 +424,22 @@ contains
 !> @brief       Wrapper to perform one integration step with the selected integration method
 !> @author      Vitali Braun
 !!
-!> @param[inout]  atmosphere_model   Atmosphere model instance
-!> @param[in]     rqtime    Requested time step
-!> @param[inout]  currtime  Current time
-!> @param[inout]  pos       Position vector
-!> @param[inout]  vel       Velocity vector
-!> @param[inout]  reset     Reset flag: 1 if restarting
-!> @param[out]    delt      Change in currtime
+!> @param[inout]  gravity_model       Gravity model instance
+!> @param[inout]  atmosphere_model    Atmosphere model instance
+!> @param[inout]  manoeuvres_model    Manoeuvres model instance
+!> @param[inout]  radiation_model     Radiation model instance
+!> @param[inout]  satellite_model     Satellite model instance
+!> @param[inout]  solarsystem_model   Solarsystem model instance
+!> @param[inout]  thirdbody_model     Third body model instance
+!> @param[inout]  tides_model         Tides model instance
+!> @param[inout]  derivatives_model   Derivatives model instance
+!> @param[inout]  reduction           Reduction model instance
+!> @param[in]     rqtime              Requested time step
+!> @param[inout]  currtime            Current time
+!> @param[inout]  pos                 Position vector
+!> @param[inout]  vel                 Velocity vector
+!> @param[inout]  reset               Reset flag: 1 if restarting
+!> @param[out]    delt                Change in currtime
 !!
 !> @date        <ul>
 !!                <li> 08.06.2015 (initial design)</li>
