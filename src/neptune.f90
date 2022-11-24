@@ -704,10 +704,10 @@ contains
     !---------------------------------------------
     if(epochs(2)%mjd < epochs(1)%mjd) then
       flag_backward = .true.
-      call message(" - Set to backward propagation", LOG_AND_STDOUT)
+      ! call message(" - Set to backward propagation", LOG_AND_STDOUT)
     else
       flag_backward = .false.
-      call message(" - Set to forward propagation", LOG_AND_STDOUT)
+      ! call message(" - Set to forward propagation", LOG_AND_STDOUT)
     end if
 
     !============================================================
