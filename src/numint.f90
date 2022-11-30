@@ -1708,7 +1708,7 @@ end function
     !   1) Initialization
     !
     !------------------------------------------------------------------------
-    if (reset == 1) then
+    initialization: if (reset == 1) then
       logInfo = 'INI'
 
       ! 1.1) set EPS, this%releps, this%abseps, initial state error transition matrix
@@ -1955,7 +1955,7 @@ end function
       end if
       return
 
-    endif ! end of initialization
+    endif initialization ! end of initialization
 
     !** return integrated state for the very unlikely (but still possible!!) case, that this%inttime == rqtime!
     if(this%inttime == rqtime) then
@@ -1985,9 +1985,11 @@ end function
       this%stepsize  = this%stepsize * this%r
 
       ! Force a step size to meet e.g. changes in acceleration => maneuvers
-      if ((rqtime < (this%inttime + this%stepsize)) .and. force_no_interpolation) then
+      if (((this%intdir == 1 .and. (rqtime < (this%inttime + this%stepsize))) .or. &
+          (this%intdir == -1 .and. (rqtime > (this%inttime + this%stepsize)))) &
+        .and. force_no_interpolation) then
+        call message("Reducing step size from "//toString(this%stepsize)//" to "//toString(rqtime - this%inttime)//" Int time: "//toString(this%inttime)//" Rq time: "//toString(rqtime), LOGFILE)
         this%stepsize = rqtime - this%inttime
-        call message("Reducing step size to "//toString(this%stepsize)//" Int time: "//toString(this%inttime)//" Rq time: "//toString(rqtime), LOGFILE)
       end if
 
       stepsize2 = this%stepsize * this%stepsize
