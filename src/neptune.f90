@@ -460,7 +460,7 @@ contains
       type(Neptune_class)        ,intent(inout)  :: neptune
       type(state_t),              intent(in)      :: state_in
       type(covariance_t),         intent(in)      :: covar_in
-      type(time_t), dimension(2), intent(in)      :: epoch
+      type(time_t), dimension(:), intent(in)      :: epoch
       logical,                    intent(in)      :: flag_reset
 
       type(state_t),              intent(out)     :: state_out
