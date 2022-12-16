@@ -36,7 +36,7 @@ program valsent_set
     type(covariance_t)                  :: dummy1, dummy2
     type(kepler_t)                      :: sentKep
     type(state_t), dimension(100000)    :: sentState
-    type(state_t)                       :: state_in, state_out, sent_state
+    type(state_t)                       :: state_in, nept_state, sent_state
     type(time_t), dimension(2)          :: epoch
     type(time_t), dimension(:), allocatable :: epochs
     type(Reduction_type)                :: reduction_model
@@ -130,10 +130,10 @@ program valsent_set
     end if
 
     write(*,*) "Starting NEPTUNE..."
-    call propagate(neptune_instance,state_in, dummy1, epochs, state_out, dummy2, init_flag)
+    call propagate(neptune_instance,state_in, dummy1, epochs, nept_state, dummy2, init_flag)
     write(*,*) "Done."
 
-    state_out = neptune_instance%getNeptuneData(1)
+    nept_state = neptune_instance%getNeptuneData(1)
 
     ! write(*,*) "Press enter to run some checks!"
     ! read(*,*)
@@ -145,7 +145,7 @@ program valsent_set
         ! write(*,*) "--------------"
         ! write(*,*) state_out%epoch%mjd, sent_state%epoch%mjd
 
-        state_out = neptune_instance%getNeptuneData(i+1)
+        nept_state = neptune_instance%getNeptuneData(i+1)
         
         if (flag_backward) then
             sent_state = sentState(ndata-i)
@@ -155,11 +155,11 @@ program valsent_set
 
         ! write(*,*) "i=", i, ", nept=", state_out%epoch%mjd, ", sent=", sent_state%epoch%mjd
 
-        if(abs(state_out%epoch%mjd - sent_state%epoch%mjd) > 1.d-6) then
+        if(abs(nept_state%epoch%mjd - sent_state%epoch%mjd) > 1.d-6) then
             write(*,*) "something wrong with the epochs...."
-            write(*,*) " - from Neptune: ", state_out%epoch%mjd, i+1
+            write(*,*) " - from Neptune: ", nept_state%epoch%mjd, i+1
             write(*,*) " - from Sentinel:   ", sent_state%epoch%mjd, i+1
-            write(*,*) " diff in secs:   ", (state_out%epoch%mjd - sent_state%epoch%mjd)*86400.d0
+            write(*,*) " diff in secs:   ", (nept_state%epoch%mjd - sent_state%epoch%mjd)*86400.d0
             write(*,*) "++ Fix first! ++"
             read(*,*)
             continue
@@ -167,11 +167,11 @@ program valsent_set
 
         !** compute difference in UVW coordinates
         call reduction_model%eci2uvw(sent_state%r, sent_state%v, sent_state%r, sent_rUVW)
-        call reduction_model%eci2uvw(sent_state%r, sent_state%v, state_out%r,   nep_rUVW)
+        call reduction_model%eci2uvw(sent_state%r, sent_state%v, nept_state%r,   nep_rUVW)
         rdiff = nep_rUVW - sent_rUVW
 
         call reduction_model%eci2uvw(sent_state%r, sent_state%v, sent_state%v, sent_vUVW)
-        call reduction_model%eci2uvw(sent_state%r, sent_state%v, state_out%v,   nep_vUVW)
+        call reduction_model%eci2uvw(sent_state%r, sent_state%v, nept_state%v,   nep_vUVW)
         vdiff = nep_vUVW - sent_vUVW
 
         !** write differences to output
@@ -183,7 +183,8 @@ program valsent_set
 
         write(*,   '(f15.8,2X,A,7(X,f15.7))') sent_state%epoch%mjd, date2longstring(sent_state%epoch), rms, (rdiff(j), j=1,3), (vdiff(j), j=1,3)
 
-        state_in = state_out
+
+        state_in = nept_state
         max_rms = max(max_rms, rms)
 
     end do
