@@ -7,7 +7,7 @@ if [[ ! -d "data" ]]; then
   ln -sf ../../../work/data
 fi
 #
-ln -sf ../../../bin/neptune-valsent1b
+ln -sf ../../../bin/neptune-valsent1b-set
 #
 # Download solar and geomagnetic activity data, when the files are older than 1 day
 if [[ `find "data/fap_day.dat" -mtime +24` ]]; then
