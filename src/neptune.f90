@@ -460,7 +460,7 @@ contains
       type(Neptune_class)        ,intent(inout)  :: neptune
       type(state_t),              intent(in)      :: state_in
       type(covariance_t),         intent(in)      :: covar_in
-      type(time_t), dimension(2), intent(in)      :: epoch
+      type(time_t), dimension(:), intent(in)      :: epoch
       logical,                    intent(in)      :: flag_reset
 
       type(state_t),              intent(out)     :: state_out
@@ -704,8 +704,10 @@ contains
     !---------------------------------------------
     if(epochs(2)%mjd < epochs(1)%mjd) then
       flag_backward = .true.
+      ! call message(" - Set to backward propagation", LOG_AND_STDOUT)
     else
       flag_backward = .false.
+      ! call message(" - Set to forward propagation", LOG_AND_STDOUT)
     end if
 
     !============================================================
@@ -850,11 +852,11 @@ contains
           !force_no_interpolation = .true.
           ! reset also the count of subroutine calls to the integrator
           call neptune%numerical_integrator%resetCountIntegrator()
-          call message(' - Performing reset of intergator now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
+          call message(' - Performing reset of integrator now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for upcoming maneuver '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOGFILE)
         end if
 
         ! Get the next manoeuvre change epoch
-        upcoming_maneuver_epoch_mjd = neptune%manoeuvres_model%get_upcoming_manoeuvre_change_epoch(epochs(1)%mjd + prop_counter/86400.d0)
+        upcoming_maneuver_epoch_mjd = neptune%manoeuvres_model%get_upcoming_manoeuvre_change_epoch(epochs(1)%mjd + prop_counter/86400.d0, using_backwards_propagation=flag_backward)
         if (upcoming_maneuver_epoch_mjd > 0.d0) then
           manoeuvre_change_counter = (upcoming_maneuver_epoch_mjd - epochs(1)%mjd) * 86400.d0
           !call message(' New maneuver change at: '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
@@ -933,7 +935,11 @@ contains
         if(neptune%has_to_write_progress()) then
             dtmp = abs(prop_counter - start_epoch_sec)/abs(end_epoch_sec - start_epoch_sec)
             call write_progress(neptune%get_progress_file_name(), dtmp, neptune%get_progress_step())
+            ! write(*,*) dtmp, prop_counter
         end if
+        
+        ! dtmp = abs(prop_counter - start_epoch_sec)/abs(end_epoch_sec - start_epoch_sec)
+        ! write(*,"(A,F7.2,A,F15.4,A,F15.6)") "progress =",100*dtmp, " // prop_counter =", prop_counter," // mjd =",epochs(1)%mjd + prop_counter/86400.d0
 
         if(hasFailed()) then
           call neptune%output%close_open_files(neptune%numerical_integrator)
@@ -977,8 +983,8 @@ contains
         end if
       
         
-        ! diff = abs(prop_counter - request_time)
-        ! write(cmess, '(a, D15.3, a)') 'diff = ', diff, toString(intermediate_integrator_call)
+        ! diff = prop_counter - request_time
+        ! write(cmess, '(a, D15.6, a, a)') 'diff = ', diff, " // intermediate_integrator_call=", toString(intermediate_integrator_call)
         ! call message(cmess, LOG_AND_STDOUT)
 
         ! Exit the integration loop when the desired time is reached
