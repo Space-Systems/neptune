@@ -24,7 +24,7 @@ if [[ ! -d "OPI" ]]; then
   git clone https://github.com/Space-Systems/OPI.git --branch OPI-2015
 else
   echo "Found - updating branch."
-  cd OPI
+  cd OPI || exit
   git pull
   cd ..
 fi
@@ -34,14 +34,14 @@ if [[ $? -ne 0 ]]; then
   exit $?
 fi
 # Build OPI
-cd OPI
+cd OPI || exit
 # Create the build directory if it does not exist
 if [[ ! -d "build" ]]; then
   mkdir build
 else
   rm -rf build/*
 fi
-cd build
+cd build || exit
 echo "Updating cmake"
 cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=../ -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_CXX11=ON -DENABLE_CL_SUPPORT=OFF -DENABLE_CUDA_SUPPORT=OFF -DENABLE_PYTHON=OFF ../
 echo "Building OPI"
@@ -63,7 +63,7 @@ if [[ ! -d "libslam" ]]; then
   git clone https://github.com/Space-Systems/libslam.git --branch v2020-12
 else
   echo "Found - updating branch."
-  cd libslam
+  cd libslam || exit
   git pull
   cd ..
 fi
@@ -73,14 +73,14 @@ if [[ $? -ne 0 ]]; then
   exit $?
 fi
 # Build libslam
-cd libslam
+cd libslam || exit
 # Create the build directory if it does not exist
 if [[ ! -d "build" ]]; then
   mkdir build
 else
   rm -rf build/*
 fi
-cd build
+cd build || exit
 echo "Updating cmake"
 cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OpenMP_SUPPORT=OFF -DENABLE_POSTGRESQL_SUPPORT=OFF ../
 echo "Building libslam"
@@ -105,7 +105,7 @@ if [[ ! -d "lib" ]]; then
   mkdir lib
 fi
 # Create the links to libraries needed by CAMP
-cd lib
+cd lib || exit
 ln -sf ../libslam/lib/libslam-Fortran.$LIBSUFFIX .
 ln -sf ../OPI/lib/libOPI-Fortran.$LIBSUFFIX .
 ln -sf ../OPI/lib/libOPI.$LIBSUFFIX .
@@ -115,7 +115,7 @@ if [[ ! -d "include" ]]; then
   mkdir include
 fi
 # Create the links to includes needed by NEPTUNE
-cd include
+cd include || exit
 ln -sf ../libslam/include/SLAM .
 ln -sf ../OPI/include/OPI .
 cd ..
@@ -125,7 +125,7 @@ if [[ ! -d "build" ]]; then
 else
   rm -rf build/*
 fi
-cd build
+cd build || exit
 echo "Updating cmake"
 cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OPI_SUPPORT=ON ../
 echo "Building NEPTUNE"
@@ -135,7 +135,7 @@ if [[ $? -ne 0 ]]; then
     exit $?
 fi
 echo "Leaving NEPTUNE"
-cd ../work
-ln -sf ../bin/neptune-sa
+cd ../work || exit
+ln -sf ../bin/neptune-sa .
 cd ..
 echo "Done"
