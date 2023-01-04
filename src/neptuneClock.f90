@@ -166,9 +166,9 @@ contains
             ! -- neighbouring array-elements contain the same epoch (due to overlapping TDMs). 
             ! -- Previously, those situations led to wrong in-array indexing and infinite 
             ! -- looping, exhausting the allocated memory. 
-            ! write(*,*) "this%step_epochs_sec=", this%step_epochs_sec
-            ! write(*,*) "current_time=", current_time, "cumulated_time=",this%cumulated_time, &
-            !     "this%last_index=", this%last_index, "sum(this%step_epochs_sec(:last_idx)", sum(this%step_epochs_sec(1:this%last_index))
+            ! write(78,*) "this%step_epochs_sec=", this%step_epochs_sec
+            ! write(78,*) "current_time=", current_time, "cumulated_time=",this%cumulated_time, &
+                ! "this%last_index=", this%last_index, "sum(this%step_epochs_sec(:last_idx)", sum(this%step_epochs_sec(1:this%last_index))
 
             do i_index = this%last_index, size(this%step_epochs_sec)
                 this%cumulated_time = this%cumulated_time + this%step_epochs_sec(i_index)
@@ -260,6 +260,8 @@ contains
         ! write(cmess,'(a)') 'this%step_size  = '//toString(this%step_size)//', this%next_step '//toString(this%next_step)//', this%out_counter='//toString(this%out_counter)
         ! call message(cmess, LOG_AND_STDOUT)        
         ! call message("request epoch: "//toString(this%next_step)//" this%last_index: "//toString(this%last_index), LOG_AND_STDOUT)
+        ! write(79,*) 'this%step_size  = '//toString(this%step_size)//', this%next_step '//toString(this%next_step)//', this%out_counter='//toString(this%out_counter)
+        ! write(79,*) "request epoch: "//toString(this%next_step)//" this%last_index: "//toString(this%last_index), LOG_AND_STDOUT
         
         return
     end function

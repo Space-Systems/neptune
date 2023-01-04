@@ -148,6 +148,7 @@ contains
       ierr = setLogVerbosity(ALL_MSG)
       ierr = setCliVerbosity(ERRORS)
     end if
+    !write(*,*) getLogfileChannel(), getLogfileName()
 
     !==============================================================
     !
@@ -637,10 +638,10 @@ contains
     ierr = neptune%setNeptuneVar(C_PAR_EARTH_RADIUS, toString(getEarthGeopotentialRadius()))
 
     !** dump all inputs
-    !call neptune%dump_input("neptune_dump_file.out")
+    ! call neptune%dump_input("neptune_dump_file.out")
 
     ! this only happens, if called with dump flag (checked in the routine)
-    !call neptune%write_input_to_dump()
+    ! call neptune%write_input_to_dump()
 
     ! prepare output files if requested (checked in the routine)
     call neptune%output%prepare_output(neptune%gravity_model,   &
@@ -704,11 +705,12 @@ contains
     !---------------------------------------------
     if(epochs(2)%mjd < epochs(1)%mjd) then
       flag_backward = .true.
-      ! call message(" - Set to backward propagation", LOG_AND_STDOUT)
+      call message(" - Set to backward propagation", LOG_AND_STDOUT)
     else
       flag_backward = .false.
-      ! call message(" - Set to forward propagation", LOG_AND_STDOUT)
+      call message(" - Set to forward propagation", LOG_AND_STDOUT)
     end if
+    neptune%manoeuvres_model%flag_backward = flag_backward
 
     !============================================================
     !
@@ -807,6 +809,7 @@ contains
         if(neptune%getStoreDataFlag()) then
           dtmp = epochs(1)%mjd + prop_counter/86400.d0
           ! call message("output epoch: "//toString(prop_counter), LOG_AND_STDOUT)
+          ! write(84,*) dtmp, state_out%r, state_out%v
           call neptune%storeData(state_out%r, state_out%v, dtmp)
           ! store covariance matrix data if requested
           if(neptune%numerical_integrator%getCovariancePropagationFlag()) then
@@ -839,7 +842,7 @@ contains
 
       ! Check whether there is a manoeuvre change (start or end)
       force_no_interpolation = .false.
-      neptune%manoeuvres_model%ignore_maneuver_start = .false.
+      neptune%manoeuvres_model%ignore_maneuver_first_change = .false.
       suppressed_output = .false.
       intermediate_integrator_call = .false.
       if (neptune%derivatives_model%getPertSwitch(PERT_MANEUVERS)) then
@@ -856,11 +859,19 @@ contains
         end if
 
         ! Get the next manoeuvre change epoch
-        upcoming_maneuver_epoch_mjd = neptune%manoeuvres_model%get_upcoming_manoeuvre_change_epoch(epochs(1)%mjd + prop_counter/86400.d0, using_backwards_propagation=flag_backward)
+        upcoming_maneuver_epoch_mjd = neptune%manoeuvres_model%get_upcoming_manoeuvre_change_epoch(epochs(1)%mjd + prop_counter/86400.d0)
+        ! call message('upcoming_maneuver_epoch_mjd='//toString(upcoming_maneuver_epoch_mjd), LOG_AND_STDOUT)
         if (upcoming_maneuver_epoch_mjd > 0.d0) then
           manoeuvre_change_counter = (upcoming_maneuver_epoch_mjd - epochs(1)%mjd) * 86400.d0
-          !call message(' New maneuver change at: '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
+          ! call message(' New maneuver change at: '//toString(epochs(1)%mjd + manoeuvre_change_counter/86400.d0)//' ('//toString(manoeuvre_change_counter)//')', LOG_AND_STDOUT)
           ! Check whether the manoeuvre change is more immenent than the step proposed
+          ! write(cmess,*) flag_backward, &
+          !   manoeuvre_change_counter, &
+          !   request_time, &
+          !   prop_counter, &
+          !   abs(manoeuvre_change_counter - request_time), &
+          !   epsilon(1.d0)
+          ! call message(cmess, LOG_AND_STDOUT)
           if (.not. flag_backward .and. (manoeuvre_change_counter < request_time .and. manoeuvre_change_counter > prop_counter) &
             .or. flag_backward .and. (manoeuvre_change_counter > request_time .and. manoeuvre_change_counter < prop_counter)) then
             if (abs(manoeuvre_change_counter - request_time) > epsilon(1.d0)) then
@@ -872,7 +883,7 @@ contains
             request_time = manoeuvre_change_counter
             intermediate_integrator_call = .true.
             force_no_interpolation = .true.
-            neptune%manoeuvres_model%ignore_maneuver_start = .true.
+            neptune%manoeuvres_model%ignore_maneuver_first_change = .true.
             call message(' - Adding intermediate integrator call now '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter)//') for planned maneuver at '//toString(epochs(1)%mjd + request_time/86400.d0)//' ('//toString(request_time)//')', LOGFILE)
           end if
         end if
@@ -939,7 +950,7 @@ contains
         end if
         
         ! dtmp = abs(prop_counter - start_epoch_sec)/abs(end_epoch_sec - start_epoch_sec)
-        ! write(*,"(A,F7.2,A,F15.4,A,F15.6)") "progress =",100*dtmp, " // prop_counter =", prop_counter," // mjd =",epochs(1)%mjd + prop_counter/86400.d0
+        ! write(*,"(A1,A,F7.2,A,F15.4,A,F15.6)") char(13), "progress =",100*dtmp, "% // prop_counter =", prop_counter," // mjd =",epochs(1)%mjd + prop_counter/86400.d0
 
         if(hasFailed()) then
           call neptune%output%close_open_files(neptune%numerical_integrator)
@@ -965,15 +976,20 @@ contains
               ! This is the usual case when the intergator cannot go on and needs a valid state to restart from.
               state_out    = last_state_out
               prop_counter = lastPropCounter
-            else if ((.not. flag_backward .and. (prop_counter > request_time)) .or. &
-                    (       flag_backward .and. (prop_counter < request_time))) then
-              ! This case may happen when the integrator oversteps the requested time
-              !  and usually would start interpolation. Though, due to integration issues
-              !  he never gets to the point of interpolation but sets the prop_counter anyway.
-              !  This leads to an invalid state, which is also written to output at a time,
-              !  which was not even requested.
-              state_out    = last_state_out
-              prop_counter = lastPropCounter
+
+            ! DLA: This section below was commented out since it seems to fix an issue when a maneuver 
+            ! and one of the requested steps are at exactly the same epoch when going backwards. The 
+            ! propagator would get stuck trying to go beyond it instead of using the correct delta_time.
+
+            ! else if ((.not. flag_backward .and. (prop_counter > request_time)) .or. &
+            !         (       flag_backward .and. (prop_counter < request_time))) then
+            !   ! This case may happen when the integrator oversteps the requested time
+            !   !  and usually would start interpolation. Though, due to integration issues
+            !   !  he never gets to the point of interpolation but sets the prop_counter anyway.
+            !   !  This leads to an invalid state, which is also written to output at a time,
+            !   !  which was not even requested.
+            !   state_out    = last_state_out
+            !   prop_counter = lastPropCounter
             end if
           end if
         else if((.not. flag_backward .and. (prop_counter > propCounterAtReset)) .or. &
@@ -1043,6 +1059,8 @@ contains
           call neptune%numerical_integrator%save_covariance_state(state_out, request_time)
       end if
     end do
+
+    write(*,*)
 
     !** close open files
     call neptune%output%close_open_files(neptune%numerical_integrator)

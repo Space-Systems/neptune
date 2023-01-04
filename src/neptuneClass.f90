@@ -1129,6 +1129,8 @@ contains
         iunit = openFile(this%dump_file_name, SEQUENTIAL, OUT_FORMATTED_OVERWRITE)
 
         write(iunit,'(a)') 'NEPTUNE ('//trim(this%version_model%to_string(this%version_model%get_neptune_version()))//') input dump on '//date2string(getDateTimeNow())
+        !write(*,'(a)') 'NEPTUNE ('//trim(this%version_model%to_string(this%version_model%get_neptune_version()))//') input dump on '//date2string(getDateTimeNow())
+
         ! now dump the input array
         do i = 1, size(this%input_arr)
             if(.not. this%input_arr(i)%parameterSet) cycle
@@ -1137,6 +1139,7 @@ contains
                 cout = trim(cout)//' ('//trim(this%input_arr(i)%info)//')'
             end if
             write(iunit,'(a)') trim(cout)
+            !write(*,'(a)') trim(cout)
         end do
 
         iunit = closeFile(iunit)

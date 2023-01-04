@@ -99,10 +99,11 @@ module maneuvers
         type(maneuver_t),    dimension(:), allocatable :: manv                  ! maneuver data structure
         type(mnv_sequence_t), dimension(:), allocatable :: mnv_sequence         ! structure, which points at the first maneuver phase for index 1,
                                                                                 ! the second one for index 2, etc.
-        logical :: ignore_maneuver_start                                        ! This shall be true, when the last step of a non maneuver interval
+        logical :: ignore_maneuver_first_change                                        ! This shall be true, when the last step of a non maneuver interval
                                                                                 !   reaches a maneuver. The maneuver shall be ignored to not create
                                                                                 !   an integration problem. This should flip to false, when the next
                                                                                 !   integration interval starts with exact this maneuver.
+        logical :: flag_backward                                                ! Propagation is going backwards in time
     contains
 
         procedure :: init_maneuvers_file
@@ -150,7 +151,8 @@ contains
     type(Manoeuvres_class) function constructor()
         constructor%man_initialized = .false.                                    ! initialization flag
         constructor%flag_no_data   = .false.
-        constructor%ignore_maneuver_start = .false.
+        constructor%ignore_maneuver_first_change = .false.
+        constructor%flag_backward = .false.
         constructor%man_file_name = "neptune.mnv"
     end function constructor
 
@@ -1065,28 +1067,53 @@ contains
 
     get_current_index = -1
 
-    ! loop through mnv_sequence array to bracket mjd
-    do k = 1, size(this%mnv_sequence)
+    ! forward
+    propagation_direction: if (.not. this%flag_backward) then
+      ! loop through mnv_sequence array to bracket mjd
+      do k = 1, size(this%mnv_sequence)
 
-      if (this%ignore_maneuver_start) then
-        if((mjd > this%mnv_sequence(k)%mjd_start) &
-            .and. (mjd <= this%mnv_sequence(k)%mjd_end)) then
-          get_current_index = k
-          return
-        else if(mjd < this%mnv_sequence(k)%mjd_start) then
-          exit
+        if (this%ignore_maneuver_first_change) then
+          if((mjd > this%mnv_sequence(k)%mjd_start) &
+              .and. (mjd <= this%mnv_sequence(k)%mjd_end)) then
+            get_current_index = k
+            return
+          else if(mjd < this%mnv_sequence(k)%mjd_start) then
+            exit
+          end if
+        else
+          if(mjd >= this%mnv_sequence(k)%mjd_start &
+              .and. mjd < this%mnv_sequence(k)%mjd_end) then
+            get_current_index = k
+            return
+          else if(mjd < this%mnv_sequence(k)%mjd_start) then
+            exit
+          end if
         end if
-      else
-        if(mjd >= this%mnv_sequence(k)%mjd_start &
-            .and. mjd < this%mnv_sequence(k)%mjd_end) then
-          get_current_index = k
-          return
-        else if(mjd < this%mnv_sequence(k)%mjd_start) then
-          exit
-        end if
-      end if
 
-    end do
+      end do
+    else !backwards
+      ! loop through mnv_sequence array to bracket mjd
+      do k = size(this%mnv_sequence), 1, -1
+        if (this%ignore_maneuver_first_change) then
+          if((mjd >= this%mnv_sequence(k)%mjd_start) &
+              .and. (mjd < this%mnv_sequence(k)%mjd_end)) then
+            get_current_index = k
+            return
+          else if(mjd > this%mnv_sequence(k)%mjd_end) then
+            exit
+          end if
+        else
+          if(mjd > this%mnv_sequence(k)%mjd_start &
+              .and. mjd <= this%mnv_sequence(k)%mjd_end) then
+            get_current_index = k
+            return
+          else if(mjd > this%mnv_sequence(k)%mjd_end) then
+            exit
+          end if
+        end if
+
+      end do
+    end if propagation_direction
 
     ! if(k == 1) then
 
@@ -1124,22 +1151,17 @@ contains
 !!              </ul>
 !!
 !-----------------------------------------------------------------------------
-  real(dp) function get_upcoming_manoeuvre_change_epoch(this, mjd, using_backwards_propagation)
+  real(dp) function get_upcoming_manoeuvre_change_epoch(this, mjd)
 
     class(Manoeuvres_class) :: this
     real(dp), intent(in)    :: mjd                                              ! current MJD
-    logical, intent(in), optional :: using_backwards_propagation
 
     integer :: k    ! loop counter
-    logical :: flag_backwards
-
-    flag_backwards = .false.
-    if (present(using_backwards_propagation)) flag_backwards = using_backwards_propagation
 
     get_upcoming_manoeuvre_change_epoch = 0.d0
 
     ! loop through mnv_sequence array to bracket mjd
-    if (.not. flag_backwards) then  ! forward
+    if (.not. this%flag_backward) then  ! forward
       do k = 1, size(this%mnv_sequence)
         if( mjd < this%mnv_sequence(k)%mjd_start) then
           get_upcoming_manoeuvre_change_epoch = this%mnv_sequence(k)%mjd_start
