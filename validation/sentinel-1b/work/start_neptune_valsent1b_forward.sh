@@ -44,5 +44,5 @@ if [[ -f "input/valsent.inp" ]]; then
 fi
 cp -v "input/valsent_forward.inp" "input/valsent.inp"
 cat "input/valsent.inp" && echo "\n"
-LD_LIBRARY_PATH=../../../lib ./neptune-valsent1b-set
+LD_LIBRARY_PATH=../../../lib ./neptune-valsent1b
 unlink "input/valsent.inp"
