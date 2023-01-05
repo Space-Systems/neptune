@@ -1060,8 +1060,6 @@ contains
       end if
     end do
 
-    write(*,*)
-
     !** close open files
     call neptune%output%close_open_files(neptune%numerical_integrator)
 
