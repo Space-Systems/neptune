@@ -44,7 +44,7 @@ if(NOT SKIP_MSIS_2 AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/msis_constants.f90)
   MESSAGE("${SRC_FILES}")
 else()
   MESSAGE("Found MSIS 2.0: False")
-  set(SKIP_MSIS_2 "OFF")
+  set(SKIP_MSIS_2 "ON")
   add_compile_definitions(SKIP_MSIS_2)
 endif()
 
