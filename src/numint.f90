@@ -424,13 +424,22 @@ contains
 !> @brief       Wrapper to perform one integration step with the selected integration method
 !> @author      Vitali Braun
 !!
-!> @param[inout]  atmosphere_model   Atmosphere model instance
-!> @param[in]     rqtime    Requested time step
-!> @param[inout]  currtime  Current time
-!> @param[inout]  pos       Position vector
-!> @param[inout]  vel       Velocity vector
-!> @param[inout]  reset     Reset flag: 1 if restarting
-!> @param[out]    delt      Change in currtime
+!> @param[inout]  gravity_model       Gravity model instance
+!> @param[inout]  atmosphere_model    Atmosphere model instance
+!> @param[inout]  manoeuvres_model    Manoeuvres model instance
+!> @param[inout]  radiation_model     Radiation model instance
+!> @param[inout]  satellite_model     Satellite model instance
+!> @param[inout]  solarsystem_model   Solarsystem model instance
+!> @param[inout]  thirdbody_model     Third body model instance
+!> @param[inout]  tides_model         Tides model instance
+!> @param[inout]  derivatives_model   Derivatives model instance
+!> @param[inout]  reduction           Reduction model instance
+!> @param[in]     rqtime              Requested time step
+!> @param[inout]  currtime            Current time
+!> @param[inout]  pos                 Position vector
+!> @param[inout]  vel                 Velocity vector
+!> @param[inout]  reset               Reset flag: 1 if restarting
+!> @param[out]    delt                Change in currtime
 !!
 !> @date        <ul>
 !!                <li> 08.06.2015 (initial design)</li>
@@ -1699,7 +1708,7 @@ end function
     !   1) Initialization
     !
     !------------------------------------------------------------------------
-    if (reset == 1) then
+    initialization: if (reset == 1) then
       logInfo = 'INI'
 
       ! 1.1) set EPS, this%releps, this%abseps, initial state error transition matrix
@@ -1946,7 +1955,7 @@ end function
       end if
       return
 
-    endif ! end of initialization
+    endif initialization ! end of initialization
 
     !** return integrated state for the very unlikely (but still possible!!) case, that this%inttime == rqtime!
     if(this%inttime == rqtime) then
@@ -1976,9 +1985,11 @@ end function
       this%stepsize  = this%stepsize * this%r
 
       ! Force a step size to meet e.g. changes in acceleration => maneuvers
-      if ((rqtime < (this%inttime + this%stepsize)) .and. force_no_interpolation) then
+      if (((this%intdir == 1 .and. (rqtime < (this%inttime + this%stepsize))) .or. &
+          (this%intdir == -1 .and. (rqtime > (this%inttime + this%stepsize)))) &
+        .and. force_no_interpolation) then
+        call message("Reducing step size from "//toString(this%stepsize)//" to "//toString(rqtime - this%inttime)//" Int time: "//toString(this%inttime)//" Rq time: "//toString(rqtime), LOGFILE)
         this%stepsize = rqtime - this%inttime
-        call message("Reducing step size to "//toString(this%stepsize)//" Int time: "//toString(this%inttime)//" Rq time: "//toString(rqtime), LOGFILE)
       end if
 
       stepsize2 = this%stepsize * this%stepsize
