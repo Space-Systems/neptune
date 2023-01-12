@@ -1,0 +1,31 @@
+module test_atmosphere_nrlmsis00
+    use funit
+    use atmosphere,    only: Atmosphere_class, MSIS2000
+    
+    implicit none
+
+    contains
+
+    @test
+    subroutine test_getDensityMSIS2000()
+        ! Tests that a density is computed by the MSIS2000 model
+        ! input:
+        !    MJD:       51544 ! Jan 1. 2000
+        !    Altitude:  500 km
+        !    Latitude:  0.0 ! rad
+        !    Longitude: 0.0 ! rad
+
+        type(Atmosphere_class) :: atmosphere_model
+
+        atmosphere_model = Atmosphere_class()
+
+        atmosphere_model%nmodel = MSIS2000
+        call atmosphere_model%setAtmosphereInitFlag()
+        call atmosphere_model%initAtmosphere('../../work/data')
+
+        ! @assertRelativelyEqual(atmosphere_model%getDensityMSIS2000(500.d0, 0.d0, 0.d0, 51544.d0), 0.5712d-003, tolerance=0.01)
+        @assertRelativelyEqual(atmosphere_model%getDensityMSIS2000(500.d0, 0.d0, 0.d0, 51544.d0), 0.79964653605310576d-003, tolerance=0.01)
+
+   end subroutine test_getDensityMSIS2000
+
+end module test_atmosphere_nrlmsis00

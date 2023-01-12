@@ -211,8 +211,9 @@ module atmosphere
         procedure :: getDensityExponential
         procedure :: getDensityMSIS2000
         procedure :: getDensityJB2008
+#ifndef SKIP_MSIS_2
         procedure :: getDensityNRLMSISv2
-
+#endif
     end type
 
     ! Constructor
@@ -374,9 +375,10 @@ contains
 
   subroutine initAtmosphere(  this, &
                               cpath)
-
+#ifndef SKIP_MSIS_2
     use msis_init
-    
+#endif
+
     !** interface
     !-------------------------------------------
     class(Atmosphere_class)             :: this
@@ -485,8 +487,9 @@ contains
                                                                                 ! so 41 additional days are required for a shift later on
       mjd_start = mjd_start - 81.d0                                             ! in order to compute F10.7 last 81-day averages
       mjd_end   = mjd_end   + 41.d0
+#ifndef SKIP_MSIS_2
       call msisinit(cpath, '/msis20.parm', iun, switch_gfn, switch_legacy)
-
+#endif
     else if (sgaDataType == FILE_JB08 .and. this%nmodel == NRLMSISv2) then
       
       cmess = "Wrong input file (JB08) specified for the selected NRLMSIS2.0 atmospheric model."
@@ -796,8 +799,10 @@ contains
         call setNeptuneError(E_SPECIAL, FATAL, (/cmess/))
         return
       end if
+#ifndef SKIP_MSIS_2
     else if(this%nmodel == NRLMSISv2) then
       rho = this%getDensityNRLMSISv2(altitude, lat_gd, lon_gd, time_mjd)
+#endif
     end if
 
     this%last_rho      = rho
@@ -1274,6 +1279,7 @@ contains
   !!              for the passed altitude and the MJD.
   !!
   !!------------------------------------------------------------------------------------------------
+#ifndef SKIP_MSIS_2
   real(dp) function getDensityNRLMSISv2(this, altitude, latitude, longitude, time_mjd) result(rho)
     use msis_constants
     use msis_calc
@@ -1397,6 +1403,7 @@ contains
     rho = dn_NRLMSISv2(6)*1.d012                                                ! total atmospheric density in kg/km**3
     
   end function getDensityNRLMSISv2
+#endif
 
   !==============================================================
   !
