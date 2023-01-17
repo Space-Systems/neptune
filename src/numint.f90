@@ -1988,7 +1988,7 @@ end function
       if (((this%intdir == 1 .and. (rqtime < (this%inttime + this%stepsize))) .or. &
           (this%intdir == -1 .and. (rqtime > (this%inttime + this%stepsize)))) &
         .and. force_no_interpolation) then
-        call message("Reducing step size from "//toString(this%stepsize)//" to "//toString(rqtime - this%inttime)//" Int time: "//toString(this%inttime)//" Rq time: "//toString(rqtime), LOGFILE)
+        call message("Reducing step size from "//toString(this%stepsize)//" to "//toString(rqtime - this%inttime)//" Int time: "//toString(this%inttime)//" Rq time: "//toString(rqtime), LOG_AND_STDOUT)
         this%stepsize = rqtime - this%inttime
       end if
 

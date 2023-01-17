@@ -1050,11 +1050,13 @@ contains
 !!
 !! @brief       Get the current index within the mnv_sequence array
 !! @author      Vitali Braun
+!! @author      Daniel Lubián-Arenillas
 !!
 !! @param[in]   mjd   current MJD
 !!
 !! @date        <ul>
 !!                <li> 07.11.2013: initial design</li>
+!!                <li> 07.01.2023: fixes for backwards propagation</li>
 !!              </ul>
 !!
 !-----------------------------------------------------------------------------
@@ -1063,55 +1065,47 @@ contains
     class(Manoeuvres_class) :: this
     real(dp), intent(in)    :: mjd                                              ! current MJD
 
-    integer :: k    ! loop counter
+    integer :: idx_sequence    ! loop counter
+    integer,parameter :: idx_out_of_sequence = -1
+    real(dp) :: t_ini, t_end
 
-    get_current_index = -1
+    get_current_index = idx_out_of_sequence
 
     ! forward
     propagation_direction: if (.not. this%flag_backward) then
       ! loop through mnv_sequence array to bracket mjd
-      do k = 1, size(this%mnv_sequence)
+      do idx_sequence = 1, size(this%mnv_sequence)
+        t_ini = this%mnv_sequence(idx_sequence)%mjd_start
+        t_end = this%mnv_sequence(idx_sequence)%mjd_end
 
-        if (this%ignore_maneuver_first_change) then
-          if((mjd > this%mnv_sequence(k)%mjd_start) &
-              .and. (mjd <= this%mnv_sequence(k)%mjd_end)) then
-            get_current_index = k
-            return
-          else if(mjd < this%mnv_sequence(k)%mjd_start) then
-            exit
-          end if
-        else
-          if(mjd >= this%mnv_sequence(k)%mjd_start &
-              .and. mjd < this%mnv_sequence(k)%mjd_end) then
-            get_current_index = k
-            return
-          else if(mjd < this%mnv_sequence(k)%mjd_start) then
-            exit
-          end if
+        if (this%ignore_maneuver_first_change .and. (t_ini < mjd) .and. (mjd <= t_end)) then
+          get_current_index = idx_sequence
+          exit
+        else if (.not. this%ignore_maneuver_first_change .and. (t_ini <= mjd) .and. (mjd < t_end)) then
+          get_current_index = idx_sequence
+          exit
+        else if (mjd < t_ini) then
+          get_current_index = idx_out_of_sequence
         end if
 
       end do
-    else !backwards
-      ! loop through mnv_sequence array to bracket mjd
-      do k = size(this%mnv_sequence), 1, -1
-        if (this%ignore_maneuver_first_change) then
-          if((mjd >= this%mnv_sequence(k)%mjd_start) &
-              .and. (mjd < this%mnv_sequence(k)%mjd_end)) then
-            get_current_index = k
-            return
-          else if(mjd > this%mnv_sequence(k)%mjd_end) then
-            exit
-          end if
-        else
-          if(mjd > this%mnv_sequence(k)%mjd_start &
-              .and. mjd <= this%mnv_sequence(k)%mjd_end) then
-            get_current_index = k
-            return
-          else if(mjd > this%mnv_sequence(k)%mjd_end) then
-            exit
-          end if
-        end if
 
+    else !backwards
+      ! loop backwards through mnv_sequence array to bracket mjd
+      ! In this direction, we encounter first the mjd_end of the sequence
+      do idx_sequence = size(this%mnv_sequence), 1, -1
+        t_ini = this%mnv_sequence(idx_sequence)%mjd_start
+        t_end = this%mnv_sequence(idx_sequence)%mjd_end
+
+        if (this%ignore_maneuver_first_change .and. (t_ini <= mjd) .and. (mjd < t_end)) then
+          get_current_index = idx_sequence
+          exit
+        else if (.not. this%ignore_maneuver_first_change .and. (t_ini < mjd) .and. (mjd <= t_end)) then
+          get_current_index = idx_sequence
+          exit
+        else if (t_end < mjd) then
+          get_current_index = idx_out_of_sequence
+        end if
       end do
     end if propagation_direction
 
@@ -1132,8 +1126,6 @@ contains
 
     ! end if
 
-    return
-
   end function get_current_index
 
 !=============================================================================
@@ -1144,7 +1136,6 @@ contains
 !! @author      Christopher Kebschull
 !!
 !! @param[in]   mjd                           current MJD
-!! @param[in]   using_backwards_propagation   Whether propagation is backwards or not. Optional. Defaults to .false.
 !!
 !! @date        <ul>
 !!                <li> 13.07.2020: initial design</li>

@@ -981,15 +981,15 @@ contains
             ! and one of the requested steps are at exactly the same epoch when going backwards. The 
             ! propagator would get stuck trying to go beyond it instead of using the correct delta_time.
 
-            ! else if ((.not. flag_backward .and. (prop_counter > request_time)) .or. &
-            !         (       flag_backward .and. (prop_counter < request_time))) then
-            !   ! This case may happen when the integrator oversteps the requested time
-            !   !  and usually would start interpolation. Though, due to integration issues
-            !   !  he never gets to the point of interpolation but sets the prop_counter anyway.
-            !   !  This leads to an invalid state, which is also written to output at a time,
-            !   !  which was not even requested.
-            !   state_out    = last_state_out
-            !   prop_counter = lastPropCounter
+            else if ((.not. flag_backward .and. (prop_counter > request_time)) .or. &
+                    (       flag_backward .and. (prop_counter < request_time))) then
+              ! This case may happen when the integrator oversteps the requested time
+              !  and usually would start interpolation. Though, due to integration issues
+              !  he never gets to the point of interpolation but sets the prop_counter anyway.
+              !  This leads to an invalid state, which is also written to output at a time,
+              !  which was not even requested.
+              state_out    = last_state_out
+              prop_counter = lastPropCounter
             end if
           end if
         else if((.not. flag_backward .and. (prop_counter > propCounterAtReset)) .or. &
