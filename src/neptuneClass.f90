@@ -1091,7 +1091,7 @@ contains
         call this%set_input(parName=C_FILE_INPUT_DUMP, val=this%dump_file_name, set=.true.)
 
         ! toggle this one ON
-        !this%has_to_dump_input = .true.
+        this%has_to_dump_input = .true.
 
         !** done!
         if(isControlled()) then
