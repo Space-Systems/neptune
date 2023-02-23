@@ -33,6 +33,8 @@ module tides
   use slam_reduction_class,   only: Reduction_type
   use solarsystem,            only: Solarsystem_class, ID_SUN, ID_MOON
   use slam_types,             only: dp
+  use slam_io,                only: message, LOG_AND_STDOUT
+  use slam_strings,           only: toString
 
   implicit none
 
@@ -105,6 +107,8 @@ contains
       end if
       return
     end if
+
+    call message(' - Initializing tides model...', LOG_AND_STDOUT)
 
     !** in geopotential module, activate function to provide computation parameters
     !call setTideSupport(.true.)

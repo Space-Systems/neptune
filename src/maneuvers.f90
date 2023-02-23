@@ -32,6 +32,7 @@ module maneuvers
   use slam_math,              only: mag, eps9
   use slam_reduction_class,   only: Reduction_type
   use slam_time,              only: time_t, tokenizeDate, sec_per_day
+  use slam_strings,           only: toString
 
   implicit none
 
@@ -465,6 +466,8 @@ contains
       return
     end if
 
+    call message(' - Initializing maneuvers from file...', LOG_AND_STDOUT)
+
     !** check input
     if(date_start%mjd > date_end%mjd) then
       call setNeptuneError(E_SGA_INPUT, FATAL)
@@ -543,6 +546,8 @@ contains
       call checkIn(csubid)
     end if
 
+    call message(' - Initializing maneuvers from API...', LOG_AND_STDOUT)
+
     ! Please not that we allow re-initialization
 
     !=====================================================================
@@ -599,6 +604,8 @@ contains
 
     allocate(this%mnv_sequence(size(this%manv)))  ! enough elements to account for transitions
 
+    call message(" - Initializing maneuver sequences", LOG_AND_STDOUT)
+
     k = 1
     do i=1,size(this%manv)
 
@@ -608,6 +615,12 @@ contains
         this%mnv_sequence(k)%mjd_start   = this%manv(i)%phase(j)%mjd_start
         this%mnv_sequence(k)%mjd_end     = this%manv(i)%phase(j)%mjd_end
         this%mnv_sequence(k)%trans       = NO_TRANSITION
+
+        call message("    ... from "//toString(this%mnv_sequence(k)%mjd_start)//" to "//toString(this%mnv_sequence(k)%mjd_end) &
+                        //" with " &
+                        //toString(this%manv(i)%phase(j)%acc(1))//" km/s² x " &
+                        //toString(this%manv(i)%phase(j)%acc(2))//" km/s² x " &
+                        //toString(this%manv(i)%phase(j)%acc(3))//" km/s²", LOG_AND_STDOUT)
 
         k = k + 1     ! +1, as between each maneuver phase, also a transition phase will be added later on (see below)
 

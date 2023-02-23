@@ -625,21 +625,25 @@ contains
 
     if(present(tabs)) then
       this%eps_abs = abs(tabs)
+      call message(' - Setting absolute tolerance to '//toString(this%eps_abs), LOG_AND_STDOUT)
     end if
 
     if(present(trel)) then
       this%eps_rel = abs(trel)
+      call message(' - Setting relative tolerance to '//toString(this%eps_rel), LOG_AND_STDOUT)
     end if
 
     if(this%eps_rel < epsilon(1.d0)) then   !** tolerance smaller than machine epsilon
       call setNeptuneError(E_REL_TOLERANCE, WARNING)
       this%eps_rel = 1.d1*epsilon(1.d0)
+      call message(' ... relative tolerance too small, increassing to '//toString(this%eps_rel), LOG_AND_STDOUT)
     end if
 
 
     if(this%eps_abs < epsilon(1.d0)) then   !** tolerance smaller than machine epsilon
       call setNeptuneError(E_ABS_TOLERANCE, WARNING)
       this%eps_abs = 1.d1*epsilon(1.d0)
+      call message(' ... absolute tolerance too small, increassing to '//toString(this%eps_abs), LOG_AND_STDOUT)
     end if
 
     if(this%eps_abs/this%eps_rel >= 1.d0) then  !** relative tolerance should not

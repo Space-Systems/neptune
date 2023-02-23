@@ -194,7 +194,6 @@ contains
         neptune%satellite_model%surface(1)%reflSpec = neptune%ipar(PAR_CREFL) - 1.d0             ! the specular reflectivity coefficient is saved,
                                                                                 ! while the SRP coefficient is used in a cannon-ball model
         neptune%satellite_model%surface(1)%reflDiff = 0.d0                                       ! no diffuse reflectivity in this case
-
       else
         cmess = "SRP coefficient not defined."
         call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
@@ -203,7 +202,7 @@ contains
 
       !** Area
       if(neptune%isSetArea) then
-        neptune%satellite_model%surface(1)%area = neptune%ipar(PAR_CROSS_SECTION)                ! in km**2
+        neptune%satellite_model%surface(1)%area = neptune%ipar(PAR_CROSS_SECTION)                ! in m**2
       else
         cmess = "Cross-section area not defined."
         call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
@@ -232,6 +231,14 @@ contains
     if(present(initial_state_in)) then
       initial_state = initial_state_in
       ierr = neptune%setNeptuneVar("INITIAL_STATE", initial_state)
+      call message(" Using initial state "//date2longstring(initial_state%epoch)//        &
+                                        " x: "//toString(initial_state%r(1))//        &                          
+                                        " y: "//toString(initial_state%r(2))//        &
+                                        " z: "//toString(initial_state%r(3))//        &
+                                        " x_dot: "//toString(initial_state%v(1))//    &
+                                        " y_dot: "//toString(initial_state%v(2))//    &
+                                        " z_dot: "//toString(initial_state%v(3)),     &
+                                        LOG_AND_STDOUT)
     end if
 
     !** check for start and end epoch being available
