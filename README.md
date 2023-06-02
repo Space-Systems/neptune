@@ -17,17 +17,26 @@ The propagator is written in Fortran-2008 and HPC ready by enabling OpenMP.
 The software can be compiled on 
 * Linux, 
 * macOS and 
-* Windows (using the Windows Subsystem for Linux on Windows 10, cygwin or MinGW)
+* Windows (MSYS2)
 
 To build NEPTUNE you will need:
 * a fortran compiler (e.g. gfortran >= 8.0 or ifort > 19.0)
 * cmake >= 3.12
 * the [Orbital Propagation Interface (OPI-2015)](https://github.com/ILR/OPI) (retrieved automatically)
 * the support library [libslam](https://github.com/IRAS/libslam) (retrieved automatically)
+* the testing framework [pFUnit](https://github.com/Goddard-Fortran-Ecosystem/pFUnit) (retrieved automatically)
 * doxygen (only for the source code documentation)
 * graphviz (only for the source code documentation)
 * latex (only for editing the technical documentation)
   * On Ubuntu 18.04 LTS this works: `apt install texlive texlive-lang-german texlive-latex-extra texlive-tubs texlive-science`
+
+For MSYS2 you need to install the newest MSYS2 version and install in the MINGW64 environment:
+* mingw-w64-x86_64-gcc
+* mingw-w64-x86_64-gcc-fortran
+* mingw-w64-x86_64-cmake
+* mingw-w64-x86_64-ninja
+
+Note that installing `mingw-w64-x86_64-python3` might lead to issues building pFUnit.
 
 To get started execute the build script:
 ```
