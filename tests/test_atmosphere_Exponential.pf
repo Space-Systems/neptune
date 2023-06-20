@@ -1,0 +1,28 @@
+module test_atmosphere_Exponential
+    use funit
+    use atmosphere,    only: Atmosphere_class, EXPONENTIAL
+    
+    implicit none
+
+    contains
+
+   @test
+   subroutine test_getDensityExponential()
+        ! Tests that a density is computed by the NRLMSIS2.0 model
+       
+        type(Atmosphere_class) :: atmosphere_model
+
+        atmosphere_model = Atmosphere_class()
+
+        atmosphere_model%nmodel = EXPONENTIAL
+        call atmosphere_model%setAtmosphereInitFlag()
+        call atmosphere_model%initAtmosphere('../../work/data')
+
+        ! test #1
+        @assertRelativelyEqual(atmosphere_model%getDensityExponential(0.65d1), 0.10168617826293667d-002, tolerance=0.01)
+        ! test #2
+        @assertRelativelyEqual(atmosphere_model%getDensityExponential(0.4688d3), 0.20788356929965501d-002, tolerance=0.01)
+
+    end subroutine test_getDensityExponential
+
+end module test_atmosphere_Exponential

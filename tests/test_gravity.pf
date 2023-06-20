@@ -1,0 +1,96 @@
+module test_gravity
+    use funit
+    use gravity
+    use slam_reduction_class, only: Reduction_type
+    use slam_math
+    use slam_error_handling
+    
+    implicit none
+
+    contains
+
+   @test
+   subroutine test_getGravityAccelaration()
+        ! Tests that a density is computed by the NRLMSIS2.0 model
+       
+    
+        type(Reduction_type) :: reduction_handler
+        class(Gravity_class) :: gravity
+
+        real(dp), dimension(3)  :: r_itrf
+        real(dp), dimension(3)  :: v_itrf
+        real(dp)               :: time_mjd, tolerance 
+
+        real(dp), dimension(3)  :: accel, expected_accel
+
+        logical :: initialized = .false.
+                !** init reduction model and EOP
+                call initErrorHandler(control = "YES", errAction = "RETURN", traceback = "YES") 
+                if (.not. initialized) then 
+                    reduction_handler = Reduction_type() 
+                    call reduction_handler%initEop('data') 
+                    initialized = .true. 
+                end if
+        
+       ! Set Up inputs 
+                r_itrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)    
+                v_itrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)    
+                time_mjd = 	59868.16721065
+                ! Call the subroutine to be tested
+                call getGravityAcceleration(gravity, reduction_handler, r_itrf, v_itrf, time_mjd, accel)
+            
+                ! Set up expected outputs
+                expected_accel = (/5543.7970992673218, -4028.7920091557758, 823.95095255406773/)
+            
+                ! Set up tolerances
+                tolerance = 1e-6_dp
+        
+                ! Check if outputs match expected values
+                    @assertRelativelyEqual(accel, expected_accel, tolerance)
+                   
+
+    end subroutine test_getGravityAccelaration
+
+
+    @test
+   subroutine test_getGravityCovariance()
+        ! Tests that a density is computed by the NRLMSIS2.0 model
+       
+    
+        type(Reduction_type) :: reduction_handler
+        class(Gravity_class) :: gravity
+
+        real(dp), dimension(3) :: r_itrf
+        real(dp), dimension(3) :: v_itrf
+        real(dp), dimension(3) :: cov, expected_cov
+        real(dp)  :: tolerance
+
+        logical :: initialized = .false.
+                !** init reduction model and EOP
+                call initErrorHandler(control = "YES", errAction = "RETURN", traceback = "YES") 
+                if (.not. initialized) then 
+                    reduction_handler = Reduction_type() 
+                    call reduction_handler%initEop('data') 
+                    initialized = .true. 
+                end if
+      
+        
+       ! Set Up inputs 
+                r_itrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)    
+                v_itrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)    
+                ! Call the subroutine to be tested
+                call getGravityCovariance(gravity, r_itrf, v_itrf)
+            
+                ! Set up expected outputs
+                expected_cov = (/5543.7970992673218, -4028.7920091557758, 823.95095255406773/)
+            
+                ! Set up tolerances
+                tolerance = 1e-6_dp
+        
+                ! Check if outputs match expected values
+                    @assertRelativelyEqual(cov, expected_cov, tolerance)
+                   
+
+    end subroutine test_getGravityCovariance
+
+end module test_gravity

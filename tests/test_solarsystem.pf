@@ -1,0 +1,39 @@
+module test_solarsystem
+    use funit
+    use solarsystem
+    
+    implicit none
+
+    contains
+
+   @test
+   subroutine test_getBodyPosition()
+
+        class(Solarsystem_class):: solarsystem
+        real(dp)        :: time_mjd, tolerance
+        integer         :: body_id
+        real(dp), dimension(3)      :: getBodyPosition, expected_position
+
+        
+       ! Set Up inputs 
+                body_id = 1111    
+                time_mjd = 	59868.16721065
+                ! Call the subroutine to be tested
+                call getBodyPosition(time_mjd, body_id)
+            
+                ! Set up expected outputs
+                expected_position = (/5543.7970992673218, -4028.7920091557758, 823.95095255406773/)
+            
+                ! Set up tolerances
+                tolerance = 1e-6_dp
+        
+                ! Check if outputs match expected values
+                    @assertRelativelyEqual(getBodyPosition, expected_position, tolerance)
+                   
+
+    end subroutine test_getBodyPosition
+
+
+    
+
+end module test_solarsystem

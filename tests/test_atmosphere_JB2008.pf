@@ -1,0 +1,30 @@
+module test_atmosphere_JB2008
+    use funit
+    use atmosphere,    only: Atmosphere_class, JB08
+    
+    
+    implicit none
+
+    contains
+
+   @test
+   subroutine test_getDensityJB2008()
+        ! Tests that a density is computed by the JB2008 model
+        ! inputs taken from the msis2.0_test_in file (File for JB208 ?)
+        
+        type(Atmosphere_class) :: atmosphere_model
+
+        atmosphere_model = Atmosphere_class()
+
+        atmosphere_model%nmodel = JB08
+        call atmosphere_model%setAtmosphereInitFlag()
+        call atmosphere_model%initAtmosphere('../../work/data')
+
+        ! test #1
+        @assertRelativelyEqual(atmosphere_model%getDensityJB2008(500.d0, 0.65d1, 96.d0, 0.5276739668d5), 0.10168617826293667d-002, tolerance=0.01)
+        ! test #2
+        @assertRelativelyEqual(atmosphere_model%getDensityJB2008(0.4688d3, -0.195d2, 0.446d2, 0.4389981823d5), 0.20788356929965501d-002, tolerance=0.01)
+
+    end subroutine test_getDensityJB2008
+
+end module test_atmosphere_JB2008
