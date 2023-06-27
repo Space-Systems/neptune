@@ -19,9 +19,9 @@ module test_atmosphere_Exponential
         call atmosphere_model%initAtmosphere('../../work/data')
 
         ! test #1
-        @assertRelativelyEqual(atmosphere_model%getDensityExponential(0.65d1), 0.10168617826293667d-002, tolerance=0.01)
+        @assertRelativelyEqual(atmosphere_model%getDensityExponential(0.65d1), 499706396.76297361d0, tolerance=0.01)
         ! test #2
-        @assertRelativelyEqual(atmosphere_model%getDensityExponential(0.4688d3), 0.20788356929965501d-002, tolerance=0.01)
+        @assertRelativelyEqual(atmosphere_model%getDensityExponential(0.4688d3), 0.11635971694422577d-002, tolerance=0.01)
 
     end subroutine test_getDensityExponential
 

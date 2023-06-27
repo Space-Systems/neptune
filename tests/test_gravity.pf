@@ -15,7 +15,7 @@ module test_gravity
        
     
         type(Reduction_type) :: reduction_handler
-        class(Gravity_class) :: gravity
+        type(Gravity_class) :: gravity_model
 
         real(dp), dimension(3)  :: r_itrf
         real(dp), dimension(3)  :: v_itrf
@@ -28,7 +28,7 @@ module test_gravity
                 call initErrorHandler(control = "YES", errAction = "RETURN", traceback = "YES") 
                 if (.not. initialized) then 
                     reduction_handler = Reduction_type() 
-                    call reduction_handler%initEop('data') 
+                    call reduction_handler%initEop('../../work/data') 
                     initialized = .true. 
                 end if
         
@@ -37,10 +37,10 @@ module test_gravity
                 v_itrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)    
                 time_mjd = 	59868.16721065
                 ! Call the subroutine to be tested
-                call getGravityAcceleration(gravity, reduction_handler, r_itrf, v_itrf, time_mjd, accel)
+                call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
             
                 ! Set up expected outputs
-                expected_accel = (/5543.7970992673218, -4028.7920091557758, 823.95095255406773/)
+                expected_accel = (/-0.67427774119464268E-2, 0.0, 0.0/)
             
                 ! Set up tolerances
                 tolerance = 1e-6_dp
@@ -54,35 +54,35 @@ module test_gravity
 
     @test
    subroutine test_getGravityCovariance()
-        ! Tests that a density is computed by the NRLMSIS2.0 model
+        ! Tests Gravity covariance
        
     
         type(Reduction_type) :: reduction_handler
-        class(Gravity_class) :: gravity
+        type(Gravity_class) :: gravity_model
 
         real(dp), dimension(3) :: r_itrf
         real(dp), dimension(3) :: v_itrf
-        real(dp), dimension(3) :: cov, expected_cov
+        real(dp), dimension(3,3):: cov, expected_cov
         real(dp)  :: tolerance
-
         logical :: initialized = .false.
                 !** init reduction model and EOP
                 call initErrorHandler(control = "YES", errAction = "RETURN", traceback = "YES") 
                 if (.not. initialized) then 
                     reduction_handler = Reduction_type() 
-                    call reduction_handler%initEop('data') 
+                    call reduction_handler%initEop('../../work/data') 
                     initialized = .true. 
                 end if
-      
-        
        ! Set Up inputs 
+                
                 r_itrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)    
                 v_itrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)    
                 ! Call the subroutine to be tested
-                call getGravityCovariance(gravity, r_itrf, v_itrf)
+                cov = gravity_model%getGravityCovariance(r_itrf, v_itrf)
             
                 ! Set up expected outputs
-                expected_cov = (/5543.7970992673218, -4028.7920091557758, 823.95095255406773/)
+                expected_cov = reshape((/0.2999999, 1.3877787807814457E-017, -0.1, &
+                1.3877787807814457E-017, 0.28571428571428564, -0.14285714285714285, &
+                                     -0.1, -0.14285714285714285, 0.27142857142857146/), (/3, 3/))
             
                 ! Set up tolerances
                 tolerance = 1e-6_dp

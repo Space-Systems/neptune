@@ -39,10 +39,10 @@ add_pfunit_ctest (atmosphere_tests_nrlmsis00
     LINK_LIBRARIES neptune ${LIBSLAM}
     )
 
-    # add_pfunit_ctest (gravity_tests
-    # TEST_SOURCES test_gravity.pf
-    # LINK_LIBRARIES neptune ${LIBSLAM}
-    # )
+    add_pfunit_ctest (gravity_tests
+    TEST_SOURCES test_gravity.pf
+    LINK_LIBRARIES neptune ${LIBSLAM}
+    )
 
 add_pfunit_ctest (tides_tests
     TEST_SOURCES test_tides.pf

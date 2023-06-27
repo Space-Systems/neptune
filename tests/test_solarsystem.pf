@@ -1,6 +1,7 @@
 module test_solarsystem
     use funit
     use solarsystem
+    use neptuneClass
     
     implicit none
 
@@ -9,26 +10,34 @@ module test_solarsystem
    @test
    subroutine test_getBodyPosition()
 
-        class(Solarsystem_class):: solarsystem
+        type(Solarsystem_class):: solarsystem_model
         real(dp)        :: time_mjd, tolerance
         integer         :: body_id
-        real(dp), dimension(3)      :: getBodyPosition, expected_position
-
+        real(dp), dimension(3)      ::  expected_position, obtained_position
+        type(time_t) :: epoch 
         
+        epoch%mjd = 59600 
+        solarsystem_model = Solarsystem_class()
+        call solarsystem_model%initSolarSystem(   &
+        "/home/arkenz/neptune/work/data",  &
+        'DE-421',               &
+         epoch &
+        )
+   
        ! Set Up inputs 
-                body_id = 1111    
+                body_id = 1
                 time_mjd = 	59868.16721065
                 ! Call the subroutine to be tested
-                call getBodyPosition(time_mjd, body_id)
+                obtained_position = solarsystem_model%getBodyPosition(time_mjd, body_id)
             
                 ! Set up expected outputs
-                expected_position = (/5543.7970992673218, -4028.7920091557758, 823.95095255406773/)
+                expected_position = (/-137833056.98029408, -52290137.284895524, -22666159.999092821/)
             
                 ! Set up tolerances
                 tolerance = 1e-6_dp
         
                 ! Check if outputs match expected values
-                    @assertRelativelyEqual(getBodyPosition, expected_position, tolerance)
+                    @assertRelativelyEqual(obtained_position, expected_position, tolerance)
                    
 
     end subroutine test_getBodyPosition
