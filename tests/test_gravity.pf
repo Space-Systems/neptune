@@ -1,96 +1,93 @@
 module test_gravity
-    use funit
-    use gravity
-    use slam_reduction_class, only: Reduction_type
-    use slam_math
-    use slam_error_handling
-    
-    implicit none
+use funit
+use gravity
+use slam_reduction_class, only: Reduction_type
+use slam_math
+use slam_error_handling
 
-    contains
+implicit none
+
+contains
 
    @test
    subroutine test_getGravityAccelaration()
-        ! Tests that a density is computed by the NRLMSIS2.0 model
-       
-    
+        ! Tests the gravity Acceleration delivered 
+
         type(Reduction_type) :: reduction_handler
         type(Gravity_class) :: gravity_model
-
         real(dp), dimension(3)  :: r_itrf
         real(dp), dimension(3)  :: v_itrf
         real(dp)               :: time_mjd, tolerance 
-
         real(dp), dimension(3)  :: accel, expected_accel
-
         logical :: initialized = .false.
-                !** init reduction model and EOP
-                call initErrorHandler(control = "YES", errAction = "RETURN", traceback = "YES") 
-                if (.not. initialized) then 
-                    reduction_handler = Reduction_type() 
-                    call reduction_handler%initEop('../../work/data') 
-                    initialized = .true. 
-                end if
-        
-       ! Set Up inputs 
-                r_itrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)    
-                v_itrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)    
-                time_mjd = 	59868.16721065
-                ! Call the subroutine to be tested
-                call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
+        !** init reduction model and EOP
+        call initErrorHandler(control = "YES", errAction = "RETURN", traceback = "YES") 
+        if (.not. initialized) then 
+            reduction_handler = Reduction_type() 
+            call reduction_handler%initEop('../../work/data') 
+            initialized = .true. 
+        end if
+
+        ! Set Up inputs 
+        r_itrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)    
+        v_itrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)    
+        time_mjd = 	59868.16721065
+        ! Call the subroutine to be tested
+        call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
+
+        ! Set up expected outputs
+        expected_accel = (/-0.67427774119464268E-2, 0.48509952216293419E-2, -0.99863401410992978E-3/)
+
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(accel, expected_accel, tolerance)
             
-                ! Set up expected outputs
-                expected_accel = (/-0.67427774119464268E-2, 0.0, 0.0/)
-            
-                ! Set up tolerances
-                tolerance = 1e-6_dp
-        
-                ! Check if outputs match expected values
-                    @assertRelativelyEqual(accel, expected_accel, tolerance)
-                   
+   end subroutine test_getGravityAccelaration
 
-    end subroutine test_getGravityAccelaration
-
-
-    @test
+   @test
    subroutine test_getGravityCovariance()
         ! Tests Gravity covariance
-       
-    
+
         type(Reduction_type) :: reduction_handler
         type(Gravity_class) :: gravity_model
 
         real(dp), dimension(3) :: r_itrf
         real(dp), dimension(3) :: v_itrf
         real(dp), dimension(3,3):: cov, expected_cov
-        real(dp)  :: tolerance
+        real(dp)               :: time_mjd, tolerance 
+        real(dp), dimension(3)  :: accel
         logical :: initialized = .false.
-                !** init reduction model and EOP
-                call initErrorHandler(control = "YES", errAction = "RETURN", traceback = "YES") 
-                if (.not. initialized) then 
-                    reduction_handler = Reduction_type() 
-                    call reduction_handler%initEop('../../work/data') 
-                    initialized = .true. 
-                end if
-       ! Set Up inputs 
-                
-                r_itrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)    
-                v_itrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)    
-                ! Call the subroutine to be tested
-                cov = gravity_model%getGravityCovariance(r_itrf, v_itrf)
-            
-                ! Set up expected outputs
-                expected_cov = reshape((/0.2999999, 1.3877787807814457E-017, -0.1, &
-                1.3877787807814457E-017, 0.28571428571428564, -0.14285714285714285, &
-                                     -0.1, -0.14285714285714285, 0.27142857142857146/), (/3, 3/))
-            
-                ! Set up tolerances
-                tolerance = 1e-6_dp
-        
-                ! Check if outputs match expected values
-                    @assertRelativelyEqual(cov, expected_cov, tolerance)
-                   
+        !** init reduction model and EOP
+        call initErrorHandler(control = "YES", errAction = "RETURN", traceback = "YES") 
+        if (.not. initialized) then 
+            reduction_handler = Reduction_type() 
+            call reduction_handler%initEop('../../work/data') 
+            initialized = .true. 
+        end if
+        ! Set Up inputs 
+        call gravity_model%initGravityPotential('../../work/data')
 
-    end subroutine test_getGravityCovariance
+        r_itrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)    
+        v_itrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)    
+        ! Call the subroutine to be tested
+        call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
+
+        cov = gravity_model%getGravityCovariance(r_itrf, v_itrf)
+
+        ! Set up expected outputs
+        expected_cov = reshape((/0.2999999, 1.3877787807814457E-017, -0.1, &
+        1.3877787807814457E-017, 0.28571428571428564, -0.14285714285714285, &
+                                -0.1, -0.14285714285714285, 0.27142857142857146/), (/3, 3/))
+
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(cov, expected_cov, tolerance)
+            
+
+   end subroutine test_getGravityCovariance
 
 end module test_gravity
