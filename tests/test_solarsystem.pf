@@ -1,3 +1,18 @@
+!==============================================================================
+!
+!> @anchor  test_solarsystem
+!!
+!> @brief   Program for testing the function that calculates the Bodyposition 
+!!
+!> @author  Arkene Chouchene (AC)
+!!
+!> @date    <ul>
+!!            <li>15.06.2023 (initial design)</li>
+!!          </ul>
+!!
+!! @details Program for testing solarsystem functions in this case getBodyposition 
+!! Sources and Examples are mentioned above every test
+!------------------------------------------------------------------------
 module test_solarsystem
     use funit
     use solarsystem
@@ -9,7 +24,7 @@ module test_solarsystem
 
    @test
    subroutine test_getBodyPosition()
-
+        ! Reference Values : OREKIT
         type(Solarsystem_class):: solarsystem_model
         real(dp)        :: time_mjd, tolerance
         integer         :: body_id
@@ -19,7 +34,7 @@ module test_solarsystem
         epoch%mjd = 59600 
         solarsystem_model = Solarsystem_class()
         call solarsystem_model%initSolarSystem(   &
-        "/home/arkenz/neptune/work/data",  &
+        "../../work/data",  &
         'DE-421',               &
          epoch &
         )

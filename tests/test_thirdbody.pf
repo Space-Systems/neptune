@@ -1,18 +1,33 @@
+!==============================================================================
+!
+!> @anchor  test_thirdbody
+!!
+!> @brief   Program for testing the function that calculates the third body Acceleration 
+!!
+!> @author  Arkene Chouchene (AC)
+!!
+!> @date    <ul>
+!!            <li>15.06.2023 (initial design)</li>
+!!          </ul>
+!!
+!! @details Program for testing thirdbody functions in this case getThirdBodyAcceleration 
+!! Sources and Examples are mentioned above every test
+!------------------------------------------------------------------------
 module test_thirdbody
-    use funit
-    use thirdbody
-    use slam_reduction_class, only: Reduction_type
-    use slam_math
-    use slam_error_handling
-    use solarsystem
-    use neptuneClass
-    implicit none
+use funit
+use thirdbody
+use slam_reduction_class, only: Reduction_type
+use slam_math
+use slam_error_handling
+use solarsystem
+use neptuneClass
+implicit none
 
-    contains
+contains
 
    @test
    subroutine test_getThirdBodyAccelaration()
-
+        ! Reference Values : OREKIT 
         type(ThirdBody_class)                  :: third_body
         type(Solarsystem_class)                 :: solarsystem_model
         real(dp), dimension(3)                 :: r_gcrf
@@ -22,24 +37,24 @@ module test_thirdbody
         real(dp), dimension(3)                 :: acc_thirdbody, expected_acc
         
         type(time_t) :: epoch 
-        epoch%mjd = 59600 
+        epoch%mjd = 59600.d0
         
         solarsystem_model = Solarsystem_class()
         call solarsystem_model%initSolarSystem(   &
-                                "/home/arkenz/neptune/work/data",  &
+                                "../../work/data",  &
                                 'DE-421',               &
                                  epoch &
                                 )
         third_body = ThirdBody_class()
        ! Set Up inputs 
                 body_id = 1    
-                time_mjd = 	59868.16721065_dp
-                r_gcrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)
+                time_mjd = 	59868.16721065d0
+                r_gcrf = (/-3485.799126707284d0, -5898.652976745232d0, 835.9701786284777d0/)
                 ! Call the subroutine to be tested
                 call third_body%getThirdBodyAcceleration(solarsystem_model, r_gcrf, time_mjd, body_id, acc_thirdbody)
             
                 ! Set up expected outputs
-                expected_acc = (/-0.43302027180447598E-9, 0.18789528607443213E-10, -0.12757560304668043E-9/)
+                expected_acc = (/-0.43302027180447598d-9, 0.18789528607443213d-10, -0.12757560304668043d-9/)
             
                 ! Set up tolerances
                 tolerance = 1e-6_dp

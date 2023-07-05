@@ -1,8 +1,8 @@
 !==============================================================================
 !
-!> @anchor  test_gravity
+!> @anchor  test_gravityCov
 !!
-!> @brief   Program for testing the function that calculates the gravityAcceleration 
+!> @brief   Program for testing the function that calculates the gravityCovariance
 !!
 !> @author  Arkene Chouchene (AC)
 !!
@@ -10,31 +10,34 @@
 !!            <li>15.06.2023 (initial design)</li>
 !!          </ul>
 !!
-!! @details Program for testing gravity functions in this case getGravityAcceleration 
+!! @details Program for testing gravity functions in this case getGravityCovariance 
 !! Sources and Examples are mentioned above every test
 !------------------------------------------------------------------------
-module test_gravity
+module test_GravityCov
+
 use funit
 use gravity
 use slam_reduction_class, only: Reduction_type
 use slam_math
 use slam_error_handling
-
+    
 implicit none
-
+    
 contains
-
+    
    @test
-   subroutine test_getGravityAccelaration()
-        ! Tests the gravity Acceleration delivered 
-        ! Reference Values : OREKIT
+   subroutine test_getGravityCovariance()
+        ! Tests Gravity covariance
+        ! Reference Values : OREKIT 
 
         type(Reduction_type) :: reduction_handler
         type(Gravity_class) :: gravity_model
-        real(dp), dimension(3)  :: r_itrf
-        real(dp), dimension(3)  :: v_itrf
+
+        real(dp), dimension(3) :: r_itrf
+        real(dp), dimension(3) :: v_itrf
+        real(dp), dimension(3,3):: cov, expected_cov
         real(dp)               :: time_mjd, tolerance 
-        real(dp), dimension(3)  :: accel, expected_accel
+        real(dp), dimension(3)  :: accel
         logical :: initialized = .false.
         !** init reduction model and EOP
         call initErrorHandler(control = "YES", errAction = "RETURN", traceback = "YES") 
@@ -49,24 +52,27 @@ contains
         call gravity_model%setGeoCovDegree(6)
         ! Set Up inputs 
         call gravity_model%initGravityPotential('../../work/data')
-        
-        ! Set Up inputs 
-        r_itrf = (/-3485.799126707284d0, -5898.652976745232d0, 835.9701786284777d0/)    
-        v_itrf = (/-1.3525457950562447d0, -0.2804534841971075d0, -7.4721873681232385d0/)    
-        time_mjd = 	59868.16721065d0
+
+        r_itrf = (/-3485.799126707284d0,  -5898.652976745232d0, 835.9701786284777d0/)    
+        v_itrf = (/-1.3525457950562447d0, -0.2804534841971075d0, -7.4721873681232385d0/) 
+        time_mjd = 	58324.d0   
         ! Call the subroutine to be tested
         call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
 
+        cov = gravity_model%getGravityCovariance(r_itrf, v_itrf)
+
         ! Set up expected outputs
-        expected_accel = (/-0.67280939346878715d-2, 0.48893489982938815d-2, -0.10027985388093780d-2/)
+        expected_cov = reshape((/0.39374967173447407d-9, 0.31947373468752591d-8, -0.14864895574315657d-8, &
+        0.31947373468752595d-8, 0.39051986351008705d-8, -0.25245746509934525d-8, &
+        -0.14864895574315659d-8, -0.25245746509934525d-8, -0.42989483068353419d-8/), (/3, 3/))
 
         ! Set up tolerances
-        tolerance = 1e-6_dp
+        tolerance = 1e-10_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(accel, expected_accel, tolerance)
+        @assertRelativelyEqual(cov, expected_cov, tolerance)
             
-   end subroutine test_getGravityAccelaration
 
+   end subroutine test_getGravityCovariance
 
-end module test_gravity
+end module test_GravityCov

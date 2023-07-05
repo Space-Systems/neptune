@@ -1,14 +1,30 @@
+!==============================================================================
+!
+!> @anchor  test_atmosphere_Exponential
+!!
+!> @brief   Program for testing the function responsable for calculating Density by Exponential model
+!!
+!> @author  Arkene Chouchene (AC)
+!!
+!> @date    <ul>
+!!            <li>15.06.2023 (initial design)</li>
+!!          </ul>
+!!
+!! @details Program for testing atmosphere functions in this case getDensityExponential 
+!! Sources and Examples are mentioned above every test
+!------------------------------------------------------------------------
 module test_atmosphere_Exponential
-    use funit
-    use atmosphere,    only: Atmosphere_class, EXPONENTIAL
+use funit
+use atmosphere,    only: Atmosphere_class, EXPONENTIAL
     
-    implicit none
+implicit none
 
-    contains
+contains
 
    @test
    subroutine test_getDensityExponential()
-        ! Tests that a density is computed by the NRLMSIS2.0 model
+        ! Tests that a density is computed by the Exponential model
+        ! Reference Values : Orekit  
        
         type(Atmosphere_class) :: atmosphere_model
 
@@ -23,6 +39,6 @@ module test_atmosphere_Exponential
         ! test #2
         @assertRelativelyEqual(atmosphere_model%getDensityExponential(0.4688d3), 0.11635971694422577d-002, tolerance=0.01)
 
-    end subroutine test_getDensityExponential
+   end subroutine test_getDensityExponential
 
 end module test_atmosphere_Exponential

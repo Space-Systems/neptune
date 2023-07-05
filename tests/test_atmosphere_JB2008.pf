@@ -1,16 +1,30 @@
+!==============================================================================
+!
+!> @anchor  test_atmosphere_JB2008
+!!
+!> @brief   Program for testing the function responsable for calculating Density by JB08 model
+!!
+!> @author  Arkene Chouchene (AC)
+!!
+!> @date    <ul>
+!!            <li>15.06.2023 (initial design)</li>
+!!          </ul>
+!!
+!! @details Program for testing atmosphere functions in this case getDensityJB2008
+!! Sources and Examples are mentioned above every test
+!------------------------------------------------------------------------
 module test_atmosphere_JB2008
-    use funit
-    use atmosphere,    only: Atmosphere_class, JB08
-    
-    
-    implicit none
+use funit
+use atmosphere,    only: Atmosphere_class, JB08
+        
+implicit none
 
-    contains
+contains
 
    @test
    subroutine test_getDensityJB2008()
         ! Tests that a density is computed by the JB2008 model
-        ! inputs taken from the msis2.0_test_in file (File for JB2008 ?)
+        ! inputs taken from the JB2008_test_in file and reference values from OREKIT 
         
         type(Atmosphere_class) :: atmosphere_model
 
