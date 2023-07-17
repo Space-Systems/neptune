@@ -51,6 +51,7 @@ contains
         call gravity_model%initGravityPotential('../../work/data')
         
         ! Set Up inputs 
+        ! Test 1 
         r_itrf = (/-3485.799126707284d0, -5898.652976745232d0, 835.9701786284777d0/)    
         v_itrf = (/-1.3525457950562447d0, -0.2804534841971075d0, -7.4721873681232385d0/)    
         time_mjd = 	59868.16721065d0
@@ -65,8 +66,39 @@ contains
 
         ! Check if outputs match expected values
         @assertRelativelyEqual(accel, expected_accel, tolerance)
-            
-   end subroutine test_getGravityAccelaration
+         
+        ! Test 2
+        r_itrf = (/31986.08889084533, 3886.249797563777, -17606.478382491812/)    
+        v_itrf = (/-0.1326762314352175, 2.0844489979862724, -0.13643320490635982/)    
+        time_mjd = 	59868.16721065d0
+        ! Call the subroutine to be tested
+        call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
 
+        ! Set up expected outputs
+        expected_accel = (/0.70700674902942066d-5, -0.25935354264578517d-3, 0.14177271746361654d-3/)
+
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(accel, expected_accel, tolerance)
+
+        ! Test 2
+        r_itrf = (/-42044.21889179173, -3193.6719204189853, 105.63094940415252/)    
+        v_itrf = (/0.23272475970034712, -3.0658575760606777, 0.0006346736275647091/)    
+        time_mjd = 	59324.0d0
+        ! Call the subroutine to be tested
+        call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
+
+        ! Set up expected outputs
+        expected_accel = (/-0.18935385065918674d-3, -0.12004903786810252d-3, -0.17494056709662443d-6/)
+
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(accel, expected_accel, tolerance)
+        
+   end subroutine test_getGravityAccelaration
 
 end module test_gravity

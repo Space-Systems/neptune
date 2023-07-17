@@ -46,21 +46,49 @@ contains
                                  epoch &
                                 )
         third_body = ThirdBody_class()
-       ! Set Up inputs 
-                body_id = 1    
-                time_mjd = 	59868.16721065d0
-                r_gcrf = (/-3485.799126707284d0, -5898.652976745232d0, 835.9701786284777d0/)
-                ! Call the subroutine to be tested
-                call third_body%getThirdBodyAcceleration(solarsystem_model, r_gcrf, time_mjd, body_id, acc_thirdbody)
+        ! Test 1:
+        ! Set Up inputs 
+        body_id = 1    
+        time_mjd = 	59868.16721065d0
+        r_gcrf = (/-3485.799126707284d0, -5898.652976745232d0, 835.9701786284777d0/)
+        ! Call the subroutine to be tested
+        call third_body%getThirdBodyAcceleration(solarsystem_model, r_gcrf, time_mjd, body_id, acc_thirdbody)
             
-                ! Set up expected outputs
-                expected_acc = (/-0.43302027180447598d-9, 0.18789528607443213d-10, -0.12757560304668043d-9/)
+        ! Set up expected outputs
+        expected_acc = (/-0.43302027180447598d-9, 0.18789528607443213d-10, -0.12757560304668043d-9/)
             
-                ! Set up tolerances
-                tolerance = 1e-6_dp
+        ! Set up tolerances
+        tolerance = 1e-6_dp
         
-                ! Check if outputs match expected values
-                    @assertRelativelyEqual(acc_thirdbody, expected_acc, tolerance)
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(acc_thirdbody, expected_acc, tolerance)
+
+        
+        ! Test 2 :
+        epoch%mjd = 58600.d0
+        
+        solarsystem_model = Solarsystem_class()
+        call solarsystem_model%initSolarSystem(   &
+                                "../../work/data",  &
+                                'DE-421',               &
+                                 epoch &
+                                )
+        third_body = ThirdBody_class()
+       ! Set Up inputs 
+        body_id = 1    
+        time_mjd = 	58600d0
+        r_gcrf = (/31986.08889084533d0, 3886.249797563777d0, -17606.478382491812d0/)
+        ! Call the subroutine to be tested
+        call third_body%getThirdBodyAcceleration(solarsystem_model, r_gcrf, time_mjd, body_id, acc_thirdbody)
+            
+        ! Set up expected outputs
+        expected_acc = (/0.99500426861622400d-9, 0.13527752884204714d-8, 0.13370953584132247d-8/)
+            
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+        
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(acc_thirdbody, expected_acc, tolerance)
                    
 
     end subroutine test_getThirdBodyAccelaration

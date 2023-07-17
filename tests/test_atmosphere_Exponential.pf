@@ -35,10 +35,11 @@ contains
         call atmosphere_model%initAtmosphere('../../work/data')
 
         ! test #1
-        @assertRelativelyEqual(atmosphere_model%getDensityExponential(0.65d1), 499706396.76297361d0, tolerance=0.01)
+        @assertRelativelyEqual(atmosphere_model%getDensityExponential(25.d0), 38990000.0d0, tolerance=0.01)
         ! test #2
-        @assertRelativelyEqual(atmosphere_model%getDensityExponential(0.4688d3), 0.11635971694422577d-002, tolerance=0.01)
-
+        @assertRelativelyEqual(atmosphere_model%getDensityExponential(0.4688d3), 0.11635971694422577d-2, tolerance=0.01)
+        ! test #3
+        @assertRelativelyEqual(atmosphere_model%getDensityExponential(0.65d1), 499706396.76297361d0, tolerance=0.01)
    end subroutine test_getDensityExponential
 
 end module test_atmosphere_Exponential
