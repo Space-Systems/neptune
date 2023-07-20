@@ -98,6 +98,22 @@ contains
 
         ! Check if outputs match expected values
         @assertRelativelyEqual(accel, expected_accel, tolerance)
+
+        ! Test 3 :
+        r_itrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)    
+        v_itrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)    
+        time_mjd = 	58600.0d0
+        ! Call the subroutine to be tested
+        call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
+
+        ! Set up expected outputs
+        expected_accel = (/0.55885575784497528d-3, -0.82963084273004768d-2, -0.10185937617941453d-2/)
+
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(accel, expected_accel, tolerance)
         
    end subroutine test_getGravityAccelaration
 

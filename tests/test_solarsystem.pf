@@ -80,6 +80,31 @@ module test_solarsystem
         ! Check if outputs match expected values
         @assertRelativelyEqual(obtained_position, expected_position, tolerance)
 
+        ! Test 3 :
+        epoch%mjd = 58600 
+        solarsystem_model = Solarsystem_class()
+        call solarsystem_model%initSolarSystem(   &
+        "../../work/data",  &
+        'DE-421',               &
+         epoch &
+        )
+   
+       ! Set Up inputs 
+        body_id = 2
+        time_mjd = 	58600.d0
+        ! Call the subroutine to be tested
+        obtained_position = solarsystem_model%getBodyPosition(time_mjd, body_id)
+            
+        ! Set up expected outputs
+        expected_position = (/242037.66047749575, -291029.18822841981, -137196.91059160809/)
+            
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+        
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(obtained_position, expected_position, tolerance)
+
+
 
     end subroutine test_getBodyPosition
 

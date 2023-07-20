@@ -78,6 +78,29 @@ contains
         ! Test 2
         call gravity_model%initGravityPotential('../../work/data')
 
+        r_itrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)    
+        v_itrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/) 
+        time_mjd = 	58600.d0   
+        ! Call the subroutine to be tested
+        call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
+
+        cov = gravity_model%getGravityCovariance(r_itrf, v_itrf)
+
+        ! Set up expected outputs
+        expected_cov = reshape((/0.39374974311657738d-9, 0.31947377200775617d-8, -0.14864897215596233d-8, &
+        0.31947377200775617d-8, 0.39051990534417329d-8, -0.25245749095440029d-8, &
+        -0.14864897215596233d-8, -0.25245749095440029d-8, -0.42989487965583128d-8/), (/3, 3/))
+
+        ! Set up tolerances
+        tolerance = 1e-10_dp
+
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(cov, expected_cov, tolerance)    
+
+        
+        ! Test 3 :
+        call gravity_model%initGravityPotential('../../work/data')
+
         r_itrf = (/31986.08889084533, 3886.249797563777, -17606.478382491812/)    
         v_itrf = (/-0.1326762314352175, 2.0844489979862724, -0.13643320490635982/) 
         time_mjd = 	58324.d0   
@@ -95,7 +118,7 @@ contains
         tolerance = 1e-10_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(cov, expected_cov, tolerance)    
+        @assertRelativelyEqual(cov, expected_cov, tolerance) 
 
    end subroutine test_getGravityCovariance
 

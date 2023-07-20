@@ -126,6 +126,46 @@ contains
         @assertRelativelyEqual(acc_srp(2), expected_srp(2),tolerance)
         @assertRelativelyEqual(acc_srp(3), expected_srp(3),tolerance)
 
+        
+        ! Test 3 :
+        !** init solarsystem & satellite model
+        epoch%mjd = 58600 
+        solarsystem_model = Solarsystem_class()
+        call solarsystem_model%initSolarSystem(   &
+        "../../work/data",  &
+        'DE-421',               &
+        epoch &
+        )
+        satellite_model = Satellite_class()
+        satellite_model%mass = 1.0d0
+        satellite_model%cdrag = 2.5d0
+        satellite_model%surface(1)%reflDiff = 0.d0
+        satellite_model%surface(1)%reflSpec = 0.3d0
+        satellite_model%surface(1)%area = 250.d0
+        satellite_model%surface(1)%normal_angle(:) = 0.d0
+        satellite_model%surface(1)%orientation = MODE_CANNON_BALL
+        satellite_model%surface(1)%id = 1
+        satellite_model%nsurfaces = 1
+        satellite_model%isSet = .true.
+        radiation_model = Radiation_class()
+        call radiation_model%setShadowModel("NO_SHADOW")
+        ! Set Up inputs 
+        r_gcrf  = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)
+        v_gcrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)
+        time_mjd = 58600.d0
+        ! Call the subroutine to be tested
+        call radiation_model%getSrpAcceleration(satellite_model, solarsystem_model, reduction_handler, r_gcrf, v_gcrf, time_mjd, acc_srp)
+        ! Set up expected outputs
+        expected_srp = (/-0.60274248388036179d-153, -0.40477424957861742d-153, -0.17544992173487258d-153/)
+
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(acc_srp(1), expected_srp(1),tolerance)
+        @assertRelativelyEqual(acc_srp(2), expected_srp(2),tolerance)
+        @assertRelativelyEqual(acc_srp(3), expected_srp(3),tolerance)
+
 end subroutine test_getSrpAcceleration
 
    @test
@@ -189,7 +229,7 @@ end subroutine test_getSrpAcceleration
         @assertRelativelyEqual(acc_alb(2), expected_alb(2),tolerance)
         @assertRelativelyEqual(acc_alb(3), expected_alb(3),tolerance)
 
-        ! Test 2
+        ! Test 2 :
         epoch%mjd = 58600 
         solarsystem_model = Solarsystem_class()
         call solarsystem_model%initSolarSystem(   &
@@ -220,6 +260,45 @@ end subroutine test_getSrpAcceleration
        
         ! Set up expected outputs
         expected_alb = (/-0.16460185156863555d-156, -0.16404965687535655d-157 , 0.35956968240395888d-157/)
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(acc_alb(1), expected_alb(1),tolerance)
+        @assertRelativelyEqual(acc_alb(2), expected_alb(2),tolerance)
+        @assertRelativelyEqual(acc_alb(3), expected_alb(3),tolerance)
+
+        ! Test 3 :
+        epoch%mjd = 58600 
+        solarsystem_model = Solarsystem_class()
+        call solarsystem_model%initSolarSystem(   &
+        "../../work/data",  &
+        'DE-421',               &
+        epoch &
+        )
+        satellite_model = Satellite_class()
+        satellite_model%mass = 1.0d0
+        satellite_model%cdrag = 2.5d0
+        satellite_model%surface(1)%reflDiff = 0.d0
+        satellite_model%surface(1)%reflSpec = 0.3d0
+        satellite_model%surface(1)%area = 250.d0
+        satellite_model%surface(1)%normal_angle(:) = 0.d0
+        satellite_model%surface(1)%orientation = MODE_CANNON_BALL
+        satellite_model%surface(1)%id = 1
+        satellite_model%nsurfaces = 1
+        satellite_model%isSet = .true.
+        radiation_model = Radiation_class()
+        call radiation_model%initAlbedo()
+        call radiation_model%setShadowModel("NO_SHADOW")
+        ! Set Up inputs 
+        r_gcrf  = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)
+        v_gcrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)
+        time_mjd = 58600.d0
+        ! Call the subroutine to be tested
+        call radiation_model%getAlbedoAcceleration(satellite_model, solarsystem_model, reduction_handler, r_gcrf, v_gcrf, time_mjd, acc_alb)
+       
+        ! Set up expected outputs
+        expected_alb = (/-0.40982300587138906d-155, -0.69350056733006604d-155 , 0.98284437556502546d-156/)
         ! Set up tolerances
         tolerance = 1e-6_dp
 
