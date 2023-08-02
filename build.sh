@@ -121,7 +121,7 @@ fi
 cd build || exit
 echo "Updating cmake"
 export PFUNIT_DIR=..//pFUnit/build/installed
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OPI_SUPPORT=ON -DSKIP_MSIS_2=OFF ../
+cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OPI_SUPPORT=ON -DSKIP_MSIS_2=ON ../
 echo "Building NEPTUNE"
 make install
 if [[ $? -ne 0 ]]; then
