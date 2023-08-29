@@ -71,6 +71,15 @@ if [[ $? -ne 0 ]]; then
 fi
 echo "Manually preparing 'lib' and 'include' directories"
 cd ../
+# Delete the include and lib folders when they exist, 
+# as linking on windows will create directories which 
+# leads to errors on the second run of the script
+if [[ ! -d "include" ]]; then
+  rm -rf include
+fi
+if [[ ! -d "lib" ]]; then
+  rm -rf lib
+fi
 ln -sf build/include include
 ln -sf build/lib lib
 echo "Leaving libslam"
