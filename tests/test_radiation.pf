@@ -50,7 +50,7 @@ contains
         end if
         !** init solarsystem & satellite model
         ! Test 1
-        epoch%mjd = 58600 
+        epoch%mjd = 58600.d0
         solarsystem_model = Solarsystem_class()
         call solarsystem_model%initSolarSystem(   &
         "../../work/data",  &
@@ -89,7 +89,7 @@ contains
 
          !** init solarsystem & satellite model
         ! Test 2
-        epoch%mjd = 58600 
+        epoch%mjd = 58600.d0
         solarsystem_model = Solarsystem_class()
         call solarsystem_model%initSolarSystem(   &
         "../../work/data",  &
@@ -110,8 +110,8 @@ contains
         radiation_model = Radiation_class()
         call radiation_model%setShadowModel("NO_SHADOW")
         ! Set Up inputs 
-        r_gcrf  = (/31986.08889084533, 3886.249797563777, -17606.478382491812/)
-        v_gcrf = (/-0.1326762314352175, 2.0844489979862724, -0.13643320490635982/)
+        r_gcrf  = (/31986.08889084533d0, 3886.249797563777d0, -17606.478382491812d0/)
+        v_gcrf = (/-0.1326762314352175d0, 2.0844489979862724d0, -0.13643320490635982d0/)
         time_mjd = 58600.d0
         ! Call the subroutine to be tested
         call radiation_model%getSrpAcceleration(satellite_model, solarsystem_model, reduction_handler, r_gcrf, v_gcrf, time_mjd, acc_srp)
@@ -129,7 +129,7 @@ contains
         
         ! Test 3 :
         !** init solarsystem & satellite model
-        epoch%mjd = 58600 
+        epoch%mjd = 58600.d0
         solarsystem_model = Solarsystem_class()
         call solarsystem_model%initSolarSystem(   &
         "../../work/data",  &
@@ -150,8 +150,8 @@ contains
         radiation_model = Radiation_class()
         call radiation_model%setShadowModel("NO_SHADOW")
         ! Set Up inputs 
-        r_gcrf  = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)
-        v_gcrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)
+        r_gcrf  = (/-3485.799126707284d0, -5898.652976745232d0, 835.9701786284777d0/)
+        v_gcrf = (/-1.3525457950562447d0, -0.2804534841971075d0, -7.4721873681232385d0/)
         time_mjd = 58600.d0
         ! Call the subroutine to be tested
         call radiation_model%getSrpAcceleration(satellite_model, solarsystem_model, reduction_handler, r_gcrf, v_gcrf, time_mjd, acc_srp)
@@ -191,7 +191,7 @@ end subroutine test_getSrpAcceleration
         end if
         !** init reduction model and EOP
 
-        epoch%mjd = 58600 
+        epoch%mjd = 58600.d0
         solarsystem_model = Solarsystem_class()
         call solarsystem_model%initSolarSystem(   &
         "../../work/data",  &
@@ -230,7 +230,7 @@ end subroutine test_getSrpAcceleration
         @assertRelativelyEqual(acc_alb(3), expected_alb(3),tolerance)
 
         ! Test 2 :
-        epoch%mjd = 58600 
+        epoch%mjd = 58600.d0
         solarsystem_model = Solarsystem_class()
         call solarsystem_model%initSolarSystem(   &
         "../../work/data",  &
@@ -269,7 +269,7 @@ end subroutine test_getSrpAcceleration
         @assertRelativelyEqual(acc_alb(3), expected_alb(3),tolerance)
 
         ! Test 3 :
-        epoch%mjd = 58600 
+        epoch%mjd = 58600.d0
         solarsystem_model = Solarsystem_class()
         call solarsystem_model%initSolarSystem(   &
         "../../work/data",  &
@@ -291,8 +291,8 @@ end subroutine test_getSrpAcceleration
         call radiation_model%initAlbedo()
         call radiation_model%setShadowModel("NO_SHADOW")
         ! Set Up inputs 
-        r_gcrf  = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)
-        v_gcrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)
+        r_gcrf  = (/-3485.799126707284d0, -5898.652976745232d0, 835.9701786284777d0/)
+        v_gcrf = (/-1.3525457950562447d0, -0.2804534841971075d0, -7.4721873681232385d0/)
         time_mjd = 58600.d0
         ! Call the subroutine to be tested
         call radiation_model%getAlbedoAcceleration(satellite_model, solarsystem_model, reduction_handler, r_gcrf, v_gcrf, time_mjd, acc_alb)
