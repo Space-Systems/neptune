@@ -125,7 +125,8 @@ module neptuneClass
         ! Variables
         !
         !-----------------------------------------------------------------------
-        integer                         :: output_step                          ! output time step in seconds, 5 mins as default
+        !integer                         :: output_step                          ! output time step in seconds, 5 mins as default
+        real(dp)                        :: output_step                          ! output time step that can touch double precision
         integer, public                 :: input_type_cov                       ! input type for covariance matrix
 
         logical, dimension(2), public   :: flag_init_tolerances                 ! rel. and abs. tolerance initialization for numerical integration
@@ -288,7 +289,7 @@ contains
         constructor%reduction = Reduction_type()
         constructor%correlation_model = Correlation_class()
 
-        constructor%output_step    = 300                                        ! output time step in seconds, 5 mins as default
+        constructor%output_step    = 300.0                                        ! output time step in seconds, 5 mins as default
         constructor%input_type_cov = INPUT_UNDEFINED                            ! input type for covariance matrix
 
         constructor%flag_init_tolerances = (/.false.,.false./)                  ! rel. and abs. tolerance initialization for numerical integration
@@ -465,7 +466,7 @@ contains
         ! INTEGER parameters
         call this%set_input(parName=C_GEOPOTENTIAL, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_SAT_PROPERTIES, valType='integer', initFlag=.true.)
-        call this%set_input(parName=C_OUTPUT_STEP, valType='integer', initFlag=.true.)
+        !call this%set_input(parName=C_OUTPUT_STEP, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_PAR_INT_COV_METHOD, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_GEO_MODEL, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_AP_FORECAST, valType='integer', initFlag=.true.)
@@ -485,6 +486,7 @@ contains
         call this%set_input(parName=C_PAR_INT_COV_STEP, valType='double', initFlag=.true.)
         call this%set_input(parName=C_PAR_EARTH_RADIUS, valType='double', initFlag=.true.)
         call this%set_input(parName=C_OPT_SOL_FORECAST, valType='double', initFlag=.true.)
+        call this%set_input(parName=C_OUTPUT_STEP, valType='double', initFlag=.true.) ! this should be double for the fix 
 
         ! ON/OFF parameters (also set default values, if available)
         do i = 1, this%derivatives_model%get_neptune_perturbation_number()
@@ -1715,7 +1717,7 @@ contains
           ! CASE for INTEGER parameters
           !
           !------------------------
-          case(C_GEOPOTENTIAL,  C_OPT_SAT_PROPERTIES, C_OUTPUT_STEP,    C_PAR_INT_COV_METHOD, &
+          case(C_GEOPOTENTIAL,  C_OPT_SAT_PROPERTIES,   C_PAR_INT_COV_METHOD, & ! remove C_OUTPUT_STEP
                C_OPT_GEO_MODEL, C_OPT_AP_FORECAST,    C_OPT_STORE_DATA, C_COV_GEOPOTENTIAL,   &
                C_PAR_INT_METHOD, C_OPT_ATMOSPHERE_MODEL)
 
@@ -1763,12 +1765,6 @@ contains
                   call this%set_input(parName=C_OPT_STORE_DATA, val=val, set=.true.)
                   call this%setStep(itemp)
 
-                !** Output
-                case(C_OUTPUT_STEP)
-                  call this%set_input(parName=C_OUTPUT_STEP, val=val, set=.true.)
-                  call this%output%write_to_output(C_OUTPUT_STEP, itemp)
-                  this%output_step = itemp
-
                 !** state vector integration method
                 case(C_PAR_INT_METHOD)
                   call this%set_input(parName=C_PAR_INT_METHOD, val=val, set=.true.)
@@ -1793,7 +1789,7 @@ contains
           ! CASE for REAL parameters
           !
           !-------------------------
-          case(C_PAR_MASS, C_PAR_CROSS_SECTION, C_PAR_CDRAG,         &
+          case(C_PAR_MASS, C_PAR_CROSS_SECTION, C_PAR_CDRAG, C_OUTPUT_STEP,         & ! add C_OUTPUT_STEP
                C_PAR_CREFL, C_PAR_REENTRY, C_PAR_INT_RELEPS, C_PAR_INT_ABSEPS, &
                C_PAR_INT_COV_STEP, C_PAR_EARTH_RADIUS, &
                C_OPT_SOL_FORECAST)
@@ -1861,6 +1857,12 @@ contains
                 case(C_OPT_SOL_FORECAST)
                   call this%set_input(parName=C_OPT_SOL_FORECAST, val=val, set=.true.)
                   call this%atmosphere_model%setSolarFluxForecast(dtemp)
+
+                !** Output
+                case(C_OUTPUT_STEP)
+                  call this%set_input(parName=C_OUTPUT_STEP, val=val, set=.true.)
+                  call this%output%write_to_output(C_OUTPUT_STEP, itemp)
+                  this%output_step = dtemp
 
               end select
 
@@ -2805,7 +2807,7 @@ contains
         ! INTEGER parameters
         call this%set_input(parName=C_GEOPOTENTIAL, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_SAT_PROPERTIES, valType='integer', initFlag=.true.)
-        call this%set_input(parName=C_OUTPUT_STEP, valType='integer', initFlag=.true.)
+        ! call this%set_input(parName=C_OUTPUT_STEP, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_PAR_INT_COV_METHOD, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_GEO_MODEL, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_AP_FORECAST, valType='integer', initFlag=.true.)
@@ -2825,6 +2827,8 @@ contains
         call this%set_input(parName=C_PAR_INT_COV_STEP, valType='double', initFlag=.true.)
         call this%set_input(parName=C_PAR_EARTH_RADIUS, valType='double', initFlag=.true.)
         call this%set_input(parName=C_OPT_SOL_FORECAST, valType='double', initFlag=.true.)
+        call this%set_input(parName=C_OUTPUT_STEP, valType='double', initFlag=.true.) ! this should be double 
+
 
         ! ON/OFF parameters (also set default values, if available)
         do i = 1, this%derivatives_model%get_neptune_perturbation_number()
