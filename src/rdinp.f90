@@ -125,6 +125,10 @@ subroutine rdinp(                &
   integer :: input_type_cov
   integer :: b_left, b_right    ! indices for version string parsing
 
+  real(dp)    :: dch_inp            ! input file channel 
+  real(dp)    :: dtemp              ! temporary
+  real(dp)    :: derr               ! error flag
+
   integer, dimension(100) :: distinctHarmonics
 
   real(dp), dimension(3) :: dtmp3
@@ -671,11 +675,11 @@ subroutine rdinp(                &
 
   call nxtbuf('#', 0, ich_inp, cbuf)
   read(cbuf,*) ctemp
-  ierr =  neptune%setNeptuneVar("OUTPUT_STEP", ctemp)
+  derr =  neptune%setNeptuneVar("OUTPUT_STEP", ctemp)
 
   call nxtbuf('#', 0, ich_inp, cbuf)
   read(cbuf,*) ctemp
-  ierr =  neptune%setNeptuneVar("OPT_STORE_DATA", ctemp)
+  derr =  neptune%setNeptuneVar("OPT_STORE_DATA", ctemp)
 
   call nxtbuf('#', 0, ich_inp, cbuf)
   read(cbuf,*) itemp
