@@ -679,7 +679,7 @@ subroutine rdinp(                &
 
   call nxtbuf('#', 0, ich_inp, cbuf)
   read(cbuf,*) ctemp
-  derr =  neptune%setNeptuneVar("OPT_STORE_DATA", ctemp)
+  ierr =  neptune%setNeptuneVar("OPT_STORE_DATA", ctemp)
 
   call nxtbuf('#', 0, ich_inp, cbuf)
   read(cbuf,*) itemp
