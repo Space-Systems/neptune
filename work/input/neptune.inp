@@ -201,7 +201,7 @@
 #
 #   Output time step (in seconds)
 #
-  2.5
+  60.0
 #
 #   Time step for ephemerides in internal array (available via 'getNeptuneData' API)
 #   (in seconds - IF not '0' then output time step (above) will be overwritten by this
