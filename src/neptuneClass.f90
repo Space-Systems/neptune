@@ -125,8 +125,6 @@ module neptuneClass
         ! Variables
         !
         !-----------------------------------------------------------------------
-        !integer                         :: output_step                          ! output time step in seconds, 5 mins as default
-        real(dp)                        :: output_step                          ! output time step that can touch double precision
         integer, public                 :: input_type_cov                       ! input type for covariance matrix
 
         logical, dimension(2), public   :: flag_init_tolerances                 ! rel. and abs. tolerance initialization for numerical integration
@@ -146,6 +144,7 @@ module neptuneClass
         type(covariance_t)              :: initial_covariance                   !< initial covariance matrix written to output
 
         real(dp)                        :: progress_step                        !< step threshold for progress output to file
+        real(dp)                        :: output_step                          ! output time step that can touch double precision
 
         !=======================================================================
         !
@@ -464,7 +463,6 @@ contains
         ! INTEGER parameters
         call this%set_input(parName=C_GEOPOTENTIAL, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_SAT_PROPERTIES, valType='integer', initFlag=.true.)
-        !call this%set_input(parName=C_OUTPUT_STEP, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_PAR_INT_COV_METHOD, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_GEO_MODEL, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_AP_FORECAST, valType='integer', initFlag=.true.)
@@ -1715,7 +1713,7 @@ contains
           ! CASE for INTEGER parameters
           !
           !------------------------
-          case(C_GEOPOTENTIAL,  C_OPT_SAT_PROPERTIES,   C_PAR_INT_COV_METHOD, & ! remove C_OUTPUT_STEP
+          case(C_GEOPOTENTIAL,  C_OPT_SAT_PROPERTIES,   C_PAR_INT_COV_METHOD, & 
                C_OPT_GEO_MODEL, C_OPT_AP_FORECAST,    C_OPT_STORE_DATA, C_COV_GEOPOTENTIAL,   &
                C_PAR_INT_METHOD, C_OPT_ATMOSPHERE_MODEL)
 
@@ -1787,7 +1785,7 @@ contains
           ! CASE for REAL parameters
           !
           !-------------------------
-          case(C_PAR_MASS, C_PAR_CROSS_SECTION, C_PAR_CDRAG, C_OUTPUT_STEP,         & ! add C_OUTPUT_STEP
+          case(C_PAR_MASS, C_PAR_CROSS_SECTION, C_PAR_CDRAG, C_OUTPUT_STEP,    & 
                C_PAR_CREFL, C_PAR_REENTRY, C_PAR_INT_RELEPS, C_PAR_INT_ABSEPS, &
                C_PAR_INT_COV_STEP, C_PAR_EARTH_RADIUS, &
                C_OPT_SOL_FORECAST)
@@ -2738,7 +2736,6 @@ contains
         ! INTEGER parameters
         call this%set_input(parName=C_GEOPOTENTIAL, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_SAT_PROPERTIES, valType='integer', initFlag=.true.)
-        ! call this%set_input(parName=C_OUTPUT_STEP, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_PAR_INT_COV_METHOD, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_GEO_MODEL, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_AP_FORECAST, valType='integer', initFlag=.true.)
