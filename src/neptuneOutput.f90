@@ -1179,7 +1179,7 @@ contains
     call mjd2gd(epoch%mjd,epoch%year,epoch%month,epoch%day,fracday)
     call dayFraction2HMS(fracday,epoch%hour,epoch%minute,epoch%second)
     epoch_string = date2longstring(epoch)
-    write(99, *) 'the LEN_TIME is ', LEN_TIME_STRING_LONG
+
     do i = 1, size(this%output_arr)
 
       if(this%output_arr(i)%file_unit > 0) then
@@ -2158,7 +2158,7 @@ contains
         write(ich,'(A,$)') " Error Single Integration "
         write(ich,'(A)')   "     Call No. [Flag]      "
 
-        write(ich,'(A,$)') "#___[YYYY-MM-DD hh:mm:ss.ssssss]____"
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
         write(ich,'(A,$)') "_____[JD - 2400000.5]_____"
         write(ich,'(A,$)') "____________[s]___________"
         do i2 = 1,4
@@ -2205,7 +2205,7 @@ contains
         write(ich,'(A,$)') " Velocity-Y  "
         write(ich,'(A)')   " Velocity-Z "
 
-        write(ich,'(A,$)') "#_ [YYYY-MM-DD hh:mm:ss.ssssss]"
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
         write(ich,'(A,$)') "___[JD - 2400000.5]___"
 
         do i2 = 1,3
@@ -2260,7 +2260,7 @@ contains
         write(ich,'(A,$)') "    TRAN     "
         write(ich,'(A)')   "    MEAN     "
 
-        write(ich,'(A,$)') "#_ [YYYY-MM-DD hh:mm:ss.ssssss]"
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
         write(ich,'(A,$)') "___[JD - 2400000.5]___"
 
         write(ich,'(A,$)') "_____[km]____"
@@ -2432,7 +2432,7 @@ contains
         write(ich,'(A,$)') "     Acc.-W      "
         write(ich,'(A)')   "   Acc. Total    "
 
-        write(ich,'(A,$)') "#_ [YYYY-MM-DD hh:mm:ss.ssssss]"
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
         write(ich,'(A,$)') "___[JD - 2400000.5]___"
 
         do i2 = 1,7
@@ -2477,7 +2477,7 @@ contains
         write(ich,'(A,$)') "    Lat. "
         write(ich,'(A)')   "    Lon. "
 
-        write(ich,'(A,$)') "#_ [YYYY-MM-DD hh:mm:ss.ssssss]"
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
         write(ich,'(A,$)') "___[JD - 2400000.5]____"
         write(ich,'(A,$)') "_[km]___"
         write(ich,'(A,$)') "___[deg]_"
@@ -2519,7 +2519,7 @@ contains
         write(ich,'(A,$)') " Cross-section "
         write(ich,'(A)')   "          Rel. velocity"
 
-        write(ich,'(A,$)') "#_ [YYYY-MM-DD hh:mm:ss.ssssss]"
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
         write(ich,'(A,$)') "___[JD - 2400000.5]____"
         write(ich,'(A,$)') "__[g/cm**3]___"
         write(ich,'(A,$)') "___[m**2]___"
