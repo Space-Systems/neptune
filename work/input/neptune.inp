@@ -57,8 +57,8 @@
 #     - gregorian date: YYYY MM DD HH MM SS.SSS... (separated by blanks)
 #     - julian day:     XXXXXXX.XX...              (no blanks)
 #
-  2016 07 20 00 31 50.00   2440980.0    Begin date
-  2016 08 03 00 31 50.00   2441345.0    End date
+  2016 07 20 00 31 00.00   2440980.0    Begin date
+  2016 08 03 00 31 00.00   2441345.0    End date
 #
 #------------------------------------------------------------------------------
 #
@@ -201,7 +201,7 @@
 #
 #   Output time step (in seconds)
 #
-  2.5
+  60.0
 #
 #   Time step for ephemerides in internal array (available via 'getNeptuneData' API)
 #   (in seconds - IF not '0' then output time step (above) will be overwritten by this
