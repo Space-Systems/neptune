@@ -65,7 +65,7 @@ contains
         tolerance = 1e-6_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(accel, expected_accel, tolerance)
+        @assertRelativelyEqual(expected_accel, accel, tolerance)
          
         ! Test 2
         r_itrf = (/31986.08889084533, 3886.249797563777, -17606.478382491812/)    
@@ -81,7 +81,7 @@ contains
         tolerance = 1e-6_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(accel, expected_accel, tolerance)
+        @assertRelativelyEqual(expected_accel, accel, tolerance)
 
         ! Test 2
         r_itrf = (/-42044.21889179173, -3193.6719204189853, 105.63094940415252/)    
@@ -97,7 +97,7 @@ contains
         tolerance = 1e-6_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(accel, expected_accel, tolerance)
+        @assertRelativelyEqual(expected_accel, accel, tolerance)
 
         ! Test 3 :
         r_itrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)    
@@ -113,7 +113,7 @@ contains
         tolerance = 1e-6_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(accel, expected_accel, tolerance)
+        @assertRelativelyEqual(expected_accel, accel, tolerance)
         
    end subroutine test_getGravityAccelaration
 

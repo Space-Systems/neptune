@@ -61,7 +61,7 @@ contains
         tolerance = 1e-6_dp
         
         ! Check if outputs match expected values
-        @assertRelativelyEqual(acc_thirdbody, expected_acc, tolerance)
+        @assertRelativelyEqual(expected_acc, acc_thirdbody, tolerance)
 
         
         ! Test 2 :
@@ -88,7 +88,7 @@ contains
         tolerance = 1e-6_dp
         
         ! Check if outputs match expected values
-        @assertRelativelyEqual(acc_thirdbody, expected_acc, tolerance)
+        @assertRelativelyEqual(expected_acc, acc_thirdbody, tolerance)
 
         ! Test 2 :
         epoch%mjd = 58600.d0
@@ -114,9 +114,8 @@ contains
         tolerance = 1e-6_dp
         
         ! Check if outputs match expected values
-        @assertRelativelyEqual(acc_thirdbody, expected_acc, tolerance)
+        @assertRelativelyEqual(expected_acc, acc_thirdbody, tolerance)
                    
-
     end subroutine test_getThirdBodyAccelaration
 
 

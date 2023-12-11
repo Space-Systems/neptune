@@ -73,7 +73,7 @@ contains
         tolerance = 1e-10_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(cov, expected_cov, tolerance)
+        @assertRelativelyEqual(expected_cov, cov, tolerance)
 
         ! Test 2
         call gravity_model%initGravityPotential('../../work/data')
@@ -95,7 +95,7 @@ contains
         tolerance = 1e-10_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(cov, expected_cov, tolerance)    
+        @assertRelativelyEqual(expected_cov, cov, tolerance)    
 
         
         ! Test 3 :

@@ -37,9 +37,9 @@ contains
         call atmosphere_model%initAtmosphere('../../work/data')
 
         ! test #1
-        @assertRelativelyEqual(atmosphere_model%getDensityJB2008(500.d0, 0.d0, 0.d0,  51544.d0), 0.12405204124422383d-002, tolerance=0.01)
+        @assertRelativelyEqual(0.12405204124422383d-002, atmosphere_model%getDensityJB2008(500.d0, 0.d0, 0.d0,  51544.d0), tolerance=0.01)
         ! ! test #2
-        @assertRelativelyEqual(atmosphere_model%getDensityJB2008(150.d0, 0.d0, 0.446d2, 58600.d0), 0.79968484021225802d+27, tolerance=0.01)
+        @assertRelativelyEqual(0.79968484021225802d+27, atmosphere_model%getDensityJB2008(150.d0, 0.d0, 0.446d2, 58600.d0), tolerance=0.01)
 
     end subroutine test_getDensityJB2008
 

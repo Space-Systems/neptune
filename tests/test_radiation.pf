@@ -83,9 +83,9 @@ contains
         tolerance = 1e-6_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(acc_srp(1), expected_srp(1),tolerance)
-        @assertRelativelyEqual(acc_srp(2), expected_srp(2),tolerance)
-        @assertRelativelyEqual(acc_srp(3), expected_srp(3),tolerance)
+        @assertRelativelyEqual(expected_srp(1), acc_srp(1), tolerance)
+        @assertRelativelyEqual(expected_srp(2), acc_srp(2), tolerance)
+        @assertRelativelyEqual(expected_srp(3), acc_srp(3), tolerance)
 
          !** init solarsystem & satellite model
         ! Test 2
@@ -122,9 +122,9 @@ contains
         tolerance = 1e-6_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(acc_srp(1), expected_srp(1),tolerance)
-        @assertRelativelyEqual(acc_srp(2), expected_srp(2),tolerance)
-        @assertRelativelyEqual(acc_srp(3), expected_srp(3),tolerance)
+        @assertRelativelyEqual(expected_srp(1), acc_srp(1), tolerance)
+        @assertRelativelyEqual(expected_srp(2), acc_srp(2), tolerance)
+        @assertRelativelyEqual(expected_srp(3), acc_srp(3), tolerance)
 
         
         ! Test 3 :
@@ -162,9 +162,9 @@ contains
         tolerance = 1e-6_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(acc_srp(1), expected_srp(1),tolerance)
-        @assertRelativelyEqual(acc_srp(2), expected_srp(2),tolerance)
-        @assertRelativelyEqual(acc_srp(3), expected_srp(3),tolerance)
+        @assertRelativelyEqual(expected_srp(1), acc_srp(1), tolerance)
+        @assertRelativelyEqual(expected_srp(2), acc_srp(2), tolerance)
+        @assertRelativelyEqual(expected_srp(3), acc_srp(3), tolerance)
 
 end subroutine test_getSrpAcceleration
 
@@ -225,9 +225,9 @@ end subroutine test_getSrpAcceleration
         tolerance = 1e-6_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(acc_alb(1), expected_alb(1),tolerance)
-        @assertRelativelyEqual(acc_alb(2), expected_alb(2),tolerance)
-        @assertRelativelyEqual(acc_alb(3), expected_alb(3),tolerance)
+        @assertRelativelyEqual(expected_alb(1), acc_alb(1), tolerance)
+        @assertRelativelyEqual(expected_alb(2), acc_alb(2), tolerance)
+        @assertRelativelyEqual(expected_alb(3), acc_alb(3), tolerance)
 
         ! Test 2 :
         epoch%mjd = 58600.d0
@@ -264,9 +264,9 @@ end subroutine test_getSrpAcceleration
         tolerance = 1e-6_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(acc_alb(1), expected_alb(1),tolerance)
-        @assertRelativelyEqual(acc_alb(2), expected_alb(2),tolerance)
-        @assertRelativelyEqual(acc_alb(3), expected_alb(3),tolerance)
+        @assertRelativelyEqual(expected_alb(1), acc_alb(1), tolerance)
+        @assertRelativelyEqual(expected_alb(2), acc_alb(2), tolerance)
+        @assertRelativelyEqual(expected_alb(3), acc_alb(3), tolerance)
 
         ! Test 3 :
         epoch%mjd = 58600.d0
@@ -303,9 +303,9 @@ end subroutine test_getSrpAcceleration
         tolerance = 1e-6_dp
 
         ! Check if outputs match expected values
-        @assertRelativelyEqual(acc_alb(1), expected_alb(1),tolerance)
-        @assertRelativelyEqual(acc_alb(2), expected_alb(2),tolerance)
-        @assertRelativelyEqual(acc_alb(3), expected_alb(3),tolerance)
+        @assertRelativelyEqual(expected_alb(1), acc_alb(1), tolerance)
+        @assertRelativelyEqual(expected_alb(2), acc_alb(2), tolerance)
+        @assertRelativelyEqual(expected_alb(3), acc_alb(3), tolerance)
 
    end subroutine test_getAlbedoAcceleration
    
