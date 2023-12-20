@@ -13,35 +13,21 @@ elif [[ "$OSTYPE" == "CYGWIN"* ]]; then
 elif [[ "$OSTYPE" == "MINGW"* ]]; then
   LIBSUFFIX="dll"
 fi
+git submodule update --init --recursive
 ################################################################################
 #                                                                              #
 #                                  Build OPI                                   #
 #                                                                              #
 ################################################################################
-echo "Checking for OPI"
-if [[ ! -d "OPI" ]]; then
-  echo "Not found - cloning from  https://github.com/Space-Systems/OPI.git --branch OPI-2015"
-  git clone https://github.com/Space-Systems/OPI.git --branch OPI-2015
-else
-  echo "Found - updating branch."
-  cd OPI || exit
-  git pull
-  cd ..
-fi
-# No need to continue when cloning did not work
-if [[ $? -ne 0 ]]; then
-  echo "OPI could not be found. Exiting."
-  exit $?
-fi
 # Build OPI
-cd OPI || exit
+cd OPI || exit || exit
 # Create the build directory if it does not exist
 if [[ ! -d "build" ]]; then
   mkdir build
 else
   rm -rf build/*
 fi
-cd build || exit
+cd build || exit || exit
 echo "Updating cmake"
 cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=../ -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_CXX11=ON -DENABLE_CL_SUPPORT=OFF -DENABLE_CUDA_SUPPORT=OFF -DENABLE_PYTHON=OFF ../
 echo "Building OPI"
@@ -57,30 +43,15 @@ cd ../../
 #                                Build libslam                                 #
 #                                                                              #
 ################################################################################
-echo "Checking for libslam"
-if [[ ! -d "libslam" ]]; then
-  echo "Not found - cloning from https://github.com/Space-Systems/libslam.git"
-  git clone https://github.com/Space-Systems/libslam.git --branch v2020-12
-else
-  echo "Found - updating branch."
-  cd libslam || exit
-  git pull
-  cd ..
-fi
-# No need to continue when cloning did not work
-if [[ $? -ne 0 ]]; then
-  echo "libslam could not be found. Exiting."
-  exit $?
-fi
 # Build libslam
-cd libslam || exit
+cd libslam || exit || exit
 # Create the build directory if it does not exist
 if [[ ! -d "build" ]]; then
   mkdir build
 else
   rm -rf build/*
 fi
-cd build || exit
+cd build || exit || exit
 echo "Updating cmake"
 cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OpenMP_SUPPORT=OFF -DENABLE_POSTGRESQL_SUPPORT=OFF ../
 echo "Building libslam"
@@ -97,6 +68,28 @@ echo "Leaving libslam"
 cd ../
 ################################################################################
 #                                                                              #
+#                                Build pFUnit                                  #
+#                                                                              #
+################################################################################
+cd pFUnit || exit
+# Create the build directory if it does not exist
+if [[ ! -d "build" ]]; then
+  mkdir build
+else
+  rm -rf build/*
+fi
+cd build || exit
+echo "Updating cmake"
+export FC=$Fortran_COMPILER
+cmake -DSKIP_MPI=yes ../
+echo "Building pFUnit"
+make
+make install
+cd ../
+echo "Leaving pFUnit"
+cd ../
+################################################################################
+#                                                                              #
 #                                 Build NEPTUNE                                #
 #                                                                              #
 ################################################################################
@@ -105,7 +98,7 @@ if [[ ! -d "lib" ]]; then
   mkdir lib
 fi
 # Create the links to libraries needed by CAMP
-cd lib || exit
+cd lib || exit || exit
 ln -sf ../libslam/lib/libslam-Fortran.$LIBSUFFIX .
 ln -sf ../OPI/lib/libOPI-Fortran.$LIBSUFFIX .
 ln -sf ../OPI/lib/libOPI.$LIBSUFFIX .
@@ -115,7 +108,7 @@ if [[ ! -d "include" ]]; then
   mkdir include
 fi
 # Create the links to includes needed by NEPTUNE
-cd include || exit
+cd include || exit || exit
 ln -sf ../libslam/include/SLAM .
 ln -sf ../OPI/include/OPI .
 cd ..
@@ -125,9 +118,10 @@ if [[ ! -d "build" ]]; then
 else
   rm -rf build/*
 fi
-cd build || exit
+cd build || exit || exit
 echo "Updating cmake"
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OPI_SUPPORT=ON ../
+export PFUNIT_DIR=..//pFUnit/build/installed
+cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OPI_SUPPORT=ON -DSKIP_MSIS_2=ON ../
 echo "Building NEPTUNE"
 make install
 if [[ $? -ne 0 ]]; then
@@ -135,7 +129,7 @@ if [[ $? -ne 0 ]]; then
     exit $?
 fi
 echo "Leaving NEPTUNE"
-cd ../work || exit
-ln -sf ../bin/neptune-sa .
+cd ../work || exit || exit
+ln -sf ../bin/neptune-sa . .
 cd ..
 echo "Done"

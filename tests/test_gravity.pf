@@ -1,0 +1,120 @@
+!==============================================================================
+!
+!> @anchor  test_gravity
+!!
+!> @brief   Program for testing the function that calculates the gravityAcceleration 
+!!
+!> @author  Arkene Chouchene (AC)
+!!
+!> @date    <ul>
+!!            <li>15.06.2023 (initial design)</li>
+!!          </ul>
+!!
+!! @details Program for testing gravity functions in this case getGravityAcceleration 
+!! Sources and Examples are mentioned above every test
+!------------------------------------------------------------------------
+module test_gravity
+use funit
+use gravity
+use slam_reduction_class, only: Reduction_type
+use slam_math
+use slam_error_handling
+
+implicit none
+
+contains
+
+   @test
+   subroutine test_getGravityAccelaration()
+        ! Tests the gravity Acceleration delivered 
+        ! Reference Values : OREKIT
+
+        type(Reduction_type) :: reduction_handler
+        type(Gravity_class) :: gravity_model
+        real(dp), dimension(3)  :: r_itrf
+        real(dp), dimension(3)  :: v_itrf
+        real(dp)               :: time_mjd, tolerance 
+        real(dp), dimension(3)  :: accel, expected_accel
+        logical :: initialized = .false.
+        !** init reduction model and EOP
+        call initErrorHandler(control = "YES", errAction = "RETURN", traceback = "YES") 
+        if (.not. initialized) then 
+            reduction_handler = Reduction_type() 
+            call reduction_handler%initEop('../../work/data') 
+            initialized = .true. 
+        end if
+        
+        gravity_model = Gravity_class()
+        call gravity_model%setGeoDegree(6)
+        call gravity_model%setGeoCovDegree(6)
+        ! Set Up inputs 
+        call gravity_model%initGravityPotential('../../work/data')
+        
+        ! Set Up inputs 
+        ! Test 1 
+        r_itrf = (/-3485.799126707284d0, -5898.652976745232d0, 835.9701786284777d0/)    
+        v_itrf = (/-1.3525457950562447d0, -0.2804534841971075d0, -7.4721873681232385d0/)    
+        time_mjd = 	59868.16721065d0
+        ! Call the subroutine to be tested
+        call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
+
+        ! Set up expected outputs
+        expected_accel = (/-0.67280939346878715d-2, 0.48893489982938815d-2, -0.10027985388093780d-2/)
+
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(expected_accel, accel, tolerance)
+         
+        ! Test 2
+        r_itrf = (/31986.08889084533, 3886.249797563777, -17606.478382491812/)    
+        v_itrf = (/-0.1326762314352175, 2.0844489979862724, -0.13643320490635982/)    
+        time_mjd = 	59868.16721065d0
+        ! Call the subroutine to be tested
+        call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
+
+        ! Set up expected outputs
+        expected_accel = (/0.70700674902942066d-5, -0.25935354264578517d-3, 0.14177271746361654d-3/)
+
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(expected_accel, accel, tolerance)
+
+        ! Test 2
+        r_itrf = (/-42044.21889179173, -3193.6719204189853, 105.63094940415252/)    
+        v_itrf = (/0.23272475970034712, -3.0658575760606777, 0.0006346736275647091/)    
+        time_mjd = 	59324.0d0
+        ! Call the subroutine to be tested
+        call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
+
+        ! Set up expected outputs
+        expected_accel = (/-0.18935385065918674d-3, -0.12004903786810252d-3, -0.17494056709662443d-6/)
+
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(expected_accel, accel, tolerance)
+
+        ! Test 3 :
+        r_itrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)    
+        v_itrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)    
+        time_mjd = 	58600.0d0
+        ! Call the subroutine to be tested
+        call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
+
+        ! Set up expected outputs
+        expected_accel = (/0.55885575784497528d-3, -0.82963084273004768d-2, -0.10185937617941453d-2/)
+
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(expected_accel, accel, tolerance)
+        
+   end subroutine test_getGravityAccelaration
+
+end module test_gravity
