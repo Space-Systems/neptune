@@ -181,7 +181,7 @@ program valsent_set
         write(ichr,'(f15.8,2X,A,4(X,f15.7))') sent_state%epoch%mjd, date2longstring(sent_state%epoch), (rdiff(j), j=1,3)
         write(ichv,'(f15.8,2X,A,4(X,f12.8))') sent_state%epoch%mjd, date2longstring(sent_state%epoch), (vdiff(j), j=1,3)
 
-        write(*,   '(f15.8,2X,A,7(X,f15.7))') sent_state%epoch%mjd, date2longstring(sent_state%epoch), rms, (rdiff(j), j=1,3), (vdiff(j), j=1,3)
+        ! write(*,   '(f15.8,2X,A,7(X,f15.7))') sent_state%epoch%mjd, date2longstring(sent_state%epoch), rms, (rdiff(j), j=1,3), (vdiff(j), j=1,3)
 
 
         state_in = nept_state
