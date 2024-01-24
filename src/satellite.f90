@@ -241,11 +241,11 @@ contains
         call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
         return
 
-      else if(this%surface(i)%reflSpec + this%surface(i)%reflDiff > 1.d0) then
+      ! else if(this%surface(i)%reflSpec + this%surface(i)%reflDiff > 1.d0) then
 
-        cmess = "Sum of specular and diffuse reflectivity > 1."
-        call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
-        return
+      !   cmess = "Sum of specular and diffuse reflectivity > 1."
+      !   call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
+      !   return
 
       else if(this%surface(i)%orientation /= ORIENT_SPHERE .and. &
               this%surface(i)%orientation /= ORIENT_EARTH  .and. &
