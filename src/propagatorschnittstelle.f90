@@ -99,6 +99,7 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
   call OPI_Module_createProperty(propagator, "keplerian_elements_out", "ON")
   call OPI_Module_createProperty(propagator, "ecef_states_out", "OFF")
   call OPI_Module_createProperty(propagator, "mean_elements_out", "ON")
+  call OPI_Module_createProperty(propagator, "return_set_matrix", "OFF")    ! instead of covariance
 
   do i = 1, 20
     !** manoeuvre --> should be temp, this is a little bit an overkill
@@ -209,6 +210,8 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
     logical,save                :: create_cheby !** switch to create chebies or not
     integer(c_int),save         :: cheby_degree
     logical,save                :: store_data
+
+    logical,save                :: return_set_matrix    ! switch to return set instead of covariance
 
 
 
@@ -670,6 +673,16 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
                 call resetError()
             end if
         endif
+
+    end if
+
+    !** check if we should return the set matrix instead of the covariance
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"return_set_matrix")
+    if (index(temp_string,"OFF") /= 0) then
+        return_set_matrix = .false.
+
+    else
+        return_set_matrix = .true.
 
     end if
 
@@ -1408,6 +1421,11 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
                 end if
             else
                 temp_covariance%elem = initial_covariance%elem
+            end if
+
+            ! Overwrite covariance with SET matrix if requested
+            if(return_set_matrix .and. propagate_covariance) then
+                temp_covariance = neptune_instance%getNeptuneSetMatrixData(j)
             end if
             ephemeris(j, 8, iobject) = temp_covariance%elem(1,1)
             ephemeris(j, 9, iobject) = temp_covariance%elem(2,1)
