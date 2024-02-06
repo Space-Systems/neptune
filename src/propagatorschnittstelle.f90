@@ -99,8 +99,8 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
   call OPI_Module_createProperty(propagator, "keplerian_elements_out", "ON")
   call OPI_Module_createProperty(propagator, "ecef_states_out", "OFF")
   call OPI_Module_createProperty(propagator, "mean_elements_out", "ON")
-  call OPI_Module_createProperty(propagator, "return_set_matrix", "ON")    ! instead of covariance
-    write(*,*) "now returning SET Matrix"
+  call OPI_Module_createProperty(propagator, "return_set_matrix", "OFF")    ! instead of covariance
+
   do i = 1, 20
     !** manoeuvre --> should be temp, this is a little bit an overkill
     call OPI_Module_createProperty(propagator, "man_mjd_ignition_"//toString(i), "0.0")
@@ -1404,7 +1404,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             !write (99,*) temp_state%epoch%mjd, temp_state%r(1:3), temp_state%v(1:3)
 
             ! Extract covariance from NEPTUNE API
-            if (propagate_covariance) then
+            if (propagate_covariance .and. (.not. return_set_matrix)) then
                 temp_covariance = neptune_instance%getNeptuneCovarianceData(j)
                 !** check, in what frame the covariance was provided
                 write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_ref_frame")
@@ -1419,14 +1419,13 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
                     covariance_matrix_UVW = matmul(matmul(jacobi,temp_covariance%elem),transpose(jacobi))
                     temp_covariance%elem = covariance_matrix_UVW
                 end if
+            else if(return_set_matrix .and. propagate_covariance) then
+                ! Return SET matrix instead of covariance if requested
+                temp_covariance = neptune_instance%getNeptuneSetMatrixData(j)
             else
                 temp_covariance%elem = initial_covariance%elem
             end if
 
-            ! Overwrite covariance with SET matrix if requested
-            if(return_set_matrix .and. propagate_covariance) then
-                temp_covariance = neptune_instance%getNeptuneSetMatrixData(j)
-            end if
             ephemeris(j, 8, iobject) = temp_covariance%elem(1,1)
             ephemeris(j, 9, iobject) = temp_covariance%elem(2,1)
             ephemeris(j,10, iobject) = temp_covariance%elem(2,2)
