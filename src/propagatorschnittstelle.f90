@@ -99,8 +99,8 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
   call OPI_Module_createProperty(propagator, "keplerian_elements_out", "ON")
   call OPI_Module_createProperty(propagator, "ecef_states_out", "OFF")
   call OPI_Module_createProperty(propagator, "mean_elements_out", "ON")
-  call OPI_Module_createProperty(propagator, "return_set_matrix", "OFF")    ! instead of covariance
-
+  call OPI_Module_createProperty(propagator, "return_set_matrix", "ON")    ! instead of covariance
+    write(*,*) "now returning SET Matrix"
   do i = 1, 20
     !** manoeuvre --> should be temp, this is a little bit an overkill
     call OPI_Module_createProperty(propagator, "man_mjd_ignition_"//toString(i), "0.0")
