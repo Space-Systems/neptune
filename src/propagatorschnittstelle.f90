@@ -1425,7 +1425,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             else
                 temp_covariance%elem = initial_covariance%elem
             end if
-
+            write(*,*) temp_covariance
             ephemeris(j, 8, iobject) = temp_covariance%elem(1,1)
             ephemeris(j, 9, iobject) = temp_covariance%elem(2,1)
             ephemeris(j,10, iobject) = temp_covariance%elem(2,2)
@@ -1447,22 +1447,22 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             ephemeris(j,26, iobject) = temp_covariance%elem(6,4)
             ephemeris(j,27, iobject) = temp_covariance%elem(6,5)
             ephemeris(j,28, iobject) = temp_covariance%elem(6,6)
-
-            ephemeris(j,29, iobject) = temp_covariance%elem(2,1)
+           
+            ephemeris(j,29, iobject) = temp_covariance%elem(1,2)
             ephemeris(j,30, iobject) = temp_covariance%elem(1,3)
-            ephemeris(j,31, iobject) = temp_covariance%elem(4,3)
-            ephemeris(j,32, iobject) = temp_covariance%elem(4,4)
-            ephemeris(j,33, iobject) = temp_covariance%elem(5,1)
-            ephemeris(j,34, iobject) = temp_covariance%elem(5,2)
-            ephemeris(j,35, iobject) = temp_covariance%elem(5,3)
-            ephemeris(j,36, iobject) = temp_covariance%elem(5,4)
-            ephemeris(j,37, iobject) = temp_covariance%elem(5,5)
-            ephemeris(j,38, iobject) = temp_covariance%elem(6,1)
-            ephemeris(j,39, iobject) = temp_covariance%elem(6,2)
-            ephemeris(j,40, iobject) = temp_covariance%elem(6,3)
-            ephemeris(j,41, iobject) = temp_covariance%elem(6,4)
-            ephemeris(j,42, iobject) = temp_covariance%elem(6,5)
-            ephemeris(j,43, iobject) = temp_covariance%elem(6,6)
+            ephemeris(j,31, iobject) = temp_covariance%elem(1,4)
+            ephemeris(j,32, iobject) = temp_covariance%elem(1,5)
+            ephemeris(j,33, iobject) = temp_covariance%elem(1,6)
+            ephemeris(j,34, iobject) = temp_covariance%elem(2,3)
+            ephemeris(j,35, iobject) = temp_covariance%elem(2,4)
+            ephemeris(j,36, iobject) = temp_covariance%elem(2,5)
+            ephemeris(j,37, iobject) = temp_covariance%elem(2,6)
+            ephemeris(j,38, iobject) = temp_covariance%elem(3,4)
+            ephemeris(j,39, iobject) = temp_covariance%elem(3,5)
+            ephemeris(j,40, iobject) = temp_covariance%elem(3,6)
+            ephemeris(j,41, iobject) = temp_covariance%elem(4,5)
+            ephemeris(j,42, iobject) = temp_covariance%elem(4,6)
+            ephemeris(j,43, iobject) = temp_covariance%elem(5,6)
 
           end do
           !write (99,*) propagation_epoch(2)%mjd, propagated_state%r(1:3), propagated_state%v(1:3)
