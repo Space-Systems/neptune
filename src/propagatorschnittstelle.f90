@@ -1463,7 +1463,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             ephemeris(j,41, iobject) = temp_covariance%elem(4,5)
             ephemeris(j,42, iobject) = temp_covariance%elem(4,6)
             ephemeris(j,43, iobject) = temp_covariance%elem(5,6)
-
+            write(*,*) ephemeris(j,43, iobject)
           end do
           !write (99,*) propagation_epoch(2)%mjd, propagated_state%r(1:3), propagated_state%v(1:3)
         endif
@@ -1482,7 +1482,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
         !**call message("Calling the bytes",LOG_AND_STDOUT)
         !** get the bytes pointer
         bytes_pointer => OPI_Population_getBytes(data)
-        call memcpy(c_loc(bytes_pointer(1)%bytes), c_loc(ephemeris), int(8*28*1000000*data_size,8))
+        call memcpy(c_loc(bytes_pointer(1)%bytes), c_loc(ephemeris), int(8*43*1000000*data_size,8))
         deallocate(ephemeris)
 
     end if
