@@ -331,7 +331,8 @@ contains
 
     ! 4-6) Tides
     if(neptune%derivatives_model%getPertSwitch(PERT_SOLID_TIDES) .or. neptune%derivatives_model%getPertSwitch(PERT_OCEAN_TIDES)) then
-      call neptune%tides_model%initTides()
+      call neptune%tides_model%initTides( &
+                          neptune%getDataPath())
       if(hasFailed()) return
     end if
 

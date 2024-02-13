@@ -578,7 +578,7 @@ contains
     !!              </ul>
     !!
     !!------------------------------------------------------------------------------------------------
-    pure real(dp) function get_output_step(this) result(s)
+    pure integer function get_output_step(this) result(s)
         implicit none
         class(Neptune_class),intent(in)     :: this
         s = this%output_step
