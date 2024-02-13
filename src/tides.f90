@@ -33,7 +33,7 @@ module tides
   use slam_reduction_class,   only: Reduction_type
   use solarsystem,            only: Solarsystem_class, ID_SUN, ID_MOON
   use slam_types,             only: dp
-  use slam_io,                only: openFile, closeFile, SEQUENTIAL, IN_FORMATTED, cdelimit
+  use slam_io,                only: openFile, closeFile, SEQUENTIAL, IN_FORMATTED, cdelimit, message, LOG_AND_STDOUT
   use slam_time,              only: jd2000, jd245, julian_century
 
   implicit none
@@ -129,6 +129,8 @@ contains
       end if
       return
     end if
+
+    call message(' - Initializing tides model...', LOG_AND_STDOUT)
 
     !** set data path in module scope
     this%dataPath = trim(adjustl(cpath(1:min(len(this%dataPath),len(cpath)))))

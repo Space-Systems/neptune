@@ -38,6 +38,7 @@ module gravity
   use slam_error_handling,    only: isControlled, hasToReturn, hasFailed, FATAL, WARNING, &
                                     E_SPECIAL, E_UNKNOWN_PARAMETER, E_OUT_OF_BOUNDS, checkIn, checkOut
   use slam_io,                only: openFile, closeFile, SEQUENTIAL, IN_FORMATTED, LOG_AND_STDOUT, cdelimit, message
+  use slam_strings,           only: toString
   use slam_math,              only: UNDEFINED, identity_matrix, rad2deg, redang, eps9, mag, outerproduct, uvec1, uvec2, uvec3
   use slam_reduction_class,   only: Reduction_type
   use slam_time,              only: time_t, gd2jd
@@ -402,7 +403,7 @@ contains
 
     ich = openFile(fileName, SEQUENTIAL, IN_FORMATTED)
 
-    call message(' - Reading '//trim(modelName(this%nmodel))//' geopotential coefficients...', LOG_AND_STDOUT)
+    call message(' - Reading '//trim(modelName(this%nmodel))//' geopotential coefficients with degree '//toString(this%degree)//'...', LOG_AND_STDOUT)
 
     !====================================================================================================
     !

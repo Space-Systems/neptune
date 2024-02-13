@@ -241,6 +241,7 @@ module neptuneClass
         procedure :: initialize_input_array
         procedure :: destroy
         procedure :: reallocate
+        procedure :: switchStoreDataFlag
 
     end type Neptune_class
 
@@ -1090,7 +1091,7 @@ contains
         call this%set_input(parName=C_FILE_INPUT_DUMP, val=this%dump_file_name, set=.true.)
 
         ! toggle this one ON
-        !this%has_to_dump_input = .true.
+        this%has_to_dump_input = .true.
 
         !** done!
         if(isControlled()) then
@@ -3002,6 +3003,28 @@ contains
     return
 
   end function getStoreDataFlag
+
+!==================================================================
+!
+!> @brief     Switches the storeEphemData flag
+!!
+!> @author    Daniel Lubián Arenillas
+!!
+!> @date      <ul>
+!!              <li>DLA:  21.10.2022 (initial design) </li>
+!!            </ul>
+!!
+!> @anchor    switchStoreDataFlag
+!!
+!------------------------------------
+  subroutine switchStoreDataFlag(this)
+
+    class(Neptune_class)    :: this
+
+    this%storeEphemData = .not. this%storeEphemData
+    return
+
+  end subroutine switchStoreDataFlag
 
 !==================================================================
 !
