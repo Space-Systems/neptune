@@ -1425,7 +1425,6 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             else
                 temp_covariance%elem = initial_covariance%elem
             end if
-            write(*,*) temp_covariance
             ephemeris(j, 8, iobject) = temp_covariance%elem(1,1)
             ephemeris(j, 9, iobject) = temp_covariance%elem(2,1)
             ephemeris(j,10, iobject) = temp_covariance%elem(2,2)
@@ -1463,7 +1462,6 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             ephemeris(j,41, iobject) = temp_covariance%elem(4,5)
             ephemeris(j,42, iobject) = temp_covariance%elem(4,6)
             ephemeris(j,43, iobject) = temp_covariance%elem(5,6)
-            write(*,*) ephemeris(j,43, iobject)
           end do
           !write (99,*) propagation_epoch(2)%mjd, propagated_state%r(1:3), propagated_state%v(1:3)
         endif
