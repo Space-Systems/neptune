@@ -54,12 +54,12 @@ contains
         ! Test 1 
         r_itrf = (/-3485.799126707284d0, -5898.652976745232d0, 835.9701786284777d0/)    
         v_itrf = (/-1.3525457950562447d0, -0.2804534841971075d0, -7.4721873681232385d0/)    
-        time_mjd = 	59868.16721065d0
+        time_mjd = 	56868.16721065d0
         ! Call the subroutine to be tested
         call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
 
         ! Set up expected outputs
-        expected_accel = (/-0.67280939346878715d-2, 0.48893489982938815d-2, -0.10027985388093780d-2/)
+        expected_accel = (/0.32280444541458826d-2, 0.76625371772555207d-2, -0.10216815852430374d-2/)
 
         ! Set up tolerances
         tolerance = 1e-6_dp
@@ -70,12 +70,12 @@ contains
         ! Test 2
         r_itrf = (/31986.08889084533, 3886.249797563777, -17606.478382491812/)    
         v_itrf = (/-0.1326762314352175, 2.0844489979862724, -0.13643320490635982/)    
-        time_mjd = 	59868.16721065d0
+        time_mjd = 	56868.16721065d0
         ! Call the subroutine to be tested
         call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
 
         ! Set up expected outputs
-        expected_accel = (/0.70700674902942066d-5, -0.25935354264578517d-3, 0.14177271746361654d-3/)
+        expected_accel = (/-0.25080246804687567d-3, -0.65642371002692996d-4, 0.14213708349686789d-3/)
 
         ! Set up tolerances
         tolerance = 1e-6_dp
@@ -86,12 +86,12 @@ contains
         ! Test 2
         r_itrf = (/-42044.21889179173, -3193.6719204189853, 105.63094940415252/)    
         v_itrf = (/0.23272475970034712, -3.0658575760606777, 0.0006346736275647091/)    
-        time_mjd = 	59324.0d0
+        time_mjd = 	56324.0d0
         ! Call the subroutine to be tested
         call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
 
         ! Set up expected outputs
-        expected_accel = (/-0.18935385065918674d-3, -0.12004903786810252d-3, -0.17494056709662443d-6/)
+        expected_accel = (/-0.16002051185410050d-3, 0.15703501782932713d-3, -0.34902437638337048d-6/)
 
         ! Set up tolerances
         tolerance = 1e-6_dp
@@ -102,12 +102,12 @@ contains
         ! Test 3 :
         r_itrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)    
         v_itrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)    
-        time_mjd = 	58600.0d0
+        time_mjd = 	56600.0d0
         ! Call the subroutine to be tested
         call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
 
         ! Set up expected outputs
-        expected_accel = (/0.55885575784497528d-3, -0.82963084273004768d-2, -0.10185937617941453d-2/)
+        expected_accel = (/-0.18213252703227956d-2, 0.81136873573652273d-2, -0.10146123679290529d-2/)
 
         ! Set up tolerances
         tolerance = 1e-6_dp
