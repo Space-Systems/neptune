@@ -1391,7 +1391,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
           end if
 
           !** allocate the ephemeris array
-          allocate(ephemeris(1000000, 1:43, data_size)) !** the 1000000 is the maximum allowed at the moment. It is fixed to avoid errors with PICARD. The 28 is: 1 date, 6 state, 21 co-variances
+          allocate(ephemeris(1000000, 1:43, data_size)) !** the 1000000 is the maximum allowed at the moment. The 43 is: 1 date, 6 state, 36 co-variances or STM
           ephemeris(:,:,:) = 0.d0
 
           do j = 1, number_of_states
@@ -1445,8 +1445,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             ephemeris(j,25, iobject) = temp_covariance%elem(6,3)
             ephemeris(j,26, iobject) = temp_covariance%elem(6,4)
             ephemeris(j,27, iobject) = temp_covariance%elem(6,5)
-            ephemeris(j,28, iobject) = temp_covariance%elem(6,6)
-           
+            ephemeris(j,28, iobject) = temp_covariance%elem(6,6)           
             ephemeris(j,29, iobject) = temp_covariance%elem(1,2)
             ephemeris(j,30, iobject) = temp_covariance%elem(1,3)
             ephemeris(j,31, iobject) = temp_covariance%elem(1,4)
