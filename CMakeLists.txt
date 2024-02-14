@@ -96,12 +96,14 @@ add_subdirectory(src)
 # Build validation executables
 add_subdirectory(validation)
 
-# Create test scenarios
-find_package(PFUNIT REQUIRED)
-enable_testing()
-#add_test(NAME execute_neptune COMMAND ../bin/neptune-sa WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/work/)
-if (PFUNIT_FOUND)
-	add_subdirectory(tests)
+if(ENABLE_PFUNIT)
+	# Create test scenarios
+	find_package(PFUNIT REQUIRED)
+	enable_testing()
+	#add_test(NAME execute_neptune COMMAND ../bin/neptune-sa WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/work/)
+	if (PFUNIT_FOUND)
+		add_subdirectory(tests)
+	endif()
 endif()
 
 
