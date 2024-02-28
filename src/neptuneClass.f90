@@ -53,7 +53,7 @@ module neptuneClass
                                     C_OUTPUT_AME, C_OUTPUT_ACC, C_OUTPUT_FILES, C_OPT_HARMONICS, C_OPT_SRP_CORRECT, C_OPT_INT_LOG, &
                                     C_OPT_PN_LOOKUP, C_OPT_EOP, C_CORRELATION, C_COV_MOON, C_COV_SUN, C_COV_SRP, C_COV_DRAG, C_COV_PROP, &
                                     C_MANEUVERS, C_OCEAN_TIDES, C_ALBEDO, C_RUN_ID, INPUT_UNDEFINED, &
-                                    C_FILE_DE_EPHEM, C_FILE_LEAP_SPICE, C_FILE_TXYS, C_FILE_PROGRESS, C_OPT_PROGRESS
+                                    C_FILE_DE_EPHEM, C_FILE_LEAP_SPICE, C_FILE_TXYS, C_FILE_PROGRESS, C_OPT_PROGRESS, C_BOUNDARY_CHECK
     use numint,                 only: Numint_class
     use neptuneOutput,          only: Output_class, neptune_out_t
     use slam_orbit_types,       only: covariance_t, state_t, kepler_t, convertToRadians, toString, parse_state_from_string, parse_covariance_from_string, assignment(=)
@@ -197,14 +197,16 @@ module neptuneClass
         procedure :: setNeptuneVar_int_arr                                      ! integer array passed as value
         procedure :: setNeptuneVar_geop                                         ! harmonic coefficients of the geopotential
         procedure :: setNeptuneVar_geop_toggle
-        generic   :: setNeptuneVar =>       &
-                     setNeptuneVar_char,    &                                   ! character array passed as value
-                     setNeptuneVar_kepl,    &                                   ! kepler elements type passed as value
-                     setNeptuneVar_stat,    &                                   ! state type passed as value
-                     setNeptuneVar_covr,    &                                   ! covariance type passed as value
-                     setNeptuneVar_int_arr, &                                   ! integer array passed as value
-                     setNeptuneVar_geop,    &                                   ! harmonic coefficients of the geopotential
-                     setNeptuneVar_geop_toggle
+        procedure :: setNeptuneVar_logical
+        generic   :: setNeptuneVar =>           &
+                     setNeptuneVar_char,        &                                   ! character array passed as value
+                     setNeptuneVar_kepl,        &                                   ! kepler elements type passed as value
+                     setNeptuneVar_stat,        &                                   ! state type passed as value
+                     setNeptuneVar_covr,        &                                   ! covariance type passed as value
+                     setNeptuneVar_int_arr,     &                                   ! integer array passed as value
+                     setNeptuneVar_geop,        &                                   ! harmonic coefficients of the geopotential
+                     setNeptuneVar_geop_toggle, &
+                     setNeptuneVar_logical
         procedure :: setEndEpoch
         procedure :: setStartEpoch
         procedure :: set_input
@@ -2668,6 +2670,74 @@ contains
         return
 
     end function setNeptuneVar_int_arr
+
+    !==============================================================================================
+    !!
+    !> @brief       Set parameters provided by a whole integer array, e.g. solar and geomagnetic activity or distinct harmonics
+    !!
+    !> @author      Vitali Braun
+    !!
+    !> @date        <ul>
+    !!                <li> 04.02.2015 (first implementation)</li>
+    !!              </ul>
+    !!
+    !> @param[in]   key
+    !> @param[in]   val     array containing values which shall be set
+    !!
+    !> @returns     Error code
+    !!
+    !> @details     This function is part of the NEPTUNE API and serves for
+    !!              setting input parameters provided in an integer array, for example distinct harmonic coefficients
+    !!              to be analysed in the geopotential.
+    !!
+    !> @anchor      setNeptuneVar_logical
+    !!
+    !!----------------------------------------------------------------------------------
+    integer function setNeptuneVar_logical(     &
+                                        this,   &
+                                        key,    & ! <-- CHR() identifier string
+                                        val     & ! <-- INT() array of values to set the variables to
+                                        )
+
+        class(Neptune_class)                    :: this
+        character(len=*),      intent(in)       :: key
+        logical, intent(in)                     :: val
+
+        character(len=*), parameter  :: csubid = "setNeptuneVar_logical"  ! ID
+
+        setNeptuneVar_logical = 0
+
+        if(isControlled()) then
+          if(hasToReturn()) return
+          call checkIn(csubid)
+        end if
+
+        ! check if input array is already set up
+        if(.not. allocated(this%input_arr)) then
+            call this%initialize_input_array()
+        end if
+
+        select case(key)
+
+          case(C_BOUNDARY_CHECK)
+            call this%satellite_model%setBoundaryCheck(val)
+
+          case default
+
+            call setNeptuneError(E_UNKNOWN_PARAMETER, FATAL, (/key/))
+            setNeptuneVar_logical = E_UNKNOWN_PARAMETER
+            return
+
+        end select
+
+        !** done!
+        if(isControlled()) then
+          call checkOut(csubid)
+        end if
+
+        return
+
+    end function setNeptuneVar_logical
 
 !==============================================================================================
 !
