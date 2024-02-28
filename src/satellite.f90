@@ -227,9 +227,15 @@ contains
       call setNeptuneError(E_NEGATIVE_MASS, FATAL, (/cmess/))
       return
 
-    else if(this%cdrag <= 0.d0) then
+    else if(this%cdrag < 0.d0) then
 
-      cmess = "Satellite's drag coefficient is negative or zero."
+      cmess = "Satellite's drag coefficient is negative."
+      call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
+      return
+
+    else if(this%cdrag == 0.d0 .and. this%check_coefficien_boundaries) then
+
+      cmess = "Satellite's drag coefficient is zero."
       call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
       return
 
