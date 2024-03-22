@@ -19,8 +19,8 @@ use thirdbody
 use slam_reduction_class, only: Reduction_type
 use slam_math
 use slam_error_handling
-use solarsystem
-use neptuneClass
+use solarsystem,    only: Solarsystem_class, initSolarSystem
+use neptuneClass,   only: time_t
 implicit none
 
 contains

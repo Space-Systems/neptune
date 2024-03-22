@@ -15,13 +15,13 @@
 !------------------------------------------------------------------------
 module test_radiation
 use funit
-use radiation
+use radiation,      only: Radiation_class
 use slam_reduction_class, only: Reduction_type
 use slam_math
 use slam_error_handling
 use satellite
-use solarsystem
-use Neptuneclass
+use solarsystem,    only: Solarsystem_class, initSolarSystem
+use Neptuneclass,   only: Neptune_class, time_t
 
 implicit none
 
