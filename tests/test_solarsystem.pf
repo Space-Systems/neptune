@@ -15,7 +15,7 @@
 !------------------------------------------------------------------------
 module test_solarsystem
     use funit
-    use solarsystem
+    use solarsystem,    only: Solarsystem_class
     use neptuneClass
     
     implicit none
