@@ -5,6 +5,7 @@
 !> @author      Vitali Braun (VB)
 !> @author      Christopher Kebschull (CHK)
 !> @author      Daniel Lück (DLU)
+!> @author      Andrea Turchi (ATU)
 !!
 !> @date        <ul>
 !!                <li>VB:  17.01.2013 (initial design)</li>
@@ -18,6 +19,7 @@
 !!                <li>CHK: 05.01.2018 (Moved variables with save statements to Atmosphere class)
 !!                <li>CHK: 16.02.2018 (Moving to object-oriented nrlmsise-00 implementation)
 !!                <li>DLU: 12.01.2021 (Added JB2008 atmosphere model)</li>
+!!                <li>ATU: 24.08.2022 (Added NRLMSISv2 atmosphere model)</li>
 !!              </ul>
 !!
 !> @details     This module contains parameters, subroutines and functions required for Earth's
@@ -67,14 +69,15 @@ module atmosphere
 
     integer,public,parameter :: n_supported_sga_file_types = 3                  ! Number of different supported data file types for solar and geomagnetic activity
 
+    integer,public,parameter :: NRLMSISv2   = 4
     integer,public,parameter :: JB08        = 3
     integer,public,parameter :: MSIS2000    = 2
     integer,public,parameter :: EXPONENTIAL = 1
-    integer,public,parameter :: n_supported_models      = 3                     ! Number of supported atmosphere models
+    integer,public,parameter :: n_supported_models      = 4                     ! Number of supported atmosphere models
     integer,public,parameter :: n_supported_wind_models = 1                     ! Number of supported horizontal wind models
 
     ! Model names
-    character(len=*), dimension(n_supported_models),      parameter :: modelName     = (/"Exponential","NRLMSISE-00","JB2008     "/)
+    character(len=*), dimension(n_supported_models),      parameter :: modelName     = (/"Exponential","NRLMSISE-00","JB2008     ","NRLMSIS2.0 "/)
     character(len=*), dimension(n_supported_wind_models), parameter :: windModelName = (/"HWM07"/)
     character(len=*),public,parameter,dimension(n_supported_sga_file_types) :: fileIdent    = (/"CssiS", "d/mm/", " F10,"/)       ! characteristic identifiers of sga data file
     character(len=*),public,parameter,dimension(n_supported_sga_file_types) :: suppSgaFiles = (/"CSSI (v1.2)", "ESA daily  ", "JB Indices "/)    ! supported solmag data files
@@ -208,7 +211,9 @@ module atmosphere
         procedure :: getDensityExponential
         procedure :: getDensityMSIS2000
         procedure :: getDensityJB2008
-
+#ifndef SKIP_MSIS_2
+        procedure :: getDensityNRLMSISv2
+#endif
     end type
 
     ! Constructor
@@ -370,6 +375,9 @@ contains
 
   subroutine initAtmosphere(  this, &
                               cpath)
+#ifndef SKIP_MSIS_2
+    use msis_init
+#endif
 
     !** interface
     !-------------------------------------------
@@ -384,6 +392,10 @@ contains
     real(dp)                    :: mjd_end                                      ! MJD of last SGA data entry
     real(dp)                    :: mjd_start                                    ! MJD of first SGA data entry
     character(len=255)          :: cmess                                        ! message string
+    real, dimension(25)         :: switch_legacy                                ! flag to activate all geomagnetic activity indexes in NRLMSISv2
+    logical, dimension(512)     :: switch_gfn                                   ! logical switches for NRLMSISv2 model
+    integer                     :: j                                            ! counter
+    integer, parameter          :: iun = 67                                     ! file unit number for NRLMSISv2 model
 
 
     if(isControlled()) then
@@ -421,7 +433,7 @@ contains
     this%date_start%mjd = 37300.d0  ! Jan 1st, 1961
     this%date_end%mjd = 71183.d0    ! Dec 31st, 2051
 
-    !** add three 'previous days' (for NRLMSISE-00) and an additional day at the end (for interpolation)
+    !** add three 'previous days' (for NRLMSISE-00 and NRLMSIS2.0) and an additional day at the end (for interpolation)
     mjd_start = this%date_start%mjd - 3.d0
     mjd_end   = this%date_end%mjd + 1.d0
 
@@ -454,6 +466,33 @@ contains
     else if (sgaDataType == FILE_CSSI .and. this%nmodel == JB08) then
 
       cmess = "Wrong input file (CSSI) specified for the selected JB2008 atmospheric model."
+      call setNeptuneError(E_SPECIAL, FATAL, (/cmess/))
+      return
+
+    end if
+
+    do j = 1, 512
+      switch_gfn(j) = .true.
+    end do
+
+    do j = 1, 14
+      if (j == 9) then
+        switch_legacy(j) = -1.0
+      else
+        switch_legacy(j) = 1.0
+      end if
+    end do
+
+    if(sgaDataType == FILE_FAPDAY .and. this%nmodel == NRLMSISv2) then          ! F10.7 81-day centered will be required, but ESA daily data provides last 81-day data only,
+                                                                                ! so 41 additional days are required for a shift later on
+      mjd_start = mjd_start - 81.d0                                             ! in order to compute F10.7 last 81-day averages
+      mjd_end   = mjd_end   + 41.d0
+#ifndef SKIP_MSIS_2
+      call msisinit(cpath, '/msis20.parm', iun, switch_gfn, switch_legacy)
+#endif
+    else if (sgaDataType == FILE_JB08 .and. this%nmodel == NRLMSISv2) then
+      
+      cmess = "Wrong input file (JB08) specified for the selected NRLMSIS2.0 atmospheric model."
       call setNeptuneError(E_SPECIAL, FATAL, (/cmess/))
       return
 
@@ -760,6 +799,10 @@ contains
         call setNeptuneError(E_SPECIAL, FATAL, (/cmess/))
         return
       end if
+#ifndef SKIP_MSIS_2
+    else if(this%nmodel == NRLMSISv2) then
+      rho = this%getDensityNRLMSISv2(altitude, lat_gd, lon_gd, time_mjd)
+#endif
     end if
 
     this%last_rho      = rho
@@ -1047,7 +1090,7 @@ contains
   !!              </ul>
   !!
   !> @param[in]   altitude          geodetic altitude / km    (althought this might also be geocentric)
-  !> @param[in]   latitude          geocenric latitude / rad
+  !> @param[in]   latitude          geocentric latitude / rad
   !> @param[in]   right ascension   right ascension / rad
   !> @param[in]   time_mjd          MJD
   !!
@@ -1201,8 +1244,8 @@ contains
                 f10b,     &
                 s10,      &
                 s10b,     &
-                m10,     &
-                m10b,    &
+                m10,      &
+                m10b,     &
                 y10,      &
                 y10b,     &
                 dstdtc,   &
@@ -1213,6 +1256,154 @@ contains
     return
 
   end function getDensityJB2008
+
+  !!------------------------------------------------------------------------------------------------
+  !
+  !> @anchor      getDensityNRLMSISv2
+  !!
+  !> @brief       Gets the density from the NRLMSIS2.0 atmosphere model
+  !> @author      Andrea Turchi (ATU)
+  !!
+  !> @date        <ul>
+  !!                <li> 02.08.2022 (initial design, to implement new atmosphere model)</li>
+  !!              </ul>
+  !!
+  !> @param[in]   altitude          geodetic altitude / km
+  !> @param[in]   latitude          geodetic latitude / rad
+  !> @param[in]   longitude         geodetic longitude / rad
+  !> @param[in]   time_mjd          MJD
+  !!
+  !> @return      rho - the atmospheric density / kg/km**3
+  !!
+  !> @details     This routine returns the density (in kg/km**3) from the NRLMSIS2.0 model
+  !!              for the passed altitude and the MJD.
+  !!
+  !!------------------------------------------------------------------------------------------------
+#ifndef SKIP_MSIS_2
+  real(dp) function getDensityNRLMSISv2(this, altitude, latitude, longitude, time_mjd) result(rho)
+    use msis_constants
+    use msis_calc
+    use msis_gtd8d  
+
+    implicit none
+
+    class(Atmosphere_class) :: this
+    real(dp), intent(in)    :: altitude
+    real(dp), intent(in)    :: latitude
+    real(dp), intent(in)    :: longitude
+    real(dp), intent(in)    :: time_mjd
+
+    integer                 :: idate                                            ! date in YYDDD format for NRLMSIS2.0 atmosphere model
+    integer                 :: year                                             ! date in YY format for NRLMSIS2.0 atmosphere model
+    real(dp)                :: doy                                              ! date in DDD format for NRLMSIS2.0 atmosphere model
+
+    real(dp)                :: sec                                              ! universal time in seconds
+    real(dp)                :: loc_solar_time                                   ! local solar time in hours
+    real(dp)                :: lat_deg                                          ! geodetic latitude in degrees
+    real(dp)                :: lon_deg                                          ! geodetic longitude in degrees
+    real(dp)                :: sflu_81                                          ! 81 day average, centered on doy, of F10.7 solar activity index
+    real(dp)                :: sflu_pre                                         ! daily F10.7 for previous day
+
+    integer                 :: hour                                             ! hour
+    integer                 :: ap_pointer                                       ! Ap pointer
+    integer                 :: i                                                ! loop counter
+    integer                 :: idx
+    integer                 :: offset                                           ! index offset in space weather data array
+    integer, parameter      :: mass = 8                                         ! mass number
+
+    real, dimension(7)      :: ap                                               ! geomagnetic activity index array
+
+    real, dimension(2)      :: tn_NRLMSISv2                                     ! temperature in K at requested altitude
+    real, dimension(10)     :: dn_NRLMSISv2                                     ! densities at requested altitude
+
+    ! Convert to time format YYDDD with DDD being the day of the year
+    idate = mjd2yyddd(time_mjd)
+
+    ! Get only day of year, as years are ignored anyhow
+    year = int(idate / 1d3)
+    doy = idate - (year * 1d3)
+
+    ! Get universal time in seconds
+    sec = mjd2daySeconds(time_mjd)
+    hour = int(sec/3600.d0)
+
+    !** get local solar time (in hrs.)
+    loc_solar_time = getLocalSolarTime(time_mjd, longitude)
+
+    ! Convert geodetic coordinates in degrees
+    lat_deg = latitude*rad2deg
+    lon_deg = longitude*rad2deg
+
+    !** find index in space weather data for current date
+    idx = int(time_mjd - int(sga_data(1)%mjd)) + 1
+
+    !** build ap array
+    !------------------------------------------
+    ap_pointer = int(hour/3.d0) + 1
+    offset     = 0
+
+    ! (1) DAILY AP
+    ap(1) = 0.d0
+
+    do i = 1,8
+      ap(1) = ap(1) + sga_data(idx)%ap(i)
+    end do
+
+    ap(1) = ap(1)/8.d0
+
+    ! (2) 3 HR AP INDEX FOR CURRENT TIME
+    ap(2) = sga_data(idx)%ap(ap_pointer)
+
+    do i=3,5  ! (3,4,5) 3 HR AP INDEX FOR 3 HR, 6 HR and 9 HR BEFORE CURRENT TIME
+      ap_pointer = ap_pointer - 1
+      if(ap_pointer < 1) then
+        ap_pointer = 8
+        offset     = offset + 1
+      end if
+      ap(i) = sga_data(idx - offset)%ap(ap_pointer)
+    end do
+
+    ! (6) AVERAGE OF EIGHT 3 HR AP INDICES FROM 12 TO 33 HRS PRIOR
+    !     TO CURRENT TIME
+    ap(6) = 0.d0
+
+    do i=1,8
+      ap_pointer = ap_pointer - 1
+      if(ap_pointer < 1) then
+        ap_pointer = 8
+        offset     = offset + 1
+      end if
+      ap(6) = ap(6) + sga_data(idx-offset)%ap(ap_pointer)
+    end do
+
+    ap(6) = ap(6)/8.d0
+
+    ! (7) AVERAGE OF EIGHT 3 HR AP INDICES FROM 36 TO 57 HRS PRIOR
+    !     TO CURRENT TIME
+    ap(7) = 0.d0
+
+    do i=1,8
+      ap_pointer = ap_pointer - 1
+      if(ap_pointer < 1) then
+        ap_pointer = 8
+        offset     = offset + 1
+      end if
+      ap(7) = ap(7) + sga_data(idx-offset)%ap(ap_pointer)
+    end do
+
+    ap(7) = ap(7)/8.d0
+
+    ! Get F10.7 solar activity indexes
+    sflu_81  = sga_data(idx)%f81ctr                                             ! 81 day average of F10.7 flux (centered on doy)
+    sflu_pre = sga_data(idx-1)%f107                                             ! daily F10.7 flux for previous day
+
+    call gtd8d(idate, real(sec), real(altitude), real(lat_deg), real(lon_deg), real(loc_solar_time), real(sflu_81), real(sflu_pre), &
+              ap, mass, dn_NRLMSISv2, tn_NRLMSISv2)
+
+    rho = dn_NRLMSISv2(6)*1.d012                                                ! total atmospheric density in kg/km**3
+    
+  end function getDensityNRLMSISv2
+#endif
 
   !==============================================================
   !
@@ -1585,6 +1776,8 @@ contains
         this%nmodel = MSIS2000
       case(EXPONENTIAL)
         this%nmodel = EXPONENTIAL
+      case(NRLMSISv2)
+        this%nmodel = NRLMSISv2
       case default
         write(cerr,'(i3)') imodel
         call setNeptuneError(E_UNKNOWN_PARAMETER, FATAL, (/cerr/))
@@ -2791,7 +2984,7 @@ contains
     !   interval
     !-------------------------------------------
     if(sga_obs_start%mjd .gt. mjd_start) then
-
+      
       call setNeptuneError(E_SGA_MISSING, FATAL)
       return
 
@@ -3145,7 +3338,7 @@ contains
                                   mjd_end    &  ! <-- DBL     MJD of last SGA entry
                                )
 
-    !** interface
+                               !** interface
     !-------------------------------------------
     class(Atmosphere_class)             :: this
     integer,  intent(in)                :: ich
@@ -3169,8 +3362,8 @@ contains
     integer :: month
     integer :: year                     ! last update year from fap_day data file
 
-    logical :: first = .true.           ! required to find first data set in data file
-    logical :: flag_daily_only = .false.         ! only data from fap_day is required
+    logical :: first                    ! required to find first data set in data file
+    logical :: flag_daily_only = .false.           ! only data from fap_day is required
     logical :: flag_daily_monthly  = .false.       ! data from fap_day and fap_mon required (monthlies)
     logical :: flag_monthly_only  = .false.        ! data from fap_mon only required
 
@@ -3187,6 +3380,7 @@ contains
       call checkIn(csubid)
     end if
 
+    first = .true. 
 
     rewind(ich)
 

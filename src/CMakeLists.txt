@@ -1,32 +1,52 @@
 set(SRC_FILES
-    neptuneErrorHandling.f90
-    solarsystem.f90
-    astroConvert.f90
-    satellite.f90
-    version.f90
-    hwm07.f90
-    maneuvers.f90
-    neptuneParameters.f90
-    gravity.f90
-    nrlmsise00Data.f90
-    nrlmsise00Class.f90
-    JB2008.for
-    atmosphere.f90
-    thirdbody.f90
-    radiation.f90
-    tides.f90
-    averaging.f90
-    correlation.f90
-    derivatives.f90
-    numint.f90
-    neptuneClass.f90
-    neptuneOutput.f90
-    neptuneClock.f90
-    reentry.f90
-    rdinp.f90
-    neptune.f90
-    JB2008module.for
-)
+      neptuneErrorHandling.f90
+      solarsystem.f90
+      astroConvert.f90
+      satellite.f90
+      version.f90
+      hwm07.f90
+      maneuvers.f90
+      neptuneParameters.f90
+      gravity.f90
+      nrlmsise00Data.f90
+      nrlmsise00Class.f90
+      JB2008.for
+      atmosphere.f90
+      thirdbody.f90
+      radiation.f90
+      tides.f90
+      averaging.f90
+      correlation.f90
+      derivatives.f90
+      numint.f90
+      neptuneClass.f90
+      neptuneOutput.f90
+      neptuneClock.f90
+      reentry.f90
+      rdinp.f90
+      neptune.f90
+      JB2008module.for
+      alt2gph.f90
+  )
+
+#if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/msis_constants.f90)
+if(NOT SKIP_MSIS_2 AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/msis_constants.f90)
+  MESSAGE("Found MSIS 2.0: True")
+  list(APPEND SRC_FILES
+      msis_calc.f90
+      msis_constants.f90
+      msis_dfn.f90
+      msis_gfn.f90
+      msis_gtd8d.f90
+      msis_init.f90
+      msis_tfn.f90
+  )
+  MESSAGE("${SRC_FILES}")
+else()
+  MESSAGE("Found MSIS 2.0: False")
+  set(SKIP_MSIS_2 "ON" PARENT_SCOPE)
+  add_compile_definitions(SKIP_MSIS_2)
+endif()
 
 # Build the neptune library
 add_library(neptune    SHARED ${SRC_FILES})
@@ -147,3 +167,5 @@ endif(ENABLE_OPI_SUPPORT)
 ### Install Fortran Mod files
 # Install the Fortran module files into the include directory
 install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/NEPTUNE)
+
+target_include_directories(neptune PUBLIC ${CMAKE_Fortran_MODULE_DIRECTORY})

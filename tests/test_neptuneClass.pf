@@ -1,0 +1,29 @@
+module test_neptuneClass
+    use funit
+    use neptuneClass,   only: Neptune_class
+    
+    implicit none
+
+    contains
+
+    @test
+    subroutine test_default_output_step()
+        type(Neptune_class) :: neptune
+
+        neptune = Neptune_class()
+
+        @assertEqual(neptune%get_output_step(), 300)
+
+   end subroutine test_default_output_step
+
+   @test
+    subroutine test_default_progress_step()
+        type(Neptune_class) :: neptune
+
+        neptune = Neptune_class()
+
+        @assertEqual(neptune%get_progress_step(), 1d-4, tolerance=0.0)
+
+   end subroutine test_default_progress_step
+
+end module test_neptuneClass
