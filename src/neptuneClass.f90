@@ -2673,22 +2673,21 @@ contains
 
     !==============================================================================================
     !!
-    !> @brief       Set parameters provided by a whole integer array, e.g. solar and geomagnetic activity or distinct harmonics
+    !> @brief       Set parameters provided by a logical, right now only the flag whether or not to check for c_d and c_r boundaries
     !!
-    !> @author      Vitali Braun
+    !> @author      Daniel Lück
     !!
     !> @date        <ul>
-    !!                <li> 04.02.2015 (first implementation)</li>
+    !!                <li> 27.03.2024 (first implementation)</li>
     !!              </ul>
     !!
     !> @param[in]   key
-    !> @param[in]   val     array containing values which shall be set
+    !> @param[in]   val     logical containing values which shall be set
     !!
     !> @returns     Error code
     !!
     !> @details     This function is part of the NEPTUNE API and serves for
-    !!              setting input parameters provided in an integer array, for example distinct harmonic coefficients
-    !!              to be analysed in the geopotential.
+    !!              setting input parameters provided in a logical, for example check boundaries for cr and cd
     !!
     !> @anchor      setNeptuneVar_logical
     !!
