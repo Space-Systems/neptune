@@ -107,6 +107,7 @@ module satellite
     logical, dimension(3)                        :: hasChanged                  ! indicator as soon as satellite properties change, e.g. mass, drag coefficient, etc.
                                                                                 ! the array supports a flag for atmosphere (=1), SRP (=2) and albedo (=3) perturbations as all of them will
                                                                                 ! access the data supported by the satellite type
+    logical                                      :: check_coefficient_boundaries ! Whether or not it should be checked if c_r an c_d are in realistic ranges
 
     logical                                      :: first_ESH                   ! for initialization
     logical                                      :: first_orientation           ! for initialization
@@ -135,6 +136,7 @@ module satellite
         procedure :: resetObject
         procedure :: setObjectMass
         procedure :: setSurfaceDefinitionFileName
+        procedure :: setBoundaryCheck
 
         procedure :: initObject
         procedure :: readSurfaceDefinitionFile
@@ -175,6 +177,7 @@ contains
 
         constructor%surface(:)%id   = 0
         constructor%surface(:)%esh  = 0.0
+        constructor%check_coefficient_boundaries = .true.
 
     end function constructor
 
@@ -224,9 +227,15 @@ contains
       call setNeptuneError(E_NEGATIVE_MASS, FATAL, (/cmess/))
       return
 
-    else if(this%cdrag <= 0.d0) then
+    else if(this%cdrag < 0.d0) then
 
-      cmess = "Satellite's drag coefficient is negative or zero."
+      cmess = "Satellite's drag coefficient is negative."
+      call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
+      return
+
+    else if(this%cdrag == 0.d0 .and. this%check_coefficient_boundaries) then
+
+      cmess = "Satellite's drag coefficient is zero."
       call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
       return
 
@@ -241,7 +250,7 @@ contains
         call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
         return
 
-      else if(this%surface(i)%reflSpec + this%surface(i)%reflDiff > 1.d0) then
+      else if(this%surface(i)%reflSpec + this%surface(i)%reflDiff > 1.d0 .and. this%check_coefficient_boundaries) then
 
         cmess = "Sum of specular and diffuse reflectivity > 1."
         call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
@@ -1103,6 +1112,42 @@ contains
     return
 
   end subroutine setObjectMass
+
+
+  !=============================================================================
+  !
+  !> @anchor      setBoundaryCheck
+  !!
+  !> @brief       Sets whether or not to check coefficient boundaries
+  !> @author      Daniel Lück
+  !!
+  !> @date        <ul>
+  !!                <li> 28.02.2024 (initial design)</li>
+  !!              </ul>
+  !!
+  !-----------------------------------------------------------------------------
+    subroutine setBoundaryCheck(this,boundaryCheck)
+  
+      class(Satellite_class)  :: this
+      logical, intent(in)     :: boundaryCheck
+  
+      character(len=*), parameter :: csubid = 'setBoundaryCheck'
+  
+      if(isControlled()) then
+        if(hasToReturn()) return
+        call checkIn(csubid)
+      end if
+  
+      
+      this%check_coefficient_boundaries = boundaryCheck
+      
+  
+      if(isControlled()) then
+        call checkOut(csubid)
+      end if
+      return
+  
+    end subroutine setBoundaryCheck
 
 
 !=============================================================================

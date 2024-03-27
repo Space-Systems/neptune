@@ -153,6 +153,7 @@ module neptuneParameters
   character(len=*), parameter :: C_OUTPUT_COV_ECI     = "OUTPUT_COV_ECI"
   character(len=*), parameter :: C_OUTPUT_COV_UVW     = "OUTPUT_COV_UVW"
   character(len=*), parameter :: C_OUTPUT_STEP        = "OUTPUT_STEP"
+  character(len=*), parameter :: C_BOUNDARY_CHECK     = "BOUNDARY_CHECK"
 
   !** switches/options
   !----------------------------------------------------------------
