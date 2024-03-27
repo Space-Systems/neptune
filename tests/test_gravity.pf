@@ -54,7 +54,7 @@ contains
         ! Test 1 
         r_itrf = (/-3485.799126707284d0, -5898.652976745232d0, 835.9701786284777d0/)    
         v_itrf = (/-1.3525457950562447d0, -0.2804534841971075d0, -7.4721873681232385d0/)    
-        time_mjd = 	56868.16721065d0
+        time_mjd = 56868.16721065d0
         ! Call the subroutine to be tested
         call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
 
@@ -70,7 +70,7 @@ contains
         ! Test 2
         r_itrf = (/31986.08889084533, 3886.249797563777, -17606.478382491812/)    
         v_itrf = (/-0.1326762314352175, 2.0844489979862724, -0.13643320490635982/)    
-        time_mjd = 	56868.16721065d0
+        time_mjd = 56868.16721065d0
         ! Call the subroutine to be tested
         call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
 
@@ -86,7 +86,7 @@ contains
         ! Test 2
         r_itrf = (/-42044.21889179173, -3193.6719204189853, 105.63094940415252/)    
         v_itrf = (/0.23272475970034712, -3.0658575760606777, 0.0006346736275647091/)    
-        time_mjd = 	56324.0d0
+        time_mjd = 56324.0d0
         ! Call the subroutine to be tested
         call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
 
@@ -102,7 +102,7 @@ contains
         ! Test 3 :
         r_itrf = (/-3485.799126707284, -5898.652976745232, 835.9701786284777/)    
         v_itrf = (/-1.3525457950562447, -0.2804534841971075, -7.4721873681232385/)    
-        time_mjd = 	56600.0d0
+        time_mjd = 56600.0d0
         ! Call the subroutine to be tested
         call gravity_model%getGravityAcceleration(reduction_handler, r_itrf, v_itrf, time_mjd, accel)
 

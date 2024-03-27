@@ -99,6 +99,7 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
   call OPI_Module_createProperty(propagator, "keplerian_elements_out", "ON")
   call OPI_Module_createProperty(propagator, "ecef_states_out", "OFF")
   call OPI_Module_createProperty(propagator, "mean_elements_out", "ON")
+  call OPI_Module_createProperty(propagator, "return_set_matrix", "OFF")    ! instead of covariance
 
   do i = 1, 20
     !** manoeuvre --> should be temp, this is a little bit an overkill
@@ -209,6 +210,8 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
     logical,save                :: create_cheby !** switch to create chebies or not
     integer(c_int),save         :: cheby_degree
     logical,save                :: store_data
+
+    logical,save                :: return_set_matrix    ! switch to return set instead of covariance
 
 
 
@@ -670,6 +673,16 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
                 call resetError()
             end if
         endif
+
+    end if
+
+    !** check if we should return the set matrix instead of the covariance
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"return_set_matrix")
+    if (index(temp_string,"OFF") /= 0) then
+        return_set_matrix = .false.
+
+    else
+        return_set_matrix = .true.
 
     end if
 
@@ -1378,7 +1391,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
           end if
 
           !** allocate the ephemeris array
-          allocate(ephemeris(1000000, 1:28, data_size)) !** the 1000000 is the maximum allowed at the moment. It is fixed to avoid errors with PICARD. The 28 is: 1 date, 6 state, 21 co-variances
+          allocate(ephemeris(1000000, 1:43, data_size)) !** the 1000000 is the maximum allowed at the moment. The 43 is: 1 date, 6 state, 36 co-variances or STM
           ephemeris(:,:,:) = 0.d0
 
           do j = 1, number_of_states
@@ -1391,7 +1404,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             !write (99,*) temp_state%epoch%mjd, temp_state%r(1:3), temp_state%v(1:3)
 
             ! Extract covariance from NEPTUNE API
-            if (propagate_covariance) then
+            if (propagate_covariance .and. (.not. return_set_matrix)) then
                 temp_covariance = neptune_instance%getNeptuneCovarianceData(j)
                 !** check, in what frame the covariance was provided
                 write(temp_string,*) OPI_Module_getPropertyString(propagator,"covariance_ref_frame")
@@ -1406,6 +1419,9 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
                     covariance_matrix_UVW = matmul(matmul(jacobi,temp_covariance%elem),transpose(jacobi))
                     temp_covariance%elem = covariance_matrix_UVW
                 end if
+            else if(return_set_matrix .and. propagate_covariance) then
+                ! Return SET matrix instead of covariance if requested
+                temp_covariance = neptune_instance%getNeptuneSetMatrixData(j)
             else
                 temp_covariance%elem = initial_covariance%elem
             end if
@@ -1429,8 +1445,22 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             ephemeris(j,25, iobject) = temp_covariance%elem(6,3)
             ephemeris(j,26, iobject) = temp_covariance%elem(6,4)
             ephemeris(j,27, iobject) = temp_covariance%elem(6,5)
-            ephemeris(j,28, iobject) = temp_covariance%elem(6,6)
-
+            ephemeris(j,28, iobject) = temp_covariance%elem(6,6)           
+            ephemeris(j,29, iobject) = temp_covariance%elem(1,2)
+            ephemeris(j,30, iobject) = temp_covariance%elem(1,3)
+            ephemeris(j,31, iobject) = temp_covariance%elem(1,4)
+            ephemeris(j,32, iobject) = temp_covariance%elem(1,5)
+            ephemeris(j,33, iobject) = temp_covariance%elem(1,6)
+            ephemeris(j,34, iobject) = temp_covariance%elem(2,3)
+            ephemeris(j,35, iobject) = temp_covariance%elem(2,4)
+            ephemeris(j,36, iobject) = temp_covariance%elem(2,5)
+            ephemeris(j,37, iobject) = temp_covariance%elem(2,6)
+            ephemeris(j,38, iobject) = temp_covariance%elem(3,4)
+            ephemeris(j,39, iobject) = temp_covariance%elem(3,5)
+            ephemeris(j,40, iobject) = temp_covariance%elem(3,6)
+            ephemeris(j,41, iobject) = temp_covariance%elem(4,5)
+            ephemeris(j,42, iobject) = temp_covariance%elem(4,6)
+            ephemeris(j,43, iobject) = temp_covariance%elem(5,6)
           end do
           !write (99,*) propagation_epoch(2)%mjd, propagated_state%r(1:3), propagated_state%v(1:3)
         endif
@@ -1449,7 +1479,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
         !**call message("Calling the bytes",LOG_AND_STDOUT)
         !** get the bytes pointer
         bytes_pointer => OPI_Population_getBytes(data)
-        call memcpy(c_loc(bytes_pointer(1)%bytes), c_loc(ephemeris), int(8*28*1000000*data_size,8))
+        call memcpy(c_loc(bytes_pointer(1)%bytes), c_loc(ephemeris), int(8*43*1000000*data_size,8))
         deallocate(ephemeris)
 
     end if
