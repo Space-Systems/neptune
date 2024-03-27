@@ -107,7 +107,7 @@ module satellite
     logical, dimension(3)                        :: hasChanged                  ! indicator as soon as satellite properties change, e.g. mass, drag coefficient, etc.
                                                                                 ! the array supports a flag for atmosphere (=1), SRP (=2) and albedo (=3) perturbations as all of them will
                                                                                 ! access the data supported by the satellite type
-    logical                                      :: check_coefficien_boundaries ! Whether or not it should be checked if c_r an c_d are in realistic ranges
+    logical                                      :: check_coefficient_boundaries ! Whether or not it should be checked if c_r an c_d are in realistic ranges
 
     logical                                      :: first_ESH                   ! for initialization
     logical                                      :: first_orientation           ! for initialization
@@ -177,7 +177,7 @@ contains
 
         constructor%surface(:)%id   = 0
         constructor%surface(:)%esh  = 0.0
-        constructor%check_coefficien_boundaries = .true.
+        constructor%check_coefficient_boundaries = .true.
 
     end function constructor
 
@@ -233,7 +233,7 @@ contains
       call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
       return
 
-    else if(this%cdrag == 0.d0 .and. this%check_coefficien_boundaries) then
+    else if(this%cdrag == 0.d0 .and. this%check_coefficient_boundaries) then
 
       cmess = "Satellite's drag coefficient is zero."
       call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
@@ -250,7 +250,7 @@ contains
         call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
         return
 
-      else if(this%surface(i)%reflSpec + this%surface(i)%reflDiff > 1.d0 .and. this%check_coefficien_boundaries) then
+      else if(this%surface(i)%reflSpec + this%surface(i)%reflDiff > 1.d0 .and. this%check_coefficient_boundaries) then
 
         cmess = "Sum of specular and diffuse reflectivity > 1."
         call setNeptuneError(E_INVALID_SATELLITE, FATAL, (/cmess/))
@@ -1139,7 +1139,7 @@ contains
       end if
   
       
-      this%check_coefficien_boundaries = boundaryCheck
+      this%check_coefficient_boundaries = boundaryCheck
       
   
       if(isControlled()) then
