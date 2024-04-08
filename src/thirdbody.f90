@@ -102,7 +102,8 @@ contains
 !! @details     This routine computes the acceleration in the GCRF due to third body
 !!              gravity perturbations. It is based on SPICE routine SPKPOS to compute the
 !!              position in the GCRF frame (called J2000 in SPICE) for the given time. However
-!!              the data is interpolated using chebyshev polynomials.
+!!              the data is interpolated using chebyshev polynomials. 
+!!              Based on Vallado 4th version, chapter 8.6.3 (p. 574, eq. 8-34).
 !!
 !!              \par Overview
 !!
@@ -317,6 +318,9 @@ contains
 !> @param[in]   time_mjd          MJD
 !> @param[in]   body_id           third body identifier (e.g. SUN = 1 or MOON = 2)
 !!
+!! @details     This routine computes the partial derivatives in the GCRF due to third body
+!!              gravity perturbations. Based on Vallado 4th version, chapter 8.6.3 (p. 578)
+!!
 !!------------------------------------------------------------------------------------------------
   function getThirdBodyCovariance(  this,               &
                                     solarsystem_model,  &
@@ -393,7 +397,7 @@ contains
 
     ! 2) part with r**5
     !cov = cov + 3.d0*(temp/rabs**2.d0*outerproduct(r_gcrf, r_gcrf) + mu3*outerproduct(rdiff, rdiff)/(mag(rdiff))**5.d0)
-    cov = cov - 3.d0*mu3*outerproduct(rdiff, rdiff)/(mag(rdiff))**5.d0
+    cov = cov + 3.d0*mu3*outerproduct(rdiff, rdiff)/(mag(rdiff))**5.d0
 
     !write(*,*) "mu3 = ", mu3
     !write(*,*) "rdiff = ", rdiff
