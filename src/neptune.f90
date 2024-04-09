@@ -971,25 +971,23 @@ contains
             return
           end if
 
-          if(neptune%output%get_output_switch() .or. neptune%getStoreDataFlag()) then    ! this has only to be done in a mode, where output is requested...
-            if((.not. flag_backward .and. (lastPropCounterSuccess < lastPropCounter)) .or. &
-               (      flag_backward .and. (lastPropCounterSuccess > lastPropCounter))) then
-              ! This is the usual case when the intergator cannot go on and needs a valid state to restart from.
-              state_out    = last_state_out
-              prop_counter = lastPropCounter
-            else if ((.not. flag_backward .and. (prop_counter > request_time)) .or. &
-                    (       flag_backward .and. (prop_counter < request_time))) then
-              ! This case may happen when the integrator oversteps the requested time
-              !  and usually would start interpolation. Though, due to integration issues
-              !  he never gets to the point of interpolation but sets the prop_counter anyway.
-              !  This leads to an invalid state, which is also written to output at a time,
-              !  which was not even requested.
-              state_out    = last_state_out
-              prop_counter = lastPropCounter
-            end if
-            call message('   Resetting to: '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter), LOGFILE)
-            call message('   ... restoring state vector: '//toString(state_out%r(1))//', '//toString(state_out%r(2))//', '//toString(state_out%r(3))//', '//toString(state_out%v(1))//', '//toString(state_out%v(2))//', '//toString(state_out%v(3)), LOGFILE)
+          if((.not. flag_backward .and. (lastPropCounterSuccess < lastPropCounter)) .or. &
+              (      flag_backward .and. (lastPropCounterSuccess > lastPropCounter))) then
+            ! This is the usual case when the intergator cannot go on and needs a valid state to restart from.
+            state_out    = last_state_out
+            prop_counter = lastPropCounter
+          else if ((.not. flag_backward .and. (prop_counter > request_time)) .or. &
+                  (       flag_backward .and. (prop_counter < request_time))) then
+            ! This case may happen when the integrator oversteps the requested time
+            !  and usually would start interpolation. Though, due to integration issues
+            !  he never gets to the point of interpolation but sets the prop_counter anyway.
+            !  This leads to an invalid state, which is also written to output at a time,
+            !  which was not even requested.
+            state_out    = last_state_out
+            prop_counter = lastPropCounter
           end if
+          call message('   Resetting to: '//toString(epochs(1)%mjd + prop_counter/86400.d0)//'('//toString(prop_counter), LOGFILE)
+          call message('   ... restoring state vector: '//toString(state_out%r(1))//', '//toString(state_out%r(2))//', '//toString(state_out%r(3))//', '//toString(state_out%v(1))//', '//toString(state_out%v(2))//', '//toString(state_out%v(3)), LOGFILE)
         else if((.not. flag_backward .and. (prop_counter > propCounterAtReset)) .or. &
                 (      flag_backward .and. (prop_counter < propCounterAtReset))) then  ! reset 'nresets' flag
           nresets = 0
