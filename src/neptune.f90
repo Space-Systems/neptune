@@ -597,6 +597,7 @@ contains
     propCounterAtReset = 0.0d0
     lastPropCounterSuccess = 0.0d0
     diff = 0.d0
+    request_time=0.d0
 
     if(isControlled()) then
       if(hasToReturn()) return
