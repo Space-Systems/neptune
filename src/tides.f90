@@ -428,6 +428,8 @@ contains
 
     end if
 
+    write (*,*) "dC, dS = ", dC, dS
+
     !===============================================================================================
     !
     ! Compute required quantities required for the accelerations (or take from geoopotential...)
@@ -439,6 +441,8 @@ contains
 
     !** get radius, geocentric longitude and latitude
     call getRadiusLatLon(r_itrf, v_itrf, rabs, phi_gc, lambda)
+
+    write (*,*) "rabs, phi_gc, lambda = ", rabs, phi_gc, lambda
 
     !** orbital radius
     rabs2      = rabs*rabs
@@ -469,6 +473,8 @@ contains
 
     end do
 
+    write (*,*) "lpsat = ", lpsat
+
     ! determine partial derivatives of the disturbing potential
 
     costerm(0) = 1.d0
@@ -478,10 +484,6 @@ contains
     sinterm(1) = sin(lambda)
 
     tanphi = tan(phi_gc)
-
-    insig1 = 0.d0
-    insig2 = 0.d0
-    insig3 = 0.d0
 
     do l = 2,lmax
 
