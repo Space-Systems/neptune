@@ -479,6 +479,10 @@ contains
 
     tanphi = tan(phi_gc)
 
+    insig1 = 0.d0
+    insig2 = 0.d0
+    insig3 = 0.d0
+
     do l = 2,lmax
 
       !** recursive computation of sin(ml) and cos(ml)
@@ -512,6 +516,8 @@ contains
     temp_t1 = -muEarth*oorabs3
     temp_t2 =  muEarth*oorabs
 
+    write(*,*) "temp_t = ", temp_t1, temp_t2, muEarth, oorabs3, oorabs
+
     ! compute the radial partial derivative of the potential
     dudr      = temp_t1 * insig1
 
@@ -520,6 +526,10 @@ contains
 
     ! compute the longitudal partial derivative of the potential
     dudlambda =  temp_t2  * insig3
+
+    write(*,*) "du = ", dudr, dudphi, dudlambda
+
+    write(*,*) "r_gcrf = ", r_gcrf
 
     ! pre-compute terms which are used for the acceleration components
     r1r2        = r_gcrf(1)*r_gcrf(1) + r_gcrf(2)*r_gcrf(2)
@@ -530,6 +540,8 @@ contains
     temp_t5     = oorabs2*sqrt_r1r2
     temp2       = dudlambda*temp_t3
     temp        = dudr - temp_t4*dudphi
+
+    write(*,*) "temp = ", temp, temp2, temp_t5, dudr, dudphi
 
     !==========================================================================
     !
@@ -546,8 +558,8 @@ contains
     ! k-direction [km/s^2]
     accel(3) = dudr * r_gcrf(3) + temp_t5 * dudphi
 
-    !write(*,*) "accel = ", accel
-    !read(*,*)
+    write(*,*) "accel = ", accel, temp, temp2, temp_t5, dudr
+    read(*,*)
 
     !** done!
     if(isControlled()) then
