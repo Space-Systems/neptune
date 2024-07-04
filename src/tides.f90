@@ -546,9 +546,6 @@ contains
     ! k-direction [km/s^2]
     accel(3) = dudr * r_gcrf(3) + temp_t5 * dudphi
 
-    !write(*,*) "accel = ", accel
-    !read(*,*)
-
     !** done!
     if(isControlled()) then
       call checkOut(csubid)
@@ -691,6 +688,11 @@ contains
     real(dp)                                       :: temp_dSm      ! temporary retrograde S coefficient
     real(dp)                                       :: temp_Doodson  ! temporary Doodson number of the ocean tide
 
+    this%dC_p = 0.d0
+    this%dS_p = 0.d0
+    this%dC_m = 0.d0
+    this%dS_m = 0.d0
+
     !read data from external file
     ich = openFile(trim(adjustl(this%dataPath))//cdelimit//trim(adjustl(this%fesDataFile)), SEQUENTIAL, IN_FORMATTED)
     do ind = 1, 59462
@@ -812,6 +814,7 @@ contains
         end if
       end if
     end do
+
     ich = closeFile(ich)
     !assign the right order of magnitude to harmonic coefficients
     this%dC_p = this%dC_p * 1.d-11
@@ -856,11 +859,11 @@ contains
     real(dp), dimension(2:6,0:6), intent(inout) :: dC                                     ! matrix with corrections on the C harmonic coefficients
     real(dp), dimension(2:6,0:6), intent(inout) :: dS                                     ! matrix with corrections on the S harmonic coefficients
 
-    !get Delaunay arguments in radians for the current time
+    ! get Delaunay arguments in radians for the current time
     call get_Delaunay_arg(this, time_mjd, F_vect)
     F_vect = F_vect*deg2rad
 
-    !get Greenwich Mean Sidereal Time
+    ! get Greenwich Mean Sidereal Time
     theta_g = getGMST(time_mjd)
 
     do l = 2, lmax
@@ -870,19 +873,19 @@ contains
         else
           dm = 2
         end if 
-        !compute the corresponding unnormalization factor
+        ! compute the corresponding unnormalization factor
         fac = sqrt(factorial(l - m)*dm*(2.d0*l + 1.d0)/factorial(l + m))
         do i = 1, 18
-          !compute the argument for each tide constituent            
+          !c ompute the argument for each tide constituent            
           call get_Doodson_arg(this, this%doodson(i), ctheta_g, cl, cl_prime, cF, cD, cOmega)
+  
           theta_f = ctheta_g * theta_g + cl * F_vect(1) + cl_prime * F_vect(2) + cF * F_vect(3) + &
                     cD * F_vect(4) + cOmega * F_vect(5)
-
-          !get the produced gravity field corrections
+          ! get the produced gravity field corrections
           dC(l, m) = dC(l, m) + fac*((this%dC_p(i, l, m) + this%dC_m(i, l, m))*cos(theta_f) + &
                      (this%dS_p(i, l, m) + this%dS_m(i, l, m))*sin(theta_f))
           if (m == 0) then
-            dS(l, m) = 0
+            dS(l, m) = 0.d0
           else
             dS(l, m) = dS(l, m) + fac*((this%dS_p(i, l, m) - this%dS_m(i, l, m))*cos(theta_f) - &
                        (this%dC_p(i, l, m) - this%dC_m(i, l, m))*sin(theta_f))
