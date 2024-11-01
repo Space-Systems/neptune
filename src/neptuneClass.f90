@@ -1723,7 +1723,7 @@ contains
 
             if(ios /= 0) then
 
-              cmess = "Format error for key '"//key//"'. Integer expected."
+              cmess = "Format error for key '"//key//"'. Integer expected but got "//toString(itemp)
               call setNeptuneError(E_SPECIAL, FATAL, (/cmess/))
               setNeptuneVar_char = E_SPECIAL
               return
@@ -1802,7 +1802,7 @@ contains
 
             if(ios /= 0) then
 
-              cmess = "Format error for key '"//key//"'. Float expected."
+              cmess = "Format error for key '"//key//"'. Float expected but got "//toString(dtemp)
               call setNeptuneError(E_SPECIAL, FATAL, (/cmess/))
               setNeptuneVar_char = E_SPECIAL
               return
