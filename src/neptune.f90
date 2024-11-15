@@ -574,6 +574,11 @@ contains
     real(dp)                :: request_time                                     ! requested time in numerical integration loop
     real(dp)                :: propCounterAtReset                               ! propCounter at last reset - required to prevent infinite loops
     real(dp),dimension(6,6) :: set                                              ! state error transition matrix
+    real(dp),dimension(7)   :: sensitivity_matrix                               ! sensitivity matrix
+    real(dp),dimension(7,7) :: set_ext                                          ! state error transition matrix
+    real(dp),dimension(7,7) :: cumSet_ext                                       ! state error transition matrix
+    real(dp),dimension(7,7) :: covar_in_ext                                     ! state error transition matrix
+    real(dp),dimension(7,7) :: covar_out_ext                                    ! state error transition matrix
     real(dp)                :: start_epoch_sec                                  ! start epoch in seconds (MJD)
     type(kepler_t)          :: kep                                              ! mean kepler elements for correlation matrix computation
     type(state_t)           :: last_state_out                                   ! saving the last state vector which has been written to output
@@ -727,6 +732,9 @@ contains
     if(neptune%numerical_integrator%getCovariancePropagationFlag()) then
 
       cumSet = set_in%elem
+      cumSet_ext = 0.d0
+      cumSet_ext(1:6,1:6) = cumSet
+      cumSet_ext(7,7) = 1.d0
       !call identity_matrix(cumSet)  ! initial state error transition matrix is the unity matrix
       call neptune%numerical_integrator%resetCountSetMatrix()    ! the counter for the number of calls to the getStateTransitionMatrix routine is being reset
 
@@ -1035,7 +1043,8 @@ contains
                                        state_out%r,                             & ! <--  DBL() radius vector (km)
                                        state_out%v,                             & ! <--  DBL() velocity vector (km/s)
                                        request_time,                            & ! <--  DBL   requested time
-                                       set                                      & ! <--> DBL() state error transition matrix
+                                       set,                                     & ! <--> DBL() state error transition matrix
+                                       sensitivity_matrix                       &
                                      )
           if(hasFailed()) return
 
@@ -1044,7 +1053,20 @@ contains
           set_out%elem = cumSet
 
           !** compute new covariance matrix for given time
-          covar_out%elem = matmul(matmul(cumSet,covar_in%elem),transpose(cumSet))
+          if(.not. neptune%numerical_integrator%getCdCovFlag()) then
+            covar_out%elem = matmul(matmul(cumSet,covar_in%elem),transpose(cumSet))
+          else
+            set_ext = 0.d0
+            set_ext(1:6,1:6) = set
+            set_ext(1:7,7) = sensitivity_matrix
+            cumSet_ext = matmul(set_ext,cumSet_ext)
+            covar_in_ext = 0.d0
+            covar_in_ext(1:6,1:6) = covar_in%elem
+            covar_in_ext(7,7) = neptune%numerical_integrator%getCdCov()
+            covar_out_ext = matmul(matmul(cumSet_ext,covar_in_ext),transpose(cumSet_ext))
+            covar_out%elem(1:6,1:6) = covar_out_ext(1:6,1:6)
+          end if
+
           if(neptune%correlation_model%getNoisePropagationFlag()) then
               corrMat                 = neptune%correlation_model%getCorrelationMatrix(request_time)
               covar_out%elem(1:6,1:6) = covar_out%elem(1:6,1:6) + corrMat
