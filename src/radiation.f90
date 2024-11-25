@@ -31,12 +31,13 @@ module radiation
 
   use slam_types,             only: dp
   use slam_astro,             only: getEarthRadius, getSunRadius, getAstronomicalUnit
+  use slam_io,                only: message, LOG_AND_STDOUT
   use slam_error_handling,    only: isControlled, hasToReturn, hasFailed, FATAL, WARNING, checkIn, checkOut
   use slam_math,              only: mag, pi, halfPi, twopi, eps9, identity_matrix, outerproduct, undefined
   use slam_reduction_class,   only: Reduction_type
   use satellite,              only: Satellite_class, MAX_SURFACES, ID_ALBEDO, ID_SRP, MODE_CANNON_BALL
   use solarsystem,            only: Solarsystem_class, ID_SUN
-  use slam_strings,           only: toUppercase
+  use slam_strings,           only: toUppercase, toString
   use slam_time,              only: sec_per_day
 
   implicit none
@@ -470,6 +471,8 @@ contains
       end if
       return
     end if
+
+    call message(' - Initializing albedo model...', LOG_AND_STDOUT)
 
     !** compute number of ring elements based on the number of rings
     this%ringElements = 1

@@ -7,7 +7,7 @@ if [[ ! -d "data" ]]; then
   ln -sf ../../../work/data
 fi
 #
-ln -sf ../../../bin/neptune-valsent1b
+ln -sf ../../../bin/neptune-valsent1b-set
 #
 # Download solar and geomagnetic activity data, when the files are older than 1 day
 if [[ `find "data/fap_day.dat" -mtime +24` ]]; then
@@ -38,4 +38,11 @@ fi
 if [[ ! -d "output" ]]; then
   mkdir output
 fi
-LD_LIBRARY_PATH=../../../lib ./neptune-valsent1b
+# Remove old input file
+if [[ -f "input/valsent.inp" ]]; then
+  rm "input/valsent.inp"
+fi
+cp -v "input/valsent_backward.inp" "input/valsent.inp"
+cat "input/valsent.inp" && echo "\n"
+LD_LIBRARY_PATH=../../../lib ./neptune-valsent1b-set
+unlink "input/valsent.inp"

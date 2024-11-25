@@ -26,14 +26,14 @@ git submodule update --init --recursive
 ################################################################################
 if [[ "$ENABLE_OPI_SUPPORT" == "ON" ]]; then
   # Build OPI
-  cd OPI || exit
+  cd OPI || exit || exit
   # Create the build directory if it does not exist
   if [[ ! -d "build" ]]; then
     mkdir build
   else
     rm -rf build/*
   fi
-  cd build || exit
+  cd build || exit || exit
   echo "Updating cmake"
   cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=../ -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_CXX11=ON -DENABLE_CL_SUPPORT=OFF -DENABLE_CUDA_SUPPORT=OFF -DENABLE_PYTHON=OFF -G "$GENERATOR" ../
   echo "Building OPI"
@@ -52,14 +52,14 @@ fi
 #                                                                              #
 ################################################################################
 # Build libslam
-cd libslam || exit
+cd libslam || exit || exit
 # Create the build directory if it does not exist
 if [[ ! -d "build" ]]; then
   mkdir build
 else
   rm -rf build/*
 fi
-cd build || exit
+cd build || exit || exit
 echo "Updating cmake"
 cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OpenMP_SUPPORT=OFF -DENABLE_POSTGRESQL_SUPPORT=OFF -G "$GENERATOR" ../
 echo "Building libslam"
@@ -116,7 +116,7 @@ if [[ ! -d "lib" ]]; then
   mkdir lib
 fi
 # Create the links to libraries needed by NEPTUNE
-cd lib || exit
+cd lib || exit || exit
 ln -sf ../libslam/lib/libslam-Fortran.$LIBSUFFIX .
 if [[ "$ENABLE_OPI_SUPPORT" == "ON" ]]; then
   ln -sf ../OPI/lib/libOPI-Fortran.$LIBSUFFIX .
@@ -128,7 +128,7 @@ if [[ ! -d "include" ]]; then
   mkdir include
 fi
 # Create the links to includes needed by NEPTUNE
-cd include || exit
+cd include || exit || exit
 ln -sf ../libslam/include/SLAM .
 if [[ "$ENABLE_OPI_SUPPORT" == "ON" ]]; then
   ln -sf ../OPI/include/OPI .
@@ -140,7 +140,7 @@ if [[ ! -d "build" ]]; then
 else
   rm -rf build/*
 fi
-cd build || exit
+cd build || exit || exit
 echo "Updating cmake"
 export PFUNIT_DIR=..//pFUnit/build/installed
 cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OPI_SUPPORT=$ENABLE_OPI_SUPPORT -DSKIP_MSIS_2=ON -G "$GENERATOR" ../
@@ -152,7 +152,7 @@ if [[ $? -ne 0 ]]; then
     exit $?
 fi
 echo "Leaving NEPTUNE"
-cd ../work || exit
-ln -sf ../bin/neptune-sa .
+cd ../work || exit || exit
+ln -sf ../bin/neptune-sa . .
 cd ..
 echo "Done"
