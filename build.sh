@@ -153,6 +153,14 @@ if [[ $? -ne 0 ]]; then
 fi
 echo "Leaving NEPTUNE"
 cd ../work || exit || exit
-ln -sf ../bin/neptune-sa . .
+if [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "MINGW"* ]]; then
+  ln -sf ../bin/neptune-sa.exe . || exit || exit
+  ln -sf ../bin/libneptune.dll . || exit || exit
+  ln -sf ../lib/libneptune.dll.a . || exit || exit
+  ln -sf ../libslam/lib/libslam-Fortran.dll . || exit || exit
+  ln -sf ../libslam/lib/libslam-Fortran.dll.a . || exit || exit
+else 
+  ln -sf ../bin/neptune-sa . || exit || exit
+fi
 cd ..
 echo "Done"
