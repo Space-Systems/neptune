@@ -16,7 +16,7 @@ elif [[ "$OSTYPE" == "MINGW"* ]]; then
   LIBSUFFIX="dll"
 elif [[ "$OSTYPE" == "msys"* ]]; then
   LIBSUFFIX="dll"
-  GENERATOR="Ninja"
+  GENERATOR="MSYS Makefiles"
 fi
 git submodule update --init --recursive
 ################################################################################
