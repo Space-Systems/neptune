@@ -18,6 +18,8 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
 
 endif (CMAKE_BUILD_TYPE STREQUAL "Debug")
 
+set(CMAKE_FIND_LIBRARY_SUFFIXES .dll ${CMAKE_FIND_LIBRARY_SUFFIXES})
+
 if ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "GNU")
 	set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS} -O0 -cpp -DDBLE -g -fbounds-check -fbacktrace -ffree-line-length-none -finit-local-zero  -Wall")
     set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS} -O3 -DDBLE -ffree-line-length-none -cpp")
