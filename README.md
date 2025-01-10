@@ -30,11 +30,15 @@ To build NEPTUNE you will need:
 * latex (only for editing the technical documentation)
   * On Ubuntu 18.04 LTS this works: `apt install texlive texlive-lang-german texlive-latex-extra texlive-tubs texlive-science`
 
-For MSYS2 you need to install the newest MSYS2 version and install in the MINGW64 environment:
+For MSYS2 you need to install the newest MSYS2 version and install in the MINGW64 environment (important to use this shell in particular):
 * mingw-w64-x86_64-gcc
 * mingw-w64-x86_64-gcc-fortran
 * mingw-w64-x86_64-cmake
 * mingw-w64-x86_64-ninja
+* mingw-w64-x86_64-toolchain
+* base-devel
+
+To install, use `pacman -S mypackagename`.
 
 Note that installing `mingw-w64-x86_64-python3` might lead to issues building pFUnit.
 
