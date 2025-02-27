@@ -517,6 +517,8 @@ contains
         call this%set_input(parName=C_OPT_HARMONICS, valType='boolean', initFlag=.true.)
         call this%set_input(parName=C_OPT_PROGRESS, valType='boolean', initFlag=.true.)
         call this%set_input(parName=C_OPT_PROGRESS, val = toString(this%write_progress), set = .true.)
+        call this%set_input(parName=C_BOUNDARY_CHECK, valType='boolean', initFlag=.true.)
+        call this%set_input(parName=C_BOUNDARY_CHECK, val = "true", set = .true.)
 
         if(isControlled()) then
             call checkOut(csubid)
@@ -1427,7 +1429,7 @@ contains
                  C_OUTPUT_ACO,     C_OUTPUT_OSC,     C_OUTPUT_CSV,     C_OUTPUT_GLL,      &
                  C_COV_PROP,       C_COV_SUN,        C_COV_MOON,       C_COV_DRAG,        &
                  C_COV_SRP,        C_OUTPUT_VAR_ECI, C_OPT_HARMONICS, C_OPT_PROGRESS,     &
-                 C_OUTPUT_VAR_UVW, C_OUTPUT_COV_ECI, C_OUTPUT_COV_UVW, C_OUTPUT_AMN)
+                 C_OUTPUT_VAR_UVW, C_OUTPUT_COV_ECI, C_OUTPUT_COV_UVW, C_OUTPUT_AMN, C_BOUNDARY_CHECK)
 
                 if(trim(adjustl(val)) == C_ON .or. trim(adjustl(toLowercase(val))) == 'true') then
                     itemp = SWITCHED_ON
@@ -1513,7 +1515,10 @@ contains
                     case(C_MANEUVERS)
                         call this%set_input(parName=C_MANEUVERS, val = toString(ltemp), set=.true.)
                         call this%derivatives_model%setPertSwitch(this%gravity_model, PERT_MANEUVERS, ltemp)
-
+                  !** CD/CR boundary check
+                  case(C_BOUNDARY_CHECK)
+                    call this%set_input(parName=C_BOUNDARY_CHECK, val = toString(ltemp), set=.true.)
+                    call this%satellite_model%setBoundaryCheck(ltemp)
                   !** covariance matrix propagation
                   case(C_COV_PROP)
                         call this%set_input(parName=C_COV_PROP, val=val, set=.true.)

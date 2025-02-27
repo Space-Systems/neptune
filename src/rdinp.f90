@@ -988,6 +988,7 @@ subroutine rdinp(                &
 
   !** finally set initial state and covariance in NEPTUNE input module
   !--------------------------------------------------------------------
+  state%epoch = epoch(1)
   if(input_type == INPUT_OSCULATING) then
     ierr =  neptune%setNeptuneVar("INITIAL_STATE", oscKep)
   else
