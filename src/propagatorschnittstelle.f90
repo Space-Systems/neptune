@@ -79,7 +79,7 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
   call OPI_Module_createProperty(propagator, "covariance_ref_frame", "UVW")
 
   call OPI_Module_createProperty(propagator, "output_files", "OFF")
-  call OPI_Module_createProperty(propagator, "store_data", "0")
+  call OPI_Module_createProperty(propagator, "store_data", "0.d0")
 
   call OPI_Module_createProperty(propagator, "reentry_altitude", "50.d0")      ! km above the surface
 
@@ -235,7 +235,6 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
 
     logical :: slam_error
     real(c_double), target, allocatable, dimension(:,:,:)   :: ephemeris
-    integer :: output_step_size
     integer :: temp_integer
 
     real(dp) :: temp_fortran_real
@@ -650,7 +649,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
         create_cheby = .false.
 
         !** We need to store the data, as we are VERY interested in the ephemeris. As a "first try", we use 30 seconds.
-        ierr = neptune_instance%setNeptuneVar("OPT_STORE_DATA", "30")
+        ierr = neptune_instance%setNeptuneVar("OPT_STORE_DATA", toString(30.d0))
         !** check error
         if (ierr .ne. 0) then
             slam_error = t%check_slam_error()
@@ -664,7 +663,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
         create_cheby = .true.
 
         !** we need to store data in this case. We use every 30 seconds for now. Needs a check
-        ierr = neptune_instance%setNeptuneVar("OPT_STORE_DATA", "30")
+        ierr = neptune_instance%setNeptuneVar("OPT_STORE_DATA", toString(30.d0))
         !** check error
         if (ierr .ne. 0) then
             slam_error = t%check_slam_error()
@@ -700,15 +699,9 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             end if
         endif
 
-        temp_integer = string_to_int(temp_string)
-
-        if ( temp_integer .ne. 0 ) then
-
-        store_data = .true.
-
-        !** store the data
-        output_step_size = string_to_int(temp_string)
-
+        temp_fortran_real = string_to_real(temp_string)
+        if ( temp_fortran_real .gt. 0.d0 ) then
+            store_data = .true.
         end if
     endif
 

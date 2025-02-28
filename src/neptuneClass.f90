@@ -176,7 +176,7 @@ module neptuneClass
         integer :: current_index                                                !< current index in ephem array, while data is stored
         integer :: current_index_set                                            !< current index in setMatrix array, while data is stored
         integer :: current_index_cov                                            !< current index in covariance matrix array, while data is stored
-        integer :: ephem_step                                                   !< step size (in seconds) between subsequent ephemerides. If set to '0', no data will be available
+        real(dp) :: ephem_step                                                  !< step size (in seconds) between subsequent ephemerides. If set to '0', no data will be available
 
         logical :: storeEphemData                                               ! default: not stored
         logical :: warned                                                       ! default: not warned (if ephem array is full)
@@ -288,7 +288,7 @@ contains
         constructor%reduction = Reduction_type()
         constructor%correlation_model = Correlation_class()
 
-        constructor%output_step    = 300.0                                        ! output time step in seconds, 5 mins as default
+        constructor%output_step    = 300.d0                                     ! output time step in seconds, 5 mins as default
         constructor%input_type_cov = INPUT_UNDEFINED                            ! input type for covariance matrix
 
         constructor%flag_init_tolerances = (/.false.,.false./)                  ! rel. and abs. tolerance initialization for numerical integration
@@ -468,7 +468,6 @@ contains
         call this%set_input(parName=C_PAR_INT_COV_METHOD, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_GEO_MODEL, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_AP_FORECAST, valType='integer', initFlag=.true.)
-        call this%set_input(parName=C_OPT_STORE_DATA, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_COV_GEOPOTENTIAL, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_PAR_INT_METHOD, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_ATMOSPHERE_MODEL, valType='integer', initFlag=.true.)
@@ -484,7 +483,8 @@ contains
         call this%set_input(parName=C_PAR_INT_COV_STEP, valType='double', initFlag=.true.)
         call this%set_input(parName=C_PAR_EARTH_RADIUS, valType='double', initFlag=.true.)
         call this%set_input(parName=C_OPT_SOL_FORECAST, valType='double', initFlag=.true.)
-        call this%set_input(parName=C_OUTPUT_STEP, valType='double', initFlag=.true.) ! this should be double for the fix 
+        call this%set_input(parName=C_OUTPUT_STEP, valType='double', initFlag=.true.)
+        call this%set_input(parName=C_OPT_STORE_DATA, valType='double', initFlag=.true.)
 
         ! ON/OFF parameters (also set default values, if available)
         do i = 1, this%derivatives_model%get_neptune_perturbation_number()
@@ -580,7 +580,7 @@ contains
     !!              </ul>
     !!
     !!------------------------------------------------------------------------------------------------
-    pure integer function get_output_step(this) result(s)
+    pure real(dp) function get_output_step(this) result(s)
         implicit none
         class(Neptune_class),intent(in)     :: this
         s = this%output_step
@@ -1357,8 +1357,8 @@ contains
         integer :: yr                             ! year
         logical :: ltemp                          ! temporary
         logical :: flag_init_status               ! saving initialization status right after call of this routine (see note below)
-        real(dp)  :: dtemp                          ! temporary
-        real(dp)  :: sc                             ! second
+        real(dp)  :: dtemp                        ! temporary
+        real(dp)  :: sc                           ! second
 
         setNeptuneVar_char = 0
 
@@ -1715,8 +1715,8 @@ contains
           ! CASE for INTEGER parameters
           !
           !------------------------
-          case(C_GEOPOTENTIAL,  C_OPT_SAT_PROPERTIES,   C_PAR_INT_COV_METHOD, & 
-               C_OPT_GEO_MODEL, C_OPT_AP_FORECAST,    C_OPT_STORE_DATA, C_COV_GEOPOTENTIAL,   &
+          case(C_GEOPOTENTIAL, C_OPT_SAT_PROPERTIES, C_PAR_INT_COV_METHOD, & 
+               C_OPT_GEO_MODEL, C_OPT_AP_FORECAST, C_COV_GEOPOTENTIAL,   &
                C_PAR_INT_METHOD, C_OPT_ATMOSPHERE_MODEL)
 
             read(val,*,iostat=ios) itemp
@@ -1759,10 +1759,6 @@ contains
                   call this%set_input(parName=C_OPT_ATMOSPHERE_MODEL, val=val, set=.true.)
                   call this%atmosphere_model%setAtmosphereModel(itemp)
 
-                case(C_OPT_STORE_DATA)
-                  call this%set_input(parName=C_OPT_STORE_DATA, val=val, set=.true.)
-                  call this%setStep(itemp)
-
                 !** state vector integration method
                 case(C_PAR_INT_METHOD)
                   call this%set_input(parName=C_PAR_INT_METHOD, val=val, set=.true.)
@@ -1789,7 +1785,7 @@ contains
           !-------------------------
           case(C_PAR_MASS, C_PAR_CROSS_SECTION, C_PAR_CDRAG, C_OUTPUT_STEP,    & 
                C_PAR_CREFL, C_PAR_REENTRY, C_PAR_INT_RELEPS, C_PAR_INT_ABSEPS, &
-               C_PAR_INT_COV_STEP, C_PAR_EARTH_RADIUS, &
+               C_PAR_INT_COV_STEP, C_PAR_EARTH_RADIUS, C_OPT_STORE_DATA, &
                C_OPT_SOL_FORECAST)
 
             read(val,*,iostat=ios) dtemp
@@ -1856,10 +1852,14 @@ contains
                   call this%set_input(parName=C_OPT_SOL_FORECAST, val=val, set=.true.)
                   call this%atmosphere_model%setSolarFluxForecast(dtemp)
 
+                case(C_OPT_STORE_DATA)
+                  call this%set_input(parName=C_OPT_STORE_DATA, val=val, set=.true.)
+                  call this%setStep(dtemp)
+
                 !** Output
                 case(C_OUTPUT_STEP)
                   call this%set_input(parName=C_OUTPUT_STEP, val=val, set=.true.)
-                  call this%output%write_to_output(C_OUTPUT_STEP, itemp)
+                  call this%output%write_to_output(C_OUTPUT_STEP, dtemp)
                   this%output_step = dtemp
 
               end select
@@ -2808,7 +2808,6 @@ contains
         call this%set_input(parName=C_PAR_INT_COV_METHOD, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_GEO_MODEL, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_AP_FORECAST, valType='integer', initFlag=.true.)
-        call this%set_input(parName=C_OPT_STORE_DATA, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_COV_GEOPOTENTIAL, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_PAR_INT_METHOD, valType='integer', initFlag=.true.)
         call this%set_input(parName=C_OPT_ATMOSPHERE_MODEL, valType='integer', initFlag=.true.)
@@ -2824,8 +2823,8 @@ contains
         call this%set_input(parName=C_PAR_INT_COV_STEP, valType='double', initFlag=.true.)
         call this%set_input(parName=C_PAR_EARTH_RADIUS, valType='double', initFlag=.true.)
         call this%set_input(parName=C_OPT_SOL_FORECAST, valType='double', initFlag=.true.)
-        call this%set_input(parName=C_OUTPUT_STEP, valType='double', initFlag=.true.) ! this should be double 
-
+        call this%set_input(parName=C_OUTPUT_STEP, valType='double', initFlag=.true.)
+        call this%set_input(parName=C_OPT_STORE_DATA, valType='double', initFlag=.true.)
 
         ! ON/OFF parameters (also set default values, if available)
         do i = 1, this%derivatives_model%get_neptune_perturbation_number()
@@ -3173,7 +3172,7 @@ contains
 !> @anchor    getStep
 !!
 !------------------------------------
-  integer function getStep(this)
+  real(dp) function getStep(this)
 
     class(Neptune_class)    :: this
 
@@ -3201,7 +3200,7 @@ contains
   subroutine setStep(this,time_step)
 
     class(Neptune_class)    :: this
-    integer, intent(in)     :: time_step
+    real(dp), intent(in)    :: time_step
 
     character(len=*), parameter :: csubid = 'setStep'
 
@@ -3210,10 +3209,10 @@ contains
       call checkIn(csubid)
     end if
 
-    if(time_step < 0) then
+    if(time_step < 0.d0) then
       call setNeptuneError(E_INVALID_STEP, FATAL)
       return
-    else if(time_step == 0) then
+    else if(time_step == 0.d0) then
       this%storeEphemData  = .false.
     else
       this%ephem_step      = time_step

@@ -144,10 +144,10 @@ module neptuneOutput
         type(time_t) :: start_epoch
         type(time_t) :: end_epoch
 
-        integer :: input_type     = INPUT_UNDEFINED                             !< input type for state vector
-        integer :: input_type_cov = INPUT_UNDEFINED                             !< input type for covariance matrix
-        integer :: satellite_properties                                         !< indicates where satellite properties come from
-        integer :: output_step                                                  !< output step size
+        integer  :: input_type     = INPUT_UNDEFINED                            !< input type for state vector
+        integer  :: input_type_cov = INPUT_UNDEFINED                            !< input type for covariance matrix
+        integer  :: satellite_properties                                        !< indicates where satellite properties come from
+        real(dp) :: output_step                                                 !< output step size
 
         character(len=100), dimension(0:14) :: chead                            ! file header
 
@@ -835,8 +835,6 @@ contains
     select case(id)
         case(C_OPT_SAT_PROPERTIES)
             this%satellite_properties = val
-        case(C_OUTPUT_STEP)
-            this%output_step = val
     end select
     return
   end subroutine
@@ -930,6 +928,8 @@ contains
             this%cdrag = val
         case(C_PAR_CREFL)
             this%crefl = val
+        case(C_OUTPUT_STEP)
+            this%output_step = val
     end select
     return
   end subroutine
@@ -1975,7 +1975,7 @@ contains
     write(ich,'(A,f6.1)')    '#  Const. solar flux F10.7 (in forecast) / sfu:  ', atmosphere_model%getSolarFluxForecast()
     write(ich,'(A)')         '#'
 
-    write(ich,'(A,i6)')      '#  Output time step / s :                        ', this%output_step
+    write(ich,'(A,f16.6)')   '#  Output time step / s :              ', this%output_step
     if(numint%getCovariancePropagationFlag()) then
       write(ich,'(A,i6)')    '#  Covariance matrix integration step / s :      ', int(numint%getCovarianceIntegrationStep())
     end if
