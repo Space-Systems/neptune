@@ -28,7 +28,7 @@ elseif("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Intel")
     # Reason: some dynamically allocated arrays are replicated when OpenMP is used with the neptuneClass.
     # The (small) stack is used for the replication of the arrays. The flag moves arrays from the stack to the heap.
 	#set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -heap-arrays 32768")
-	set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -fpp -DDBLE -g -fno-omit-frame-pointer -traceback -check bounds -check output-conversion -check format -check pointers -check uninit -ftrapuv -assume realloc_lhs -fstack-protector -assume protect_parens")
+	set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -fpp -DDBLE -g -fno-omit-frame-pointer -traceback -check bounds -check output-conversion -check format -check pointers -ftrapuv -assume realloc_lhs -fstack-protector -assume protect_parens")
 	set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -fpp -DDBLE")
 elseif ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Flang")
     set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -Mpreprocess")

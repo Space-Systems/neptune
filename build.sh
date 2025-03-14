@@ -52,14 +52,14 @@ fi
 #                                                                              #
 ################################################################################
 # Build libslam
-cd libslam || exit || exit
+cd libslam || exit
 # Create the build directory if it does not exist
 if [[ ! -d "build" ]]; then
   mkdir build
 else
   rm -rf build/*
 fi
-cd build || exit || exit
+cd build || exit
 echo "Updating cmake"
 cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OpenMP_SUPPORT=OFF -DENABLE_POSTGRESQL_SUPPORT=OFF -G "$GENERATOR" ../
 echo "Building libslam"
@@ -128,7 +128,7 @@ if [[ ! -d "include" ]]; then
   mkdir include
 fi
 # Create the links to includes needed by NEPTUNE
-cd include || exit || exit
+cd include || exit
 ln -sf ../libslam/include/SLAM .
 if [[ "$ENABLE_OPI_SUPPORT" == "ON" ]]; then
   ln -sf ../OPI/include/OPI .
@@ -140,7 +140,7 @@ if [[ ! -d "build" ]]; then
 else
   rm -rf build/*
 fi
-cd build || exit || exit
+cd build || exit
 echo "Updating cmake"
 export PFUNIT_DIR=..//pFUnit/build/installed
 cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=$Fortran_COMPILER -DENABLE_OPI_SUPPORT=$ENABLE_OPI_SUPPORT -DSKIP_MSIS_2=ON -G "$GENERATOR" ../

@@ -100,6 +100,7 @@ subroutine OPI_Plugin_init(propagator) bind(c, name="OPI_Plugin_init")
   call OPI_Module_createProperty(propagator, "ecef_states_out", "OFF")
   call OPI_Module_createProperty(propagator, "mean_elements_out", "ON")
   call OPI_Module_createProperty(propagator, "return_set_matrix", "OFF")    ! instead of covariance
+  call OPI_Module_createProperty(propagator, "boundary_check", "ON")    ! Check strict boundaries for CR/CD
 
   do i = 1, 20
     !** manoeuvre --> should be temp, this is a little bit an overkill
@@ -684,6 +685,21 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
         return_set_matrix = .true.
 
     end if
+
+    !** Strict checking of CD and CR coefficientes in Cannon Ball Mode:
+    !** on: CD>0, CR>0, <2.
+    !** off: CD>=0, CR unbounded
+    write(temp_string,*) OPI_Module_getPropertyString(propagator,"boundary_check")
+    !** set the object properties
+    ierr = neptune_instance%setNeptuneVar("BOUNDARY_CHECK", temp_string)
+    !** check error
+    if (ierr .ne. 0) then
+        slam_error = t%check_slam_error()
+        if (t%has_to_return()) return
+        if (slam_error) then
+            call resetError()
+        end if
+    endif
 
     !** Allow saving the states, if wanted
     store_data = .false.
