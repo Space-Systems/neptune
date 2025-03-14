@@ -65,7 +65,7 @@ module neptuneOutput
   use slam_strings,           only: toLowercase
   use thirdbody,              only: ThirdBody_class
   use tides,                  only: Tides_class, SOLID_TIDES, OCEAN_TIDES
-  use slam_time,              only: time_t, mjd2gd, dayFraction2hms, date2string
+  use slam_time,              only: time_t, mjd2gd, dayFraction2hms, date2string, date2longstring, LEN_TIME_STRING_LONG
   use slam_types,             only: dp
   use slam_units,             only: getUnitString, UNIT_RAD, C_UNIT_DEG
   use version,                only: Version_class
@@ -144,10 +144,10 @@ module neptuneOutput
         type(time_t) :: start_epoch
         type(time_t) :: end_epoch
 
-        integer :: input_type     = INPUT_UNDEFINED                             !< input type for state vector
-        integer :: input_type_cov = INPUT_UNDEFINED                             !< input type for covariance matrix
-        integer :: satellite_properties                                         !< indicates where satellite properties come from
-        integer :: output_step                                                  !< output step size
+        integer  :: input_type     = INPUT_UNDEFINED                            !< input type for state vector
+        integer  :: input_type_cov = INPUT_UNDEFINED                            !< input type for covariance matrix
+        integer  :: satellite_properties                                        !< indicates where satellite properties come from
+        real(dp) :: output_step                                                 !< output step size
 
         character(len=100), dimension(0:14) :: chead                            ! file header
 
@@ -835,8 +835,6 @@ contains
     select case(id)
         case(C_OPT_SAT_PROPERTIES)
             this%satellite_properties = val
-        case(C_OUTPUT_STEP)
-            this%output_step = val
     end select
     return
   end subroutine
@@ -930,6 +928,8 @@ contains
             this%cdrag = val
         case(C_PAR_CREFL)
             this%crefl = val
+        case(C_OUTPUT_STEP)
+            this%output_step = val
     end select
     return
   end subroutine
@@ -1142,7 +1142,6 @@ contains
 
     character(len=*), parameter :: csubid = "output"
     integer                 :: i,j,k                                            ! loop counter
-    integer                 :: isec                                             ! seconds
     integer                 :: orbit_type                                       ! orbit type
 
     logical                 :: flag_cov_uvw                                     ! indicating that covariance matrix already transformed to UVW frame
@@ -1165,6 +1164,7 @@ contains
     type(covariance_t)   :: covar_out_uvw                                       ! covariance matrix in UVW frame
     type(kepler_t)       :: kepler                                              ! kepler elements
     type(time_t)         :: epoch                                               ! output epoch
+    character(LEN_TIME_STRING_LONG) :: epoch_string
 
     if(isControlled()) then
       if(hasToReturn()) return
@@ -1176,9 +1176,9 @@ contains
     flag_itrf    = .false.
 
     epoch%mjd = this%start_epoch%mjd + time_offset/86400.d0
-
     call mjd2gd(epoch%mjd,epoch%year,epoch%month,epoch%day,fracday)
-    call dayFraction2HMS(fracday,epoch%hour,epoch%minute,isec)
+    call dayFraction2HMS(fracday,epoch%hour,epoch%minute,epoch%second)
+    epoch_string = date2longstring(epoch)
 
     do i = 1, size(this%output_arr)
 
@@ -1199,25 +1199,25 @@ contains
 
               case(ELLIPTICAL_INCLINED)
 
-                write(this%output_arr(i)%file_unit,110) epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+                write(this%output_arr(i)%file_unit,110) epoch_string, epoch%mjd,                                   &
                                     kepler%sma, kepler%ecc, kepler%inc*rad2deg, kepler%raan*rad2deg,               &
                                     kepler%aop*rad2deg, kepler%tran*rad2deg, kepler%man*rad2deg
 
               case(CIRCULAR_INCLINED)
 
-                write(this%output_arr(i)%file_unit,110) epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+                write(this%output_arr(i)%file_unit,110) epoch_string, epoch%mjd, &
                                     kepler%sma, kepler%ecc, kepler%inc*rad2deg, kepler%raan*rad2deg,               &
                                     0.d0, kepler%arglat*rad2deg, kepler%man*rad2deg
 
               case(ELLIPTICAL_EQUATORIAL)
 
-                write(this%output_arr(i)%file_unit,110) epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+                write(this%output_arr(i)%file_unit,110) epoch_string, epoch%mjd, &
                                     kepler%sma, kepler%ecc, kepler%inc*rad2deg, 0.d0, kepler%lonper*rad2deg,       &
                                     kepler%tran*rad2deg, kepler%man*rad2deg
 
               case(CIRCULAR_EQUATORIAL)
 
-                write(this%output_arr(i)%file_unit,110) epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+                write(this%output_arr(i)%file_unit,110) epoch_string, epoch%mjd, &
                                     kepler%sma, kepler%ecc, kepler%inc*rad2deg, 0.d0, 0.d0, kepler%truelon*rad2deg, &
                                     kepler%man*rad2deg
 
@@ -1225,14 +1225,14 @@ contains
 
           case(OUTPUT_CSV)  !** cartesian state vs. time
 
-            write(this%output_arr(i)%file_unit,120)   epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd,   &
+            write(this%output_arr(i)%file_unit,120)   epoch_string, epoch%mjd,   &
                                   state_out%r, state_out%v
 
           case(OUTPUT_VAR_ECI)  !** variances (diagonal elements of covariance matrix) in ECI frame vs. time
 
             if(numint%getCovariancePropagationFlag()) then
 
-              write(this%output_arr(i)%file_unit,150)   epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd,   &
+              write(this%output_arr(i)%file_unit,150)   epoch_string, epoch%mjd,   &
                                     (covar_out%elem(j,j), j=1,6)
 
             end if
@@ -1251,7 +1251,7 @@ contains
 
               end if
 
-              write(this%output_arr(i)%file_unit,150)   epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd,   &
+              write(this%output_arr(i)%file_unit,150)   epoch_string, epoch%mjd,   &
                                     (covar_out_uvw%elem(j,j), j=1,6)
                                    ! (sqrt(max(0.d0,covar_out_uvw%elem(j,j)))*1.d3, j=1,6)
 
@@ -1261,7 +1261,7 @@ contains
 
             if(numint%getCovariancePropagationFlag()) then
 
-              write(this%output_arr(i)%file_unit,160)   epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd,   &
+              write(this%output_arr(i)%file_unit,160)   epoch_string, epoch%mjd,   &
                                     ((covar_out%elem(j,k), k=1,j-1), j=2,6)
 
             end if
@@ -1280,7 +1280,7 @@ contains
 
               end if
 
-              write(this%output_arr(i)%file_unit,160)   epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd,   &
+              write(this%output_arr(i)%file_unit,160)   epoch_string, epoch%mjd,   &
                                     ((covar_out_uvw%elem(j,k), k=1,j-1), j=2,6)
 
             end if
@@ -1313,7 +1313,7 @@ contains
             !** convert acceleration to UVW coordinates
             call reduction%eci2uvw(state_out%r, state_out%v, acc_out, acc_out_uvw)
 
-            write(this%output_arr(i)%file_unit,130)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+            write(this%output_arr(i)%file_unit,130)  epoch_string, epoch%mjd, &
                                  (acc_out(j), j=1,3), (acc_out_uvw(j), j=1,3), mag(acc_out)
 
           case(OUTPUT_ACG) !** acceleration due to geopotential vs. time
@@ -1348,7 +1348,7 @@ contains
             !** convert acceleration to UVW coordinates
             call reduction%eci2uvw(state_out%r, state_out%v, acc_out, acc_out_uvw)
 
-            write(this%output_arr(i)%file_unit,130)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+            write(this%output_arr(i)%file_unit,130)  epoch_string, epoch%mjd, &
                                  (acc_out(j), j=1,3), (acc_out_uvw(j), j=1,3), mag(acc_out)
 
           case(OUTPUT_ACD)
@@ -1383,7 +1383,7 @@ contains
               !** convert acceleration to UVW coordinates
               call reduction%eci2uvw(state_out%r, state_out%v, acc_out, acc_out_uvw)
 
-              write(this%output_arr(i)%file_unit,130)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+              write(this%output_arr(i)%file_unit,130)  epoch_string, epoch%mjd, &
                                    (acc_out(j), j=1,3), (acc_out_uvw(j), j=1,3), mag(acc_out)
 
             end if
@@ -1404,7 +1404,7 @@ contains
               !** convert acceleration to UVW coordinates
               call reduction%eci2uvw(state_out%r, state_out%v, acc_out, acc_out_uvw)
 
-              write(this%output_arr(i)%file_unit,130)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+              write(this%output_arr(i)%file_unit,130)  epoch_string, epoch%mjd, &
                                    (acc_out(j), j=1,3), (acc_out_uvw(j), j=1,3), mag(acc_out)
 
             end if
@@ -1425,7 +1425,7 @@ contains
               !** convert acceleration to UVW coordinates
               call reduction%eci2uvw(state_out%r, state_out%v, acc_out, acc_out_uvw)
 
-              write(this%output_arr(i)%file_unit,130)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+              write(this%output_arr(i)%file_unit,130)  epoch_string, epoch%mjd, &
                                    (acc_out(j), j=1,3), (acc_out_uvw(j), j=1,3), mag(acc_out)
 
             end if
@@ -1448,7 +1448,7 @@ contains
               !** convert acceleration to UVW coordinates
               call reduction%eci2uvw(state_out%r, state_out%v, acc_out, acc_out_uvw)
 
-              write(this%output_arr(i)%file_unit,130)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+              write(this%output_arr(i)%file_unit,130)  epoch_string, epoch%mjd, &
                                    (acc_out(j), j=1,3), (acc_out_uvw(j), j=1,3), mag(acc_out)
 
             end if
@@ -1471,7 +1471,7 @@ contains
               !** convert acceleration to UVW coordinates
               call reduction%eci2uvw(state_out%r, state_out%v, acc_out, acc_out_uvw)
 
-              write(this%output_arr(i)%file_unit,130)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+              write(this%output_arr(i)%file_unit,130)  epoch_string, epoch%mjd, &
                                    (acc_out(j), j=1,3), (acc_out_uvw(j), j=1,3), mag(acc_out)
 
             end if
@@ -1503,7 +1503,7 @@ contains
 
               call reduction%eci2uvw(state_out%r, state_out%v, acc_out, acc_out_uvw)
 
-              write(this%output_arr(i)%file_unit,130)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+              write(this%output_arr(i)%file_unit,130)  epoch_string, epoch%mjd, &
                                    (acc_out(j), j=1,3), (acc_out_uvw(j), j=1,3), mag(acc_out)
 
             end if
@@ -1535,7 +1535,7 @@ contains
 
               call reduction%eci2uvw(state_out%r, state_out%v, acc_out, acc_out_uvw)
 
-              write(this%output_arr(i)%file_unit,130)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+              write(this%output_arr(i)%file_unit,130)  epoch_string, epoch%mjd, &
                                    (acc_out(j), j=1,3), (acc_out_uvw(j), j=1,3), mag(acc_out)
 
             end if
@@ -1556,7 +1556,7 @@ contains
 
               call reduction%eci2uvw(state_out%r, state_out%v, acc_out, acc_out_uvw)
 
-              write(this%output_arr(i)%file_unit,130)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+              write(this%output_arr(i)%file_unit,130)  epoch_string, epoch%mjd, &
                                    (acc_out(j), j=1,3), (acc_out_uvw(j), j=1,3), mag(acc_out)
 
             end if
@@ -1585,7 +1585,7 @@ contains
               crossSection = satellite_model%getObjectCrossSection(solarsystem_model, reduction, epoch%mjd, state_out%r, v_rel)
               if(hasFailed()) return
 
-              write(this%output_arr(i)%file_unit,170)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, &
+              write(this%output_arr(i)%file_unit,170)  epoch_string, epoch%mjd, &
                                    rho, crossSection*1.d6, (v_rel(j), j=1,3)    ! '1.d6' for cross-section to convert to m**2
 
             end if
@@ -1624,7 +1624,7 @@ contains
 
             call getGeodeticLatLon(r_itrf, alt, lat, lon)
 
-            write(this%output_arr(i)%file_unit,140)  epoch%year, epoch%month, epoch%day, epoch%hour, epoch%minute, isec, epoch%mjd, alt, lat*rad2deg, lon*rad2deg
+            write(this%output_arr(i)%file_unit,140)  epoch_string, epoch%mjd, alt, lat*rad2deg, lon*rad2deg
 
         end select
 
@@ -1639,13 +1639,15 @@ contains
       call checkOut(csubid)
     end if
 
-110   format(4x,i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2),5x,f16.9,2x,f12.5,2x,f10.8,5(1x,f12.6))
-120   format(4x,i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2),5x,f16.9,3(1x,f14.6),3(1x,f12.8))
-130   format(4x,i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2),5x,f16.9,7(1x,e16.9e2))
-140   format(4x,i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2),5x,f16.9,1x,f9.2,2(1x,f8.3))
-150   format(4x,i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2),5x,f16.9,6(1x,e15.8e2))
-160   format(4x,i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2),5x,f16.9,15(1x,e15.8e2))
-170   format(4x,i4.4,2('-',i2.2),1x,i2.2,2(':',i2.2),5x,f16.9,1x,e15.8e2,x,f10.4,3(1x,f12.8))
+! Theoretically a value for epoch_string should be set as 27. But as it's a changing variable it's set 
+! as empty to import it from the length of epoch_string itself 
+110   format(4x,a,5x,f16.9,2x,f12.5,2x,f10.8,5(1x,f12.6))
+120   format(4x,a,5x,f16.9,3(1x,f14.6),3(1x,f12.8))
+130   format(4x,a,5x,f16.9,7(1x,e16.9e2))
+140   format(4x,a,5x,f16.9,1x,f9.2,2(1x,f8.3))
+150   format(4x,a,5x,f16.9,6(1x,e15.8e2))
+160   format(4x,a,5x,f16.9,15(1x,e15.8e2))
+170   format(4x,a,5x,f16.9,1x,e15.8e2,x,f10.4,3(1x,f12.8))
 
   end subroutine output
 
@@ -1724,8 +1726,8 @@ contains
     write(ich,'(A)')         '#  Input type:               '//trim(ctemp)
     write(ich,'(A)')         '#  Reference Frame:          '//C_REF_FRAME_GCRF
     write(ich,'(A)')         '#'
-    write(ich,'(a16,a20)')   '#  Begin epoch: ', trim(adjustl(date2string(this%start_epoch)))
-    write(ich,'(a16,a20)')   '#  End epoch:   ', trim(adjustl(date2string(this%end_epoch)))
+    write(ich,'(a16,a20)')   '#  Begin epoch: ', trim(adjustl(date2longstring(this%start_epoch)))
+    write(ich,'(a16,a20)')   '#  End epoch:   ', trim(adjustl(date2longstring(this%end_epoch)))
     write(ich,'(A)')         '#'
 
     if(this%isSetInitialState) then
@@ -1973,7 +1975,7 @@ contains
     write(ich,'(A,f6.1)')    '#  Const. solar flux F10.7 (in forecast) / sfu:  ', atmosphere_model%getSolarFluxForecast()
     write(ich,'(A)')         '#'
 
-    write(ich,'(A,i6)')      '#  Output time step / s :                        ', this%output_step
+    write(ich,'(A,f16.6)')   '#  Output time step / s :              ', this%output_step
     if(numint%getCovariancePropagationFlag()) then
       write(ich,'(A,i6)')    '#  Covariance matrix integration step / s :      ', int(numint%getCovarianceIntegrationStep())
     end if
@@ -2156,7 +2158,7 @@ contains
         write(ich,'(A,$)') " Error Single Integration "
         write(ich,'(A)')   "     Call No. [Flag]      "
 
-        write(ich,'(A,$)') "#_ [YYYY-MM-DD hh:mm:ss]__"
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
         write(ich,'(A,$)') "_____[JD - 2400000.5]_____"
         write(ich,'(A,$)') "____________[s]___________"
         do i2 = 1,4
@@ -2203,7 +2205,7 @@ contains
         write(ich,'(A,$)') " Velocity-Y  "
         write(ich,'(A)')   " Velocity-Z "
 
-        write(ich,'(A,$)') "#_ [YYYY-MM-DD hh:mm:ss]"
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
         write(ich,'(A,$)') "___[JD - 2400000.5]___"
 
         do i2 = 1,3
@@ -2258,7 +2260,7 @@ contains
         write(ich,'(A,$)') "    TRAN     "
         write(ich,'(A)')   "    MEAN     "
 
-        write(ich,'(A,$)') "#_ [YYYY-MM-DD hh:mm:ss]"
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
         write(ich,'(A,$)') "___[JD - 2400000.5]___"
 
         write(ich,'(A,$)') "_____[km]____"
@@ -2430,7 +2432,7 @@ contains
         write(ich,'(A,$)') "     Acc.-W      "
         write(ich,'(A)')   "   Acc. Total    "
 
-        write(ich,'(A,$)') "#_ [YYYY-MM-DD hh:mm:ss]"
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
         write(ich,'(A,$)') "___[JD - 2400000.5]___"
 
         do i2 = 1,7
@@ -2475,7 +2477,7 @@ contains
         write(ich,'(A,$)') "    Lat. "
         write(ich,'(A)')   "    Lon. "
 
-        write(ich,'(A,$)') "#_ [YYYY-MM-DD hh:mm:ss]"
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
         write(ich,'(A,$)') "___[JD - 2400000.5]____"
         write(ich,'(A,$)') "_[km]___"
         write(ich,'(A,$)') "___[deg]_"
@@ -2517,7 +2519,7 @@ contains
         write(ich,'(A,$)') " Cross-section "
         write(ich,'(A)')   "          Rel. velocity"
 
-        write(ich,'(A,$)') "#_ [YYYY-MM-DD hh:mm:ss]"
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
         write(ich,'(A,$)') "___[JD - 2400000.5]____"
         write(ich,'(A,$)') "__[g/cm**3]___"
         write(ich,'(A,$)') "___[m**2]___"

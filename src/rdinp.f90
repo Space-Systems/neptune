@@ -260,6 +260,7 @@ subroutine rdinp(                &
   ! State vector: cartesian (GCRF)
   !
   !-------------------------------------------
+  state%epoch = epoch(1)
 
   !** radius
   do i = 1,3
@@ -937,7 +938,7 @@ subroutine rdinp(                &
     call neptune%reduction%initEOP(neptune%getDataPath())
     stateTEME = state
     call neptune%reduction%teme2eci(stateTEME%r, stateTEME%v, (/0.d0,0.d0,0.d0/), & ! no accelerations..
-                  epoch(1)%mjd, state%r, state%v, dtmp3)
+                  state%epoch%mjd, state%r, state%v, dtmp3)
 
   else if(input_type == INPUT_ITRF) then
 
@@ -945,7 +946,7 @@ subroutine rdinp(                &
     call neptune%reduction%initEOP(neptune%getDataPath())
     stateITRF = state
     call neptune%reduction%earthFixed2inertial(stateITRF%r, stateITRF%v, (/0.d0,0.d0,0.d0/), & ! no accelerations..
-                  epoch(1)%mjd, state%r, state%v, dtmp3)
+                state%epoch%mjd, state%r, state%v, dtmp3)
 
   else if(input_type == INPUT_ITRF_TEME) then
 
@@ -953,10 +954,10 @@ subroutine rdinp(                &
     call neptune%reduction%initEOP(neptune%getDataPath())
     stateITRF = state
     call neptune%reduction%earthFixed2inertial(stateITRF%r, stateITRF%v, (/0.d0,0.d0,0.d0/), & ! no accelerations..
-                  epoch(1)%mjd, state%r, state%v, dtmp3)
+                  state%epoch%mjd, state%r, state%v, dtmp3)
     stateTEME = state
     call neptune%reduction%teme2eci(stateTEME%r, stateTEME%v, (/0.d0,0.d0,0.d0/), & ! no accelerations..
-                  epoch(1)%mjd, state%r, state%v, dtmp3)
+                  state%epoch%mjd, state%r, state%v, dtmp3)
 
   end if
 
