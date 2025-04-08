@@ -95,6 +95,8 @@
   0.d0 0.d0 0.d0 0.d0       covariance matrix 5th row
   0.d0 0.d0 0.d0 0.d0 0.d0  covariance matrix 6th row
 #
+  0.1d0			    c_d covariance
+#
 #------------------------------------------------------------------------------
 #
 #   Perturbations to be considered
@@ -152,6 +154,13 @@
   0     Solar radiation pressure (variational equations)
 #
 #   Noise matrix computation
+#
+#     1 = on (only considered if covariance matrix propagation is on)
+#     0 = off
+#
+  0
+#
+#   Consider C_D Covariance
 #
 #     1 = on (only considered if covariance matrix propagation is on)
 #     0 = off

@@ -89,6 +89,7 @@ module neptuneParameters
   character(len=*), parameter :: C_COV_SUN      = "COVARIANCE_SUN"
   character(len=*), parameter :: C_COV_SRP      = "COVARIANCE_SRP"
   character(len=*), parameter :: C_CORRELATION  = "CORRELATION_MATRIX"
+  character(len=*), parameter :: C_CONSIDER_CD_COV  = "CONSIDER_CD_COV"
 
   character(len=*), parameter :: C_HARMONIC_C         = "HARMONIC_C"
   character(len=*), parameter :: C_HARMONIC_SD_C      = "HARMONIC_SD_C"
@@ -96,6 +97,7 @@ module neptuneParameters
   character(len=*), parameter :: C_HARMONIC_S         = "HARMONIC_S"
   character(len=*), parameter :: C_HARMONICS          = "HARMONICS"
   character(len=*), parameter :: C_INITIAL_COVARIANCE = "INITIAL_COVARIANCE"
+  character(len=*), parameter :: PAR_CDRAG_COV        = "PAR_CDRAG_COV"
   character(len=*), parameter :: C_INITIAL_STATE      = "INITIAL_STATE"
   character(len=*), parameter :: C_OPT_CANONICAL      = "OPT_CANONICAL"
   character(len=*), parameter :: C_OPT_AP_FORECAST    = "OPT_AP_FORECAST"
