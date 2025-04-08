@@ -12,7 +12,7 @@ module test_neptuneClass
 
         neptune = Neptune_class()
 
-        @assertEqual(neptune%get_output_step(), 300)
+        @assertEqual(neptune%get_output_step(), 300.d0)
 
    end subroutine test_default_output_step
 
