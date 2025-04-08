@@ -240,7 +240,7 @@ end do
 
         !** Output options
         ind_err = neptune%setNeptuneVar("OUTPUT_FILES","OFF")
-        ind_err = neptune%setNeptuneVar("OPT_STORE_DATA","10")
+        ind_err = neptune%setNeptuneVar("OPT_STORE_DATA", toString(10.d0))
         ind_err = neptune%setNeptuneVar('OPT_PROGRESS', 'OFF')
 
         !** Relative tolerance
