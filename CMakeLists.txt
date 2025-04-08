@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.12)
+cmake_minimum_required (VERSION 3.21)   # for the output-junit argument in ctest
 
 # Name the project NEPTUNE
 project (NEPTUNE Fortran)
