@@ -910,7 +910,7 @@ end subroutine
     real(dp), dimension(6)                          :: pnm
 
     real(dp), dimension(setdim,setdim) :: k1,k2,k3,k4,k5,k6,k7,k8,k9,k10
-    real(dp), dimension(3)             :: k1_atm, k2_atm, k3_atm, k4_atm, k5_atm, k6_atm, k7_atm, k8_atm, k9_atm, k10_atm
+    real(dp), dimension(3)             :: k1_atm, k2_atm, k3_atm, k4_atm, k5_atm, k6_atm, k7_atm, k9_atm, k10_atm
     real(dp), dimension(setdim,setdim) :: pdm
 
     integer :: reset
@@ -1136,7 +1136,7 @@ end subroutine
                                         )
         if(hasFailed()) return
 
-        call atmosphere_model%getAtmosphereAcceleration(        &
+        call atmosphere_model%getAtmosphereAcceleration(      &
                                         gravity_model,        &  ! <-> TYPE gravity model
                                         satellite_model,      &  ! <-> TYPE satellite model
                                         solarsystem_model,    &  ! <-> TYPE solarsystem model
@@ -1240,8 +1240,8 @@ end subroutine
                         t2,                                  &      ! <--  DBL   requested time (s)
                         .false.,                             &
                         reqt_loc,                            &      ! <--  DBL   current time (s)
-                        state_rk8(2)%r,                          &      ! <--> DBL() radius vector (km)
-                        state_rk8(2)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                        state_rk8(2)%r,                      &      ! <--> DBL() radius vector (km)
+                        state_rk8(2)%v,                      &      ! <--> DBL() velocity vector (km/s)
                         reset,                               &      ! <--  INT   reset flag
                         dt                                   &      ! -->  DBL   propagated time (s)
                       )
@@ -1269,8 +1269,8 @@ end subroutine
                         t3,                                  &      ! <--  DBL   requested time (s)
                         .false.,                             &
                         reqt_loc,                            &      ! <--  DBL   current time (s)
-                        state_rk8(3)%r,                          &      ! <--> DBL() radius vector (km)
-                        state_rk8(3)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                        state_rk8(3)%r,                      &      ! <--> DBL() radius vector (km)
+                        state_rk8(3)%v,                      &      ! <--> DBL() velocity vector (km/s)
                         reset,                               &      ! <--  INT   reset flag
                         dt                                   &      ! -->  DBL   propagated time (s)
                       )
@@ -1298,8 +1298,8 @@ end subroutine
                       t4,                                  &      ! <--  DBL   requested time (s)
                       .false.,                             &
                       reqt_loc,                            &      ! <--  DBL   current time (s)
-                      state_rk8(4)%r,                          &      ! <--> DBL() radius vector (km)
-                      state_rk8(4)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                      state_rk8(4)%r,                      &      ! <--> DBL() radius vector (km)
+                      state_rk8(4)%v,                      &      ! <--> DBL() velocity vector (km/s)
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
@@ -1327,8 +1327,8 @@ end subroutine
                       t5,                                  &      ! <--  DBL   requested time (s)
                       .false.,                             &
                       reqt_loc,                            &      ! <--  DBL   current time (s)
-                      state_rk8(5)%r,                          &      ! <--> DBL() radius vector (km)
-                      state_rk8(5)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                      state_rk8(5)%r,                      &      ! <--> DBL() radius vector (km)
+                      state_rk8(5)%v,                      &      ! <--> DBL() velocity vector (km/s)
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
@@ -1356,8 +1356,8 @@ end subroutine
                       t6,                                  &      ! <--  DBL   requested time (s)
                       .false.,                             &
                       reqt_loc,                            &      ! <--  DBL   current time (s)
-                      state_rk8(6)%r,                          &      ! <--> DBL() radius vector (km)
-                      state_rk8(6)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                      state_rk8(6)%r,                      &      ! <--> DBL() radius vector (km)
+                      state_rk8(6)%v,                      &      ! <--> DBL() velocity vector (km/s)
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
@@ -1385,8 +1385,8 @@ end subroutine
                       t7,                                  &      ! <--  DBL   requested time (s)
                       .false.,                             &
                       reqt_loc,                            &      ! <--  DBL   current time (s)
-                      state_rk8(7)%r,                          &      ! <--> DBL() radius vector (km)
-                      state_rk8(7)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                      state_rk8(7)%r,                      &      ! <--> DBL() radius vector (km)
+                      state_rk8(7)%v,                      &      ! <--> DBL() velocity vector (km/s)
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
@@ -1414,8 +1414,8 @@ end subroutine
                       t9,                                  &      ! <--  DBL   requested time (s)
                       .false.,                             &
                       reqt_loc,                            &      ! <--  DBL   current time (s)
-                      state_rk8(9)%r,                          &      ! <--> DBL() radius vector (km)
-                      state_rk8(9)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                      state_rk8(9)%r,                      &      ! <--> DBL() radius vector (km)
+                      state_rk8(9)%v,                      &      ! <--> DBL() velocity vector (km/s)
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
@@ -1434,8 +1434,8 @@ end subroutine
                                         solarsystem_model,  &
                                         thirdbody_model,    &
                                         reduction,          &
-                                        state_rk8(1)%r,         &
-                                        state_rk8(1)%v,         &
+                                        state_rk8(1)%r,     &
+                                        state_rk8(1)%v,     &
                                         set,                &
                                         t1d,                &
                                         k1)
@@ -1564,7 +1564,120 @@ end subroutine
 
       ! RK8:
       set = set + (this%covIntegrationStep/840.d0)*(41.d0*k1 + 27.d0*k4 + 272.d0*k5 + 27.d0*k6 + 216.d0*k7 + 216.d0*k9 + 41.d0*k10)
+      sensitivity_matrix = 0.
+      
+      if(this%cd_cov_flag) then
 
+        call reduction%inertial2earthFixed(state_rk8(1)%r, state_rk8(1)%v, t1d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(1)%r,       &
+                                          state_rk8(1)%v,       &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t1d,                  &  ! <-- DBL    current time (MJD)
+                                          k1_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+        call reduction%inertial2earthFixed(state_rk8(4)%r, state_rk8(4)%v, t4d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(4)%r,       &
+                                          state_rk8(4)%v,       &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t4d,                  &  ! <-- DBL    current time (MJD)
+                                          k4_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+        call reduction%inertial2earthFixed(state_rk8(5)%r, state_rk8(5)%v, t5d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(5)%r,       &
+                                          state_rk8(5)%v,       &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t5d,                  &  ! <-- DBL    current time (MJD)
+                                          k5_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+        call reduction%inertial2earthFixed(state_rk8(6)%r, state_rk8(6)%v, t6d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(6)%r,       &
+                                          state_rk8(6)%v,       &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t6d,                  &  ! <-- DBL    current time (MJD)
+                                          k6_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+        call reduction%inertial2earthFixed(state_rk8(7)%r, state_rk8(7)%v, t7d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(7)%r,       &
+                                          state_rk8(7)%v,       &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t7d,                  &  ! <-- DBL    current time (MJD)
+                                          k7_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+        call reduction%inertial2earthFixed(state_rk8(9)%r, state_rk8(9)%v, t9d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(9)%r,       &
+                                          state_rk8(9)%v,       &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t9d,                  &  ! <-- DBL    current time (MJD)
+                                          k9_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+        call reduction%inertial2earthFixed(state_rk8(10)%r, state_rk8(10)%v, t10d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(10)%r,      &
+                                          state_rk8(10)%v,      &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t10d,                 &  ! <-- DBL    current time (MJD)
+                                          k10_atm               &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+
+        sensitivity_matrix(4:6) = (this%covIntegrationStep/840.d0)*(41.d0*k1_atm  + 27.d0*k4_atm  + 272.d0*k5_atm  + 27.d0*k6_atm  + 216.d0*k7_atm  + 216.d0*k9_atm  + 41.d0*k10_atm)
+        sensitivity_matrix(7) = 1.d0
+
+      end if
       !** save last state
       this%lastState = state_rk8(8)
 
