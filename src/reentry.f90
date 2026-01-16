@@ -25,7 +25,7 @@ module reentry
   use slam_math,    only: rad2deg
   use neptuneClass, only: Neptune_class
   use slam_types,   only: dp
-  use slam_time,    only: time_t, mjd2gd
+  use slam_time,    only: time_t, mjd2gd, date2string, getDateTimeNowUtc
 
   implicit none
 
@@ -110,8 +110,7 @@ contains
     class(Reentry_class)                :: this
     type(Neptune_class),intent(inout)   :: neptune
 
-    character(len=140)      :: cdata   ! data string containing reentry information
-    integer, dimension(8)   :: date ! date string
+    character(len=160)      :: cdata   ! data string containing reentry information
     integer                 :: ierr
     real(dp), dimension(4)  :: temp_vec  ! containing re-entry epoch, altitude, latitude and longitude
    
@@ -123,13 +122,7 @@ contains
 
     ! receive current time
     !--------------------------------------------
-    call date_and_time(values=date)
-    orig_epoch%year   = date(1)
-    orig_epoch%month  = date(2)
-    orig_epoch%day    = date(3)
-    orig_epoch%hour   = date(5)
-    orig_epoch%minute = date(6)
-    orig_epoch%second = date(7)
+    orig_epoch = getDateTimeNowUtc()
 
     ! get orbit epoch
     !---------------------------------------------
@@ -148,21 +141,17 @@ contains
     call mjd2gd(minCOIW_epoch)
     call mjd2gd(maxCOIW_epoch)
 
-100 format(5(x,i4.4,'/',i2.2,'/',i2.2,x,i2.2,':',i2.2,':',i2.2),x,f7.2,x,f6.2,x,i3,x,i4.4,'/',i2.2,'/',i2.2,x,i2.2,':',i2.2,':',i2.2)
+100 format(a,';',5(a,';'),f6.2,';',f6.2,';',f6.2)
+    write(cdata,100) coriginator, date2string(orig_epoch), date2string(orbit_epoch), &
+                     date2string(minCOIW_epoch), date2string(reentry_epoch), date2string(maxCOIW_epoch), &
+                     temp_vec(4)*rad2deg, temp_vec(3)*rad2deg, neptune%atmosphere_model%getMinAltitude()
 
-    write(cdata,100) orig_epoch%year, orig_epoch%month, orig_epoch%day, orig_epoch%hour, orig_epoch%minute, int(orig_epoch%second), &
-                     orbit_epoch%year, orbit_epoch%month, orbit_epoch%day, orbit_epoch%hour, orbit_epoch%minute, int(orbit_epoch%second), &
-                     minCOIW_epoch%year, minCOIW_epoch%month, minCOIW_epoch%day, minCOIW_epoch%hour, minCOIW_epoch%minute, int(minCOIW_epoch%second), &
-                     reentry_epoch%year, reentry_epoch%month, reentry_epoch%day, reentry_epoch%hour, reentry_epoch%minute, int(reentry_epoch%second), &
-                     maxCOIW_epoch%year, maxCOIW_epoch%month, maxCOIW_epoch%day, maxCOIW_epoch%hour, maxCOIW_epoch%minute, int(maxCOIW_epoch%second), &
-                     temp_vec(4)*rad2deg, temp_vec(3)*rad2deg, int(neptune%atmosphere_model%getMinAltitude()), &
-                     reentry_epoch%year, reentry_epoch%month, reentry_epoch%day, reentry_epoch%hour, reentry_epoch%minute, int(reentry_epoch%second)
 
     mess = new_line('a')//repeat('=',160)//new_line('a')//new_line('a')// &
            '  IADC Re-entry campaign - REDB format string:'//new_line('a')//new_line('a')// &
            '  Originator;Origination Epoch;Orbit Epoch;COIW start;COIW;COIW end;longitude/deg;latitude/deg;altitude/km'//new_line('a')// &
            repeat('-',160)//new_line('a')// &
-           '  '//coriginator//cdata//new_line('a')//new_line('a')//repeat('=',160)
+           '  '//cdata//new_line('a')//new_line('a')//repeat('=',160)
            
   end function getReEntryMessage
 

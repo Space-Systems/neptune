@@ -43,7 +43,8 @@ module libneptune
                                     E_INVALID_SATELLITE, setNeptuneError
     use slam_error_handling,    only: hasToReturn, isControlled, hasFailed, isSetErrorHandling, E_FILE_NOT_FOUND, WARNING, FATAL, &
                                     E_MISSING_PARAMETER, ERRORS, initErrorHandler, ALL_MSG, getLogfileChannel, &
-                                    setLogFileName, getLogFileName, setLogFileChannel, setLogVerbosity, setCliVerbosity, checkIn, checkOut
+                                    setLogFileName, getLogFileName, setLogFileChannel, setLogVerbosity, setCliVerbosity, checkIn, checkOut, & 
+                                    REMARKS, DEBUG_MSGS, WARNINGS, REMARK
     use slam_io,                only: SWITCHED_ON, SWITCHED_OFF, SEQUENTIAL, FT_LOG, openFile, cdelimit, LOGFILE, LOG_AND_STDOUT, message, write_progress
     use slam_math,              only: eps3, eps9, eps15, identity_matrix, mag, undefined, rad2deg, cross
     use neptuneClass,           only: Neptune_class
@@ -61,6 +62,11 @@ module libneptune
     use slam_orbit_types,       only: state_t, kepler_t, covariance_t
 
     implicit none
+
+    ! Default Log Level
+    integer :: DEFAULT_LOG_LEVEL_LOGS = ALL_MSG
+    integer :: DEFAULT_LOG_LEVEL_CLI = ERRORS
+    
 
     private
 
@@ -109,11 +115,23 @@ contains
 
     type(time_t)            :: startEpoch, endEpoch, tempStartEpoch, tempEndEpoch
 
+    integer                 :: log_level_env_logs, log_level_env_cli
+
     init_neptune = 0
+
+    ! Get log levels from env, if not available, will default to DEFAULT_LOG_LEVEL_[CLI/LOGS]
+    log_level_env_logs = get_log_level_from_env(for_cli=.FALSE.)
+    log_level_env_cli = get_log_level_from_env(for_cli=.TRUE.)
 
     !** check whether error handling has been initialized before - if not, NEPTUNE will apply its own scheme...
     if(.not. isSetErrorHandling()) then
-      call initErrorHandler(control = 'YES', errAction = 'RETURN', traceback = 'YES')
+      if (log_level_env_cli == DEBUG_MSGS) then
+        call initErrorHandler(control = 'YES', errAction = 'RETURN', traceback = 'YES')
+        call message(" Tracebacks are enabled",     &
+                                        LOGFILE)
+      else
+        call initErrorHandler(control = 'YES', errAction = 'RETURN', traceback = 'NO')
+      end if
     end if
 
     if(isControlled()) then
@@ -145,8 +163,8 @@ contains
     if(getLogfileChannel() == 0) then !** open logfile
       ierr = setLogfileName("neptune.log")
       ierr = setLogfileChannel(openFile(getLogfileName(), SEQUENTIAL, FT_LOG))
-      ierr = setLogVerbosity(ALL_MSG)
-      ierr = setCliVerbosity(ERRORS)
+      ierr = setLogVerbosity(log_level_env_logs)
+      ierr = setCliVerbosity(log_level_env_cli)
     end if
 
     !==============================================================
@@ -1066,5 +1084,61 @@ contains
     return
 
   end subroutine propagate_set
+
+  !===========================================================================
+    !!
+    !>  @anchor     get_log_level_from_env
+    !!
+    !>  @brief      Extract the log level from an env variable 
+    !!              FORTRAN_LOG_FILE_LEVEL/FORTRAN_LOG_CLI_LEVEL
+    !>  @author     Oscar Rodriguez
+    !!
+    !>  @param[in]   for_cli - flag to indicate if the variable for cli or the log 
+    !!               file is to be used
+    !!
+    !>  @date       <ul>
+    !!                <li>10.03.2025 (initial design)</li>
+    !!                <li>12.11.2025 (port to NEPTUNE from OODT)</li>
+    !!              </ul>
+    !!
+    !---------------------------------------------------------------------------
+    
+    FUNCTION get_log_level_from_env(for_cli) RESULT(log_level_env)
+        use slam_strings, only: toUppercase
+        implicit None 
+        logical, intent(in)         :: for_cli
+        character(len=100)          :: log_level_str
+        character(len=22),parameter  :: FORTRAN_LOG_FILE_LEVEL = "FORTRAN_LOG_FILE_LEVEL"
+        character(len=21),parameter  :: FORTRAN_LOG_CLI_LEVEL = "FORTRAN_LOG_CLI_LEVEL"
+        integer                 :: status, log_level_env
+        
+        if (for_cli) then
+            call get_environment_variable(name=FORTRAN_LOG_CLI_LEVEL,&
+                                        value=log_level_str, &
+                                        status=status)
+            log_level_env = DEFAULT_LOG_LEVEL_CLI
+        else
+            call get_environment_variable(name=FORTRAN_LOG_FILE_LEVEL,&
+                                        value=log_level_str, &
+                                        status=status)
+            log_level_env = DEFAULT_LOG_LEVEL_LOGS
+        end if
+        ! ENV variable is present
+        if (status .EQ. 0 ) then
+            SELECT CASE (toUppercase(trim(log_level_str)))
+            CASE ("INFO")
+                log_level_env=REMARKS
+            CASE ("DEBUG")
+                log_level_env=DEBUG_MSGS
+            CASE ("WARNING")
+                log_level_env=WARNINGS
+            CASE ("ERROR")
+                log_level_env=ERRORS
+            CASE DEFAULT
+                call message("Unknown log level "//log_level_str//" Using default level", LOG_AND_STDOUT)
+            END SELECT
+        end if
+
+    end function
 
 end module libneptune
