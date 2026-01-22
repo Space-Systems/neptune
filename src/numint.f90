@@ -126,6 +126,8 @@ module numint
       integer, private                       :: lk                              ! k in last integration step for interpolator
       integer, private                       :: fail                            ! number of consecutive failures
       logical, private                       :: flag_srp                        ! becomes true as soon as SRP perturbation has been activated and varstormcow is initialized
+      real(dp), private                      :: cd_cov                          ! number of consecutive failures
+      logical, private                       :: cd_cov_flag                     ! becomes true as soon as SRP perturbation has been activated and varstormcow is initialized
 
 
 
@@ -141,6 +143,8 @@ module numint
         procedure,public :: get_covariance_integration_method
         procedure,public :: getStateTransitionMatrix
         procedure,public :: get_current_step_size
+        procedure,public :: getCdCovFlag
+        procedure,public :: getCdCov
 
         !** set
         procedure,public :: resetCountIntegrator
@@ -154,6 +158,8 @@ module numint
         procedure,public :: setCovariancePropagationFlag
         procedure,public :: setSrpCorrect
         procedure,public :: set_start_epoch
+        procedure,public :: setCdCovFlag
+        procedure,public :: setCdCov
         !** others
         procedure,public  :: integrateStep
         procedure,private :: varstormcow
@@ -290,6 +296,44 @@ contains
     this%correctSrp = val
     return
   end subroutine
+
+  !========================================================================
+  !
+  !> @anchor      setCdCovFlag
+  !!
+  !> @brief       Set the flag for the C_d consider covariance
+  !> @author      Daniel Lück
+  !!
+  !> @date        <ul>
+  !!                <li> 15.11.2024 (initial design)</li>
+  !!              </ul>
+  !!
+  !------------------------------------------------------------------------
+    subroutine setCdCovFlag(this,val)
+      class(Numint_class),intent(inout)           :: this
+      logical, intent(in)                         :: val
+      this%cd_cov_flag = val
+      return
+    end subroutine
+
+    !========================================================================
+    !
+    !> @anchor      setCdCovFlag
+    !!
+    !> @brief       Set the flag for the C_d consider covariance
+    !> @author      Daniel Lück
+    !!
+    !> @date        <ul>
+    !!                <li> 15.11.2024 (initial design)</li>
+    !!              </ul>
+    !!
+    !------------------------------------------------------------------------
+      subroutine setCdCov(this,val)
+        class(Numint_class),intent(inout)           :: this
+        real(dp), intent(in)                        :: val
+        this%cd_cov = val
+        return
+      end subroutine
 
 !========================================================================
 !
@@ -840,7 +884,8 @@ end subroutine
                                         r,                  &
                                         v,                  &
                                         reqt,               &
-                                        set                 &
+                                        set,                &
+                                        sensitivity_matrix  &
                                      )
 
     class(Numint_class),intent(inout)               :: this
@@ -853,13 +898,19 @@ end subroutine
     type(Thirdbody_class),intent(inout)             :: thirdbody_model
     type(Tides_class),intent(inout)                 :: tides_model
     type(Derivatives_class),intent(inout)           :: derivatives_model
-    type(Reduction_type),intent(inout)             :: reduction
+    type(Reduction_type),intent(inout)              :: reduction
     real(dp), dimension(3), intent(in)              :: r
     real(dp), dimension(3), intent(in)              :: v
     real(dp),               intent(in)              :: reqt
     real(dp), dimension(setdim,setdim), intent(out) :: set
+    real(dp), dimension(setdim+1), intent(out)      :: sensitivity_matrix
+    real(dp), dimension(3)                          :: r_itrf
+    real(dp), dimension(3)                          :: v_itrf
+    real(dp), dimension(3)                          :: acc_atmosphere
+    real(dp), dimension(6)                          :: pnm
 
     real(dp), dimension(setdim,setdim) :: k1,k2,k3,k4,k5,k6,k7,k8,k9,k10
+    real(dp), dimension(3)             :: k1_atm, k2_atm, k3_atm, k4_atm, k5_atm, k6_atm, k7_atm, k9_atm, k10_atm
     real(dp), dimension(setdim,setdim) :: pdm
 
     integer :: reset
@@ -887,6 +938,23 @@ end subroutine
       !** reset state error transition matrix
       call identity_matrix(set)
 
+      call reduction%inertial2earthFixed(r, v, time_mjd, r_itrf, v_itrf)
+
+      call atmosphere_model%getAtmosphereAcceleration(      &
+                                       gravity_model,       &  ! <-> TYPE gravity model
+                                       satellite_model,     &  ! <-> TYPE satellite model
+                                       solarsystem_model,   &  ! <-> TYPE solarsystem model
+                                       reduction,           &
+                                       r,                   &  ! <-- DBL(3) radius vector in GCRF
+                                       v,                   &  ! <-- DBL(3) velocity vector in GCRF
+                                       r_itrf,              &  ! <-- DBL(3) radius vector in ITRF
+                                       v_itrf,              & ! <-- DBL(3) velocity vector in ITRF
+                                       time_mjd,            &  ! <-- DBL    current time (MJD)
+                                       acc_atmosphere       &  ! --> DBL(3) acceleration vector in inertial frame
+                                    )
+      pnm = 0.d0
+      pnm(4:6) = acc_atmosphere
+
       !** get partial derivatives matrix
       call derivatives_model%deriv_cov(                     &
                                         gravity_model,      &
@@ -907,6 +975,13 @@ end subroutine
       set = set + this%covIntegrationStep*pdm &
                             + 0.5d0*this%covIntegrationStep**2.d0*matmul(pdm,pdm) &
                             + 1.d0/6.d0*this%covIntegrationStep**3.d0*matmul(matmul(pdm,pdm),pdm)
+
+      sensitivity_matrix(1:6) = this%covIntegrationStep*pnm &
+                            + 0.5d0*this%covIntegrationStep**2.d0*matmul(pdm,pnm) &
+                            + 1.d0/6.d0*this%covIntegrationStep**3.d0*matmul(matmul(pdm,pdm),pnm) &
+                            + 1.d0/24.d0*this%covIntegrationStep**4.d0*matmul(matmul(matmul(pdm,pdm),pdm),pnm)
+      
+      sensitivity_matrix(7) = 1.d0
 
       !** update covariance matrix
       !cov = matmul(matmul(set,cov),transpose(set))
@@ -1026,7 +1101,75 @@ end subroutine
       if(hasFailed()) return
 
       ! RK4:
-      set = set + this%covIntegrationStep/6.d0*(k1 + 2.0*k2 + 2.d0*k3 + k4)
+      set = set + this%covIntegrationStep/6.d0*(k1 + 2.d0*k2 + 2.d0*k3 + k4)
+      sensitivity_matrix = 0.
+      
+      if(this%cd_cov_flag) then
+
+        call reduction%inertial2earthFixed(state(1)%r, state(1)%v, t1d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state(1)%r,           &
+                                          state(1)%v,           &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t1d,                  &  ! <-- DBL    current time (MJD)
+                                          k1_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+        
+        call reduction%inertial2earthFixed(state(2)%r, state(2)%v, t2d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state(2)%r,           &
+                                          state(2)%v,           &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t2d,                  &  ! <-- DBL    current time (MJD)
+                                          k2_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                        )
+        if(hasFailed()) return
+
+        call atmosphere_model%getAtmosphereAcceleration(      &
+                                        gravity_model,        &  ! <-> TYPE gravity model
+                                        satellite_model,      &  ! <-> TYPE satellite model
+                                        solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                        reduction,            &
+                                        state(2)%r,           &
+                                        state(2)%v,           &
+                                        r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                        v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                        t2d,                  &  ! <-- DBL    current time (MJD)
+                                        k3_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+        call reduction%inertial2earthFixed(state(3)%r, state(3)%v, t3d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                        gravity_model,        &  ! <-> TYPE gravity model
+                                        satellite_model,      &  ! <-> TYPE satellite model
+                                        solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                        reduction,            &
+                                        state(3)%r,           &
+                                        state(3)%v,           &
+                                        r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                        v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                        t3d,                  &  ! <-- DBL    current time (MJD)
+                                        k4_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+
+        sensitivity_matrix(4:6) = this%covIntegrationStep/6.d0*(k1_atm + 2.0*k2_atm + 2.d0*k3_atm + k4_atm)
+        sensitivity_matrix(7) = 1.d0
+
+      end if
       !write(52,'(36(e14.7e2,x))') set
 
     !write(*,*)
@@ -1097,8 +1240,8 @@ end subroutine
                         t2,                                  &      ! <--  DBL   requested time (s)
                         .false.,                             &
                         reqt_loc,                            &      ! <--  DBL   current time (s)
-                        state_rk8(2)%r,                          &      ! <--> DBL() radius vector (km)
-                        state_rk8(2)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                        state_rk8(2)%r,                      &      ! <--> DBL() radius vector (km)
+                        state_rk8(2)%v,                      &      ! <--> DBL() velocity vector (km/s)
                         reset,                               &      ! <--  INT   reset flag
                         dt                                   &      ! -->  DBL   propagated time (s)
                       )
@@ -1126,8 +1269,8 @@ end subroutine
                         t3,                                  &      ! <--  DBL   requested time (s)
                         .false.,                             &
                         reqt_loc,                            &      ! <--  DBL   current time (s)
-                        state_rk8(3)%r,                          &      ! <--> DBL() radius vector (km)
-                        state_rk8(3)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                        state_rk8(3)%r,                      &      ! <--> DBL() radius vector (km)
+                        state_rk8(3)%v,                      &      ! <--> DBL() velocity vector (km/s)
                         reset,                               &      ! <--  INT   reset flag
                         dt                                   &      ! -->  DBL   propagated time (s)
                       )
@@ -1155,8 +1298,8 @@ end subroutine
                       t4,                                  &      ! <--  DBL   requested time (s)
                       .false.,                             &
                       reqt_loc,                            &      ! <--  DBL   current time (s)
-                      state_rk8(4)%r,                          &      ! <--> DBL() radius vector (km)
-                      state_rk8(4)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                      state_rk8(4)%r,                      &      ! <--> DBL() radius vector (km)
+                      state_rk8(4)%v,                      &      ! <--> DBL() velocity vector (km/s)
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
@@ -1184,8 +1327,8 @@ end subroutine
                       t5,                                  &      ! <--  DBL   requested time (s)
                       .false.,                             &
                       reqt_loc,                            &      ! <--  DBL   current time (s)
-                      state_rk8(5)%r,                          &      ! <--> DBL() radius vector (km)
-                      state_rk8(5)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                      state_rk8(5)%r,                      &      ! <--> DBL() radius vector (km)
+                      state_rk8(5)%v,                      &      ! <--> DBL() velocity vector (km/s)
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
@@ -1213,8 +1356,8 @@ end subroutine
                       t6,                                  &      ! <--  DBL   requested time (s)
                       .false.,                             &
                       reqt_loc,                            &      ! <--  DBL   current time (s)
-                      state_rk8(6)%r,                          &      ! <--> DBL() radius vector (km)
-                      state_rk8(6)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                      state_rk8(6)%r,                      &      ! <--> DBL() radius vector (km)
+                      state_rk8(6)%v,                      &      ! <--> DBL() velocity vector (km/s)
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
@@ -1242,8 +1385,8 @@ end subroutine
                       t7,                                  &      ! <--  DBL   requested time (s)
                       .false.,                             &
                       reqt_loc,                            &      ! <--  DBL   current time (s)
-                      state_rk8(7)%r,                          &      ! <--> DBL() radius vector (km)
-                      state_rk8(7)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                      state_rk8(7)%r,                      &      ! <--> DBL() radius vector (km)
+                      state_rk8(7)%v,                      &      ! <--> DBL() velocity vector (km/s)
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
@@ -1271,8 +1414,8 @@ end subroutine
                       t9,                                  &      ! <--  DBL   requested time (s)
                       .false.,                             &
                       reqt_loc,                            &      ! <--  DBL   current time (s)
-                      state_rk8(9)%r,                          &      ! <--> DBL() radius vector (km)
-                      state_rk8(9)%v,                          &      ! <--> DBL() velocity vector (km/s)
+                      state_rk8(9)%r,                      &      ! <--> DBL() radius vector (km)
+                      state_rk8(9)%v,                      &      ! <--> DBL() velocity vector (km/s)
                       reset,                               &      ! <--  INT   reset flag
                       dt                                   &      ! -->  DBL   propagated time (s)
                     )
@@ -1291,8 +1434,8 @@ end subroutine
                                         solarsystem_model,  &
                                         thirdbody_model,    &
                                         reduction,          &
-                                        state_rk8(1)%r,         &
-                                        state_rk8(1)%v,         &
+                                        state_rk8(1)%r,     &
+                                        state_rk8(1)%v,     &
                                         set,                &
                                         t1d,                &
                                         k1)
@@ -1421,7 +1564,120 @@ end subroutine
 
       ! RK8:
       set = set + (this%covIntegrationStep/840.d0)*(41.d0*k1 + 27.d0*k4 + 272.d0*k5 + 27.d0*k6 + 216.d0*k7 + 216.d0*k9 + 41.d0*k10)
+      sensitivity_matrix = 0.
+      
+      if(this%cd_cov_flag) then
 
+        call reduction%inertial2earthFixed(state_rk8(1)%r, state_rk8(1)%v, t1d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(1)%r,       &
+                                          state_rk8(1)%v,       &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t1d,                  &  ! <-- DBL    current time (MJD)
+                                          k1_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+        call reduction%inertial2earthFixed(state_rk8(4)%r, state_rk8(4)%v, t4d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(4)%r,       &
+                                          state_rk8(4)%v,       &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t4d,                  &  ! <-- DBL    current time (MJD)
+                                          k4_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+        call reduction%inertial2earthFixed(state_rk8(5)%r, state_rk8(5)%v, t5d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(5)%r,       &
+                                          state_rk8(5)%v,       &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t5d,                  &  ! <-- DBL    current time (MJD)
+                                          k5_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+        call reduction%inertial2earthFixed(state_rk8(6)%r, state_rk8(6)%v, t6d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(6)%r,       &
+                                          state_rk8(6)%v,       &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t6d,                  &  ! <-- DBL    current time (MJD)
+                                          k6_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+        call reduction%inertial2earthFixed(state_rk8(7)%r, state_rk8(7)%v, t7d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(7)%r,       &
+                                          state_rk8(7)%v,       &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t7d,                  &  ! <-- DBL    current time (MJD)
+                                          k7_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+        call reduction%inertial2earthFixed(state_rk8(9)%r, state_rk8(9)%v, t9d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(9)%r,       &
+                                          state_rk8(9)%v,       &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t9d,                  &  ! <-- DBL    current time (MJD)
+                                          k9_atm                &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+        call reduction%inertial2earthFixed(state_rk8(10)%r, state_rk8(10)%v, t10d, r_itrf, v_itrf)                                
+        call atmosphere_model%getAtmosphereAcceleration(        &
+                                          gravity_model,        &  ! <-> TYPE gravity model
+                                          satellite_model,      &  ! <-> TYPE satellite model
+                                          solarsystem_model,    &  ! <-> TYPE solarsystem model
+                                          reduction,            &
+                                          state_rk8(10)%r,      &
+                                          state_rk8(10)%v,      &
+                                          r_itrf,               &  ! <-- DBL(3) radius vector in ITRF
+                                          v_itrf,               &  ! <-- DBL(3) velocity vector in ITRF
+                                          t10d,                 &  ! <-- DBL    current time (MJD)
+                                          k10_atm               &  ! --> DBL(3) acceleration vector in inertial frame
+                                      )
+        if(hasFailed()) return
+
+
+        sensitivity_matrix(4:6) = (this%covIntegrationStep/840.d0)*(41.d0*k1_atm  + 27.d0*k4_atm  + 272.d0*k5_atm  + 27.d0*k6_atm  + 216.d0*k7_atm  + 216.d0*k9_atm  + 41.d0*k10_atm)
+        sensitivity_matrix(7) = 1.d0
+
+      end if
       !** save last state
       this%lastState = state_rk8(8)
 
@@ -1500,6 +1756,46 @@ real(dp) function get_current_step_size(this)
   class(Numint_class),intent(inout)       :: this
 
   get_current_step_size = this%stepsize
+
+  return
+end function
+
+!========================================================================
+!
+!> @anchor      getCdCov
+!!
+!> @brief       Returns the step size of the integrator
+!> @author      Christopher Kebschull
+!!
+!> @date        <ul>
+!!                <li> 29.10.2020 (initial design)</li>
+!!              </ul>
+!!
+!------------------------------------------------------------------------
+real(dp) function getCdCov(this)
+  class(Numint_class),intent(inout)       :: this
+
+  getCdCov = this%cd_cov
+
+  return
+end function
+
+!========================================================================
+!
+!> @anchor      getCdCovFlag
+!!
+!> @brief       Returns the step size of the integrator
+!> @author      Christopher Kebschull
+!!
+!> @date        <ul>
+!!                <li> 29.10.2020 (initial design)</li>
+!!              </ul>
+!!
+!------------------------------------------------------------------------
+logical function getCdCovFlag(this)
+  class(Numint_class),intent(inout)       :: this
+
+  getCdCovFlag = this%cd_cov_flag
 
   return
 end function

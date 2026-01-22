@@ -41,17 +41,17 @@ module neptuneClass
                                     C_JUPITER, C_SATURN, C_NEPTUNE, C_URANUS, C_SRP, PAR_INT_RELEPS, PAR_INT_ABSEPS, PAR_INT_COV_STEP, OPTION_OUTPUT, &
                                     OPTION_PN_LOOKUP, OPTION_SRP_CORRECT, OPTION_INT_LOGFILE, OPTION_HARMONICS, OPTION_EOP, OPTION_CORRELATION, &
                                     C_EPOCH_END_GD, C_EPOCH_START_GD, C_OPT_SOL_FORECAST, C_PAR_INT_COV_STEP, C_PAR_CDRAG, &
-                                    PAR_CDRAG, C_PAR_CROSS_SECTION, PAR_CROSS_SECTION, C_PAR_MASS, PAR_MASS, C_COV_GEOPOTENTIAL,          &
+                                    PAR_CDRAG, C_PAR_CROSS_SECTION, PAR_CROSS_SECTION, PAR_CDRAG_COV, C_PAR_MASS, PAR_MASS, C_COV_GEOPOTENTIAL,          &
                                     C_PAR_INT_COV_METHOD, C_OPT_STORE_DATA, C_OPT_ATMOSPHERE_MODEL, C_PAR_INT_METHOD, C_OUTPUT_STEP,      &
                                     C_GEOPOTENTIAL, C_OUTPUT_COV_UVW, C_OUTPUT_COV_ECI, C_OUTPUT_VAR_ECI, C_OUTPUT_VAR_UVW, &
-                                    C_OUTPUT_AMA, C_WIND, C_ATMOSPHERE, &
+                                    C_OUTPUT_AMA, C_WIND, C_ATMOSPHERE, PAR_CDRAG_COV,&
                                     C_OPT_SHADOW, C_SOLID_TIDES, C_PATH_DATA, C_PATH_INPUT, C_PATH_OUTPUT, C_OUTPUT_CSV, C_OUTPUT_ACO,    &
                                     C_OUTPUT_AMN, C_OUTPUT_OSC, C_OUTPUT_GLL, C_OUTPUT_ATM, &
                                     C_OUTPUT_ACT, C_OUTPUT_ACR, C_OUTPUT_ACA, C_OUTPUT_ACU, &
                                     C_OUTPUT_ASA, C_OUTPUT_ACD, C_OUTPUT_ACG, C_OUTPUT_ACN, &
                                     C_OUTPUT_ACM, C_OUTPUT_ACS, C_OUTPUT_ACJ, C_OUTPUT_ACV, &
                                     C_OUTPUT_AME, C_OUTPUT_ACC, C_OUTPUT_FILES, C_OPT_HARMONICS, C_OPT_SRP_CORRECT, C_OPT_INT_LOG, &
-                                    C_OPT_PN_LOOKUP, C_OPT_EOP, C_CORRELATION, C_COV_MOON, C_COV_SUN, C_COV_SRP, C_COV_DRAG, C_COV_PROP, &
+                                    C_OPT_PN_LOOKUP, C_OPT_EOP, C_CORRELATION, C_CONSIDER_CD_COV, C_COV_MOON, C_COV_SUN, C_COV_SRP, C_COV_DRAG, C_COV_PROP, &
                                     C_MANEUVERS, C_OCEAN_TIDES, C_ALBEDO, C_RUN_ID, INPUT_UNDEFINED, &
                                     C_FILE_DE_EPHEM, C_FILE_LEAP_SPICE, C_FILE_TXYS, C_FILE_PROGRESS, C_OPT_PROGRESS, C_BOUNDARY_CHECK
     use numint,                 only: Numint_class
@@ -485,6 +485,7 @@ contains
         call this%set_input(parName=C_OPT_SOL_FORECAST, valType='double', initFlag=.true.)
         call this%set_input(parName=C_OUTPUT_STEP, valType='double', initFlag=.true.)
         call this%set_input(parName=C_OPT_STORE_DATA, valType='double', initFlag=.true.)
+        call this%set_input(parName=PAR_CDRAG_COV, valType='double', initFlag=.true.)
 
         ! ON/OFF parameters (also set default values, if available)
         do i = 1, this%derivatives_model%get_neptune_perturbation_number()
@@ -501,6 +502,7 @@ contains
         end do
 
         call this%set_input(parName=C_CORRELATION, valType='boolean', initFlag=.true.)
+        call this%set_input(parName=C_CONSIDER_CD_COV, valType='boolean', initFlag=.true.)
         call this%set_input(parName=C_OPT_EOP, valType='boolean', initFlag=.true.)
         call this%set_input(parName=C_OPT_PN_LOOKUP, valType='boolean', initFlag=.true.)
         call this%set_input(parName=C_OPT_INT_LOG, valType='boolean', initFlag=.true.)
@@ -1415,7 +1417,8 @@ contains
             !---------------------------------
             case(C_ATMOSPHERE,     C_SUN, C_MOON,    C_SRP,            C_SOLID_TIDES,     &
                  C_MERCURY, C_VENUS, C_JUPITER, C_MARS, C_SATURN, C_URANUS, C_NEPTUNE,    &
-                 C_OCEAN_TIDES,    C_MANEUVERS,      C_CORRELATION,    C_WIND,            &
+                 C_OCEAN_TIDES,    C_MANEUVERS,      C_CORRELATION, C_CONSIDER_CD_COV,    &
+                 C_WIND,            &
                  C_ALBEDO,         C_OPT_EOP,        C_OPT_PN_LOOKUP,  C_OPT_INT_LOG,     &
                  C_OPT_SRP_CORRECT,  &
                  C_OUTPUT_FILES,   C_OUTPUT_ACC,     C_OUTPUT_ACG,     C_OUTPUT_ACD,      &
@@ -1576,6 +1579,19 @@ contains
                     call this%correlation_model%setNoisePropagationFlag(.true.)
                   else
                     call this%correlation_model%setNoisePropagationFlag(.false.)
+                  end if
+
+                !** CD Covariance propagation
+                case(C_CONSIDER_CD_COV)
+                  call this%set_input(parName=C_CONSIDER_CD_COV, val=val, set=.true.)
+
+                  
+                  if(itemp == SWITCHED_ON) then
+                    write(*,*) "consider cd turned on"
+                    call this%numerical_integrator%setCdCovFlag(.true.)
+                  else
+                    write(*,*) "consider cd turned off"
+                    call this%numerical_integrator%setCdCovFlag(.false.)
                   end if
 
                 case(C_OPT_EOP)
@@ -1791,7 +1807,7 @@ contains
           case(C_PAR_MASS, C_PAR_CROSS_SECTION, C_PAR_CDRAG, C_OUTPUT_STEP,    & 
                C_PAR_CREFL, C_PAR_REENTRY, C_PAR_INT_RELEPS, C_PAR_INT_ABSEPS, &
                C_PAR_INT_COV_STEP, C_PAR_EARTH_RADIUS, C_OPT_STORE_DATA, &
-               C_OPT_SOL_FORECAST)
+               C_OPT_SOL_FORECAST, PAR_CDRAG_COV)
 
             read(val,*,iostat=ios) dtemp
 
@@ -1866,6 +1882,10 @@ contains
                   call this%set_input(parName=C_OUTPUT_STEP, val=val, set=.true.)
                   call this%output%write_to_output(C_OUTPUT_STEP, dtemp)
                   this%output_step = dtemp
+
+                case(PAR_CDRAG_COV)
+                  call this%set_input(parName=PAR_CDRAG_COV, val=val, set=.true.)
+                  call this%numerical_integrator%setCdCov(dtemp)
 
               end select
 
@@ -2830,6 +2850,7 @@ contains
         call this%set_input(parName=C_OPT_SOL_FORECAST, valType='double', initFlag=.true.)
         call this%set_input(parName=C_OUTPUT_STEP, valType='double', initFlag=.true.)
         call this%set_input(parName=C_OPT_STORE_DATA, valType='double', initFlag=.true.)
+        call this%set_input(parName=PAR_CDRAG_COV, valType='double', initFlag=.true.)
 
         ! ON/OFF parameters (also set default values, if available)
         do i = 1, this%derivatives_model%get_neptune_perturbation_number()
@@ -2846,6 +2867,7 @@ contains
         end do
 
         call this%set_input(parName=C_CORRELATION, valType='boolean', initFlag=.true.)
+        call this%set_input(parName=C_CONSIDER_CD_COV, valType='boolean', initFlag=.true.)
         call this%set_input(parName=C_OPT_EOP, valType='boolean', initFlag=.true.)
         call this%set_input(parName=C_OPT_PN_LOOKUP, valType='boolean', initFlag=.true.)
         call this%set_input(parName=C_OPT_INT_LOG, valType='boolean', initFlag=.true.)
