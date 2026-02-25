@@ -44,7 +44,7 @@ module neptuneClass
                                     PAR_CDRAG, C_PAR_CROSS_SECTION, PAR_CROSS_SECTION, PAR_CDRAG_COV, C_PAR_MASS, PAR_MASS, C_COV_GEOPOTENTIAL,          &
                                     C_PAR_INT_COV_METHOD, C_OPT_STORE_DATA, C_OPT_ATMOSPHERE_MODEL, C_PAR_INT_METHOD, C_OUTPUT_STEP,      &
                                     C_GEOPOTENTIAL, C_OUTPUT_COV_UVW, C_OUTPUT_COV_ECI, C_OUTPUT_VAR_ECI, C_OUTPUT_VAR_UVW, &
-                                    C_OUTPUT_AMA, C_WIND, C_ATMOSPHERE, PAR_CDRAG_COV,&
+                                    C_OUTPUT_AMA, C_WIND, C_ATMOSPHERE, &
                                     C_OPT_SHADOW, C_SOLID_TIDES, C_PATH_DATA, C_PATH_INPUT, C_PATH_OUTPUT, C_OUTPUT_CSV, C_OUTPUT_ACO,    &
                                     C_OUTPUT_AMN, C_OUTPUT_OSC, C_OUTPUT_GLL, C_OUTPUT_ATM, &
                                     C_OUTPUT_ACT, C_OUTPUT_ACR, C_OUTPUT_ACA, C_OUTPUT_ACU, &
