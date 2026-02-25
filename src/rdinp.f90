@@ -352,6 +352,10 @@ subroutine rdinp(                &
     covar%frame = REF_FRAME_GCRF
   end if
 
+  !** Drag sigma
+  call nxtbuf('#', 0, ich_inp, cbuf)
+  read(cbuf,*) ctemp
+  ierr =  neptune%setNeptuneVar("PAR_CDRAG_COV", ctemp)
   !========================================================
   !
   ! perturbation switches
@@ -598,6 +602,16 @@ subroutine rdinp(                &
     ctemp = "ON"
   end if
   ierr =  neptune%setNeptuneVar("CORRELATION_MATRIX", ctemp)
+
+  !** correlation matrix computation switch
+  call nxtbuf('#', 0, ich_inp, cbuf)
+  read(cbuf,*) itemp
+  if(itemp == 0) then
+    ctemp = "OFF"
+  else
+    ctemp = "ON"
+  end if
+  ierr =  neptune%setNeptuneVar("CONSIDER_CD_COV", ctemp)
 
 
   !** further options
