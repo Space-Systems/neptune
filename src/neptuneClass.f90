@@ -44,6 +44,7 @@ module neptuneClass
                                     PAR_CDRAG, C_PAR_CROSS_SECTION, PAR_CROSS_SECTION, C_PAR_MASS, PAR_MASS, C_COV_GEOPOTENTIAL,          &
                                     C_PAR_INT_COV_METHOD, C_OPT_STORE_DATA, C_OPT_ATMOSPHERE_MODEL, C_PAR_INT_METHOD, C_OUTPUT_STEP,      &
                                     C_GEOPOTENTIAL, C_OUTPUT_COV_UVW, C_OUTPUT_COV_ECI, C_OUTPUT_VAR_ECI, C_OUTPUT_VAR_UVW, &
+                                    C_OUTPUT_CSV_MCRF, C_OUTPUT_OSC_MCRF, C_OUTPUT_VAR_MCRF, C_OUTPUT_COV_MCRF, &
                                     C_OUTPUT_AMA, C_WIND, C_ATMOSPHERE, &
                                     C_OPT_SHADOW, C_SOLID_TIDES, C_PATH_DATA, C_PATH_INPUT, C_PATH_OUTPUT, C_OUTPUT_CSV, C_OUTPUT_ACO,    &
                                     C_OUTPUT_AMN, C_OUTPUT_OSC, C_OUTPUT_GLL, C_OUTPUT_ATM, &
@@ -1426,7 +1427,8 @@ contains
                  C_OUTPUT_ACO,     C_OUTPUT_OSC,     C_OUTPUT_CSV,     C_OUTPUT_GLL,      &
                  C_COV_PROP,       C_COV_SUN,        C_COV_MOON,       C_COV_DRAG,        &
                  C_COV_SRP,        C_OUTPUT_VAR_ECI, C_OPT_HARMONICS, C_OPT_PROGRESS,     &
-                 C_OUTPUT_VAR_UVW, C_OUTPUT_COV_ECI, C_OUTPUT_COV_UVW, C_OUTPUT_AMN, C_BOUNDARY_CHECK)
+                 C_OUTPUT_VAR_UVW, C_OUTPUT_COV_ECI, C_OUTPUT_COV_UVW, C_OUTPUT_AMN, C_BOUNDARY_CHECK, &
+                 C_OUTPUT_CSV_MCRF, C_OUTPUT_OSC_MCRF, C_OUTPUT_VAR_MCRF, C_OUTPUT_COV_MCRF)
 
                 if(trim(adjustl(val)) == C_ON .or. trim(adjustl(toLowercase(val))) == 'true') then
                     itemp = SWITCHED_ON
@@ -1713,6 +1715,18 @@ contains
                 case(C_OUTPUT_COV_UVW)
                   call this%set_input(parName=C_OUTPUT_COV_UVW, val=toString(ltemp), set=.true.)
                   call this%output%set_output_file(par_name=C_OUTPUT_COV_UVW, switch = ltemp)
+                case(C_OUTPUT_CSV_MCRF)
+                  call this%set_input(parName=C_OUTPUT_CSV_MCRF, val=toString(ltemp), set=.true.)
+                  call this%output%set_output_file(par_name=C_OUTPUT_CSV_MCRF, switch = ltemp)
+                case(C_OUTPUT_OSC_MCRF)
+                  call this%set_input(parName=C_OUTPUT_OSC_MCRF, val=toString(ltemp), set=.true.)
+                  call this%output%set_output_file(par_name=C_OUTPUT_OSC_MCRF, switch = ltemp)
+                case(C_OUTPUT_VAR_MCRF)
+                  call this%set_input(parName=C_OUTPUT_VAR_MCRF, val=toString(ltemp), set=.true.)
+                  call this%output%set_output_file(par_name=C_OUTPUT_VAR_MCRF, switch = ltemp)
+                case(C_OUTPUT_COV_MCRF)
+                  call this%set_input(parName=C_OUTPUT_COV_MCRF, val=toString(ltemp), set=.true.)
+                  call this%output%set_output_file(par_name=C_OUTPUT_COV_MCRF, switch = ltemp)
               end select
 
           !========================================
@@ -3285,7 +3299,7 @@ contains
     else
         ! Note there was a possible bug here:
         !  current_index_cset has been replaced by current_index_cov
-      covMatrix(this%current_index_cov)%elem      = cov
+      covMatrix(this%current_index_cov)%elem(1:6,1:6) = cov
       covMatrix(this%current_index_cov)%epoch%mjd = mjd
       call mjd2gd(covMatrix(this%current_index_cov)%epoch)
     end if
@@ -3353,7 +3367,7 @@ contains
 
     else
 
-      setMatrix(this%current_index_set)%elem      = set
+      setMatrix(this%current_index_set)%elem(1:6,1:6) = set
       setMatrix(this%current_index_set)%epoch%mjd = mjd
 
       call mjd2gd(setMatrix(this%current_index_set)%epoch)

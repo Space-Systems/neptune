@@ -1,0 +1,209 @@
+!==============================================================================
+!
+!> @anchor  test_moon_reduction
+!!
+!> @brief   Unit tests for Moon reference frame transformations
+!!
+!> @author  Christopher Kebschull (CHK)
+!!
+!> @date    <ul>
+!!            <li>CHK: 2026-05-18 (initial design)</li>
+!!          </ul>
+!!
+!> @details Tests cover:
+!!          1. Moon physical constants (slam_moon_astro)
+!!          2. Rotation matrix orthogonality at J2000.0
+!!          3. Round-trip position: GCRF -> MOON_FIXED -> GCRF
+!!          4. Round-trip position+velocity: GCRF -> MOON_FIXED -> GCRF
+!!          5. MCRF frame ID and name lookups (slam_rframes)
+!
+!------------------------------------------------------------------------------
+module test_moon_reduction
+
+    use funit
+    use slam_types,          only: dp
+    use slam_moon_astro,     only: getMoonRadius, getMoonGravity, getMoonRotation
+    use slam_moon_reduction, only: Reduction_moon_type
+    use slam_rframes,        only: REF_FRAME_MCRF, REF_FRAME_MOON_FIXED, &
+                                   FRAME_CENTER_MOON, &
+                                   C_REF_FRAME_MCRF, C_REF_FRAME_MOON_FIXED, &
+                                   C_FRAME_CENTER_MOON, &
+                                   getFrameId, getFrameName, &
+                                   getFrameCenterId, getFrameCenterName
+
+    implicit none
+
+contains
+
+    !--------------------------------------------------------------------------
+    ! Constants tests
+    !--------------------------------------------------------------------------
+
+    @test
+    subroutine test_moonRadius()
+        @assertEqual(1737.4d0, getMoonRadius(), tolerance=1.d-10)
+    end subroutine test_moonRadius
+
+    @test
+    subroutine test_moonGravity()
+        ! DE-430 value, check to 3 decimal places
+        @assertEqual(4902.800066d0, getMoonGravity(), tolerance=1.d-6)
+    end subroutine test_moonGravity
+
+    @test
+    subroutine test_moonRotationRatePositive()
+        @assertTrue(getMoonRotation() > 0.d0)
+    end subroutine test_moonRotationRatePositive
+
+    !--------------------------------------------------------------------------
+    ! Frame ID / name lookup tests
+    !--------------------------------------------------------------------------
+
+    @test
+    subroutine test_frameIds()
+        @assertEqual(11, REF_FRAME_MCRF)
+        @assertEqual(12, REF_FRAME_MOON_FIXED)
+        @assertEqual(3,  FRAME_CENTER_MOON)
+    end subroutine test_frameIds
+
+    @test
+    subroutine test_frameNameLookup()
+        @assertEqual(REF_FRAME_MCRF,       getFrameId(C_REF_FRAME_MCRF))
+        @assertEqual(REF_FRAME_MOON_FIXED, getFrameId(C_REF_FRAME_MOON_FIXED))
+        @assertEqual(FRAME_CENTER_MOON,    getFrameCenterId(C_FRAME_CENTER_MOON))
+    end subroutine test_frameNameLookup
+
+    !--------------------------------------------------------------------------
+    ! Rotation matrix orthogonality at J2000.0
+    !--------------------------------------------------------------------------
+
+    @test
+    subroutine test_rotationMatrixOrthogonal()
+
+        type(Reduction_moon_type) :: moon_red
+        real(dp), dimension(3,3)  :: M, should_be_identity
+        real(dp), dimension(3,3)  :: eye
+        real(dp)                  :: time_mjd
+        integer                   :: i, j
+
+        time_mjd = 51544.5d0  ! J2000.0
+
+        call moon_red%getMoonFixedRotationMatrix(time_mjd)
+        M = moon_red%R_gcrf2moonFixed
+
+        !** M * M^T must equal identity
+        should_be_identity = matmul(M, transpose(M))
+
+        eye = 0.d0
+        do i = 1, 3
+            eye(i,i) = 1.d0
+        end do
+
+        do i = 1, 3
+            do j = 1, 3
+                @assertEqual(eye(i,j), should_be_identity(i,j), tolerance=1.d-12)
+            end do
+        end do
+
+    end subroutine test_rotationMatrixOrthogonal
+
+    !--------------------------------------------------------------------------
+    ! Round-trip position (GCRF -> MOON_FIXED -> GCRF)
+    !--------------------------------------------------------------------------
+
+    @test
+    subroutine test_roundTripPosition()
+
+        type(Reduction_moon_type) :: moon_red
+        real(dp), dimension(3)    :: r_gcrf, r_moon_gcrf, r_moon_fixed, r_gcrf_recovered
+        real(dp)                  :: time_mjd
+        integer                   :: i
+
+        time_mjd     = 58600.d0  ! 2019 Apr 27
+
+        !** Moon position from DE-421 ephemeris (reference: test_solarsystem)
+        r_moon_gcrf  = (/242037.66047749575d0, -291029.18822841981d0, -137196.91059160809d0/)
+
+        !** Arbitrary satellite position near Moon
+        r_gcrf       = (/243000.d0, -290500.d0, -136800.d0/)
+
+        call moon_red%inertial2moonFixed(r_gcrf, r_moon_gcrf, time_mjd, r_moon_fixed)
+        call moon_red%moonFixed2inertial(r_moon_fixed, r_moon_gcrf, time_mjd, r_gcrf_recovered)
+
+        do i = 1, 3
+            @assertEqual(r_gcrf(i), r_gcrf_recovered(i), tolerance=1.d-8)
+        end do
+
+    end subroutine test_roundTripPosition
+
+    !--------------------------------------------------------------------------
+    ! Round-trip position and velocity (GCRF -> MOON_FIXED -> GCRF)
+    !--------------------------------------------------------------------------
+
+    @test
+    subroutine test_roundTripPositionVelocity()
+
+        type(Reduction_moon_type) :: moon_red
+        real(dp), dimension(3)    :: r_gcrf, v_gcrf
+        real(dp), dimension(3)    :: r_moon_gcrf, v_moon_gcrf
+        real(dp), dimension(3)    :: r_moon_fixed, v_moon_fixed
+        real(dp), dimension(3)    :: r_gcrf_rec, v_gcrf_rec
+        real(dp)                  :: time_mjd
+        integer                   :: i
+
+        time_mjd    = 58600.d0
+
+        r_moon_gcrf = (/242037.66047749575d0, -291029.18822841981d0, -137196.91059160809d0/)
+        v_moon_gcrf = (/-0.9d0, 0.7d0, 0.3d0/)  ! approximate (km/s)
+
+        r_gcrf      = (/243000.d0, -290500.d0, -136800.d0/)
+        v_gcrf      = (/-0.85d0,    0.65d0,     0.28d0   /)
+
+        call moon_red%inertial2moonFixed(r_gcrf, v_gcrf, r_moon_gcrf, v_moon_gcrf, &
+                                         time_mjd, r_moon_fixed, v_moon_fixed)
+        call moon_red%moonFixed2inertial(r_moon_fixed, v_moon_fixed, r_moon_gcrf, v_moon_gcrf, &
+                                         time_mjd, r_gcrf_rec, v_gcrf_rec)
+
+        do i = 1, 3
+            @assertEqual(r_gcrf(i), r_gcrf_rec(i), tolerance=1.d-8)
+            @assertEqual(v_gcrf(i), v_gcrf_rec(i), tolerance=1.d-12)
+        end do
+
+    end subroutine test_roundTripPositionVelocity
+
+    !--------------------------------------------------------------------------
+    ! Verify north pole direction in Moon body-fixed frame is +z
+    !--------------------------------------------------------------------------
+
+    @test
+    subroutine test_northPoleAlongZaxis()
+        use slam_math, only: deg2rad
+
+        type(Reduction_moon_type) :: moon_red
+        real(dp), dimension(3)    :: pole_gcrf, pole_fixed
+        real(dp)                  :: ra0, dec0, time_mjd
+        real(dp)                  :: dummy_W
+
+        !** IAU 2015 values at J2000.0 (approximate)
+        ra0  = 269.9949d0 * deg2rad
+        dec0 =  66.5392d0 * deg2rad
+        time_mjd = 51544.5d0
+
+        !** North pole direction unit vector in GCRF
+        pole_gcrf(1) = cos(dec0) * cos(ra0)
+        pole_gcrf(2) = cos(dec0) * sin(ra0)
+        pole_gcrf(3) = sin(dec0)
+
+        call moon_red%getMoonFixedRotationMatrix(time_mjd)
+        pole_fixed = matmul(moon_red%R_gcrf2moonFixed, pole_gcrf)
+
+        !** In body-fixed frame the pole should point nearly along +z
+        !** (small deviation because the libration terms shift the exact pole slightly
+        !**  from the secular value, so we use a loose tolerance here)
+        @assertEqual(0.d0, pole_fixed(1), tolerance=0.1d0)
+        @assertEqual(0.d0, pole_fixed(2), tolerance=0.1d0)
+        @assertEqual(1.d0, pole_fixed(3), tolerance=0.1d0)
+
+    end subroutine test_northPoleAlongZaxis
+
+end module test_moon_reduction

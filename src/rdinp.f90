@@ -62,11 +62,13 @@ subroutine rdinp(                &
   use slam_io,             only: closeFile, openFile, SEQUENTIAL, IN_FORMATTED, nxtbuf
   !use neptuneInput,        only:  setNeptuneVar
   use neptuneClass,        only: Neptune_class
-  use neptuneParameters,   only: INPUT_TEME, INPUT_ITRF, INPUT_ITRF_TEME, INPUT_OSCULATING, INPUT_COV_UVW, INPUT_COV_GCRF
+  use neptuneParameters,   only: INPUT_TEME, INPUT_ITRF, INPUT_ITRF_TEME, INPUT_OSCULATING, INPUT_COV_UVW, INPUT_COV_GCRF, &
+                                  INPUT_CARTESIAN_MCRF, INPUT_OSCULATING_MCRF
   use slam_math,           only: deg2rad
   use slam_orbit_types,    only: state_t, covariance_t, kepler_t, idimcov
   use slam_rframes,        only: getFrameId, REF_FRAME_UVW, REF_FRAME_GCRF
-  use solarsystem,         only: n_supported_bodies
+  use solarsystem,         only: Solarsystem_class, ID_MOON, n_supported_bodies
+  use slam_moon_astro,     only: moon_coe2rv
   use slam_units,          only: UNIT_RAD, UNIT_KMPS, UNIT_KM
   use slam_time,           only: time_t, date2string, jd245, checkDate, jd2gd, gd2mjd
   use version,             only: version_t
@@ -132,6 +134,13 @@ subroutine rdinp(                &
 
   type(state_t)   :: stateTEME              ! required for TEME state input
   type(state_t)   :: stateITRF              ! required for ITRF state input
+
+  type(Solarsystem_class) :: tmp_ss         ! temporary solar system for Moon position lookup
+  real(dp), dimension(3)  :: r_moon_gcrf    ! Moon centre position in GCRF (km)
+  real(dp), dimension(3)  :: v_moon_gcrf    ! Moon centre velocity in GCRF (km/s)
+  real(dp), dimension(3)  :: r_mcrf_tmp     ! satellite position in MCRF (km)
+  real(dp), dimension(3)  :: v_mcrf_tmp     ! satellite velocity in MCRF (km/s)
+  real(dp)                :: dt_days        ! finite-difference step for Moon velocity
 
   if(isControlled()) then
     if(hasToReturn()) return
@@ -329,12 +338,14 @@ subroutine rdinp(                &
   ! covariance matrix
   !
   !-----------------------------------------
-  do i = 1, idimcov
+  ! Read the 6-state orbital covariance only; the 7th row/col of elem
+  ! is an internal extension not present in input files.
+  do i = 1, idimcov-1
     call nxtbuf('#', 0, ich_inp, cbuf)
     read(cbuf,*) covar%elem(i,i)
   end do
 
-  do i = 1, idimcov-1
+  do i = 1, idimcov-2
     call nxtbuf('#', 0, ich_inp, cbuf)
     read(cbuf,*) (covar%elem(i+1,j), j=1,i)
   end do
@@ -757,6 +768,42 @@ subroutine rdinp(                &
   else
     ctemp = "ON"
   end if
+  ierr =  neptune%setNeptuneVar("OUTPUT_CSV_MCRF", ctemp)
+
+  call nxtbuf('#', 0, ich_inp, cbuf)
+  read(cbuf,*) itemp
+  if(itemp == 0) then
+    ctemp = "OFF"
+  else
+    ctemp = "ON"
+  end if
+  ierr =  neptune%setNeptuneVar("OUTPUT_OSC_MCRF", ctemp)
+
+  call nxtbuf('#', 0, ich_inp, cbuf)
+  read(cbuf,*) itemp
+  if(itemp == 0) then
+    ctemp = "OFF"
+  else
+    ctemp = "ON"
+  end if
+  ierr =  neptune%setNeptuneVar("OUTPUT_VAR_MCRF", ctemp)
+
+  call nxtbuf('#', 0, ich_inp, cbuf)
+  read(cbuf,*) itemp
+  if(itemp == 0) then
+    ctemp = "OFF"
+  else
+    ctemp = "ON"
+  end if
+  ierr =  neptune%setNeptuneVar("OUTPUT_COV_MCRF", ctemp)
+
+  call nxtbuf('#', 0, ich_inp, cbuf)
+  read(cbuf,*) itemp
+  if(itemp == 0) then
+    ctemp = "OFF"
+  else
+    ctemp = "ON"
+  end if
   ierr =  neptune%setNeptuneVar("OUTPUT_ACC", ctemp)
 
   call nxtbuf('#', 0, ich_inp, cbuf)
@@ -959,6 +1006,34 @@ subroutine rdinp(                &
     call neptune%reduction%teme2eci(stateTEME%r, stateTEME%v, (/0.d0,0.d0,0.d0/), & ! no accelerations..
                   state%epoch%mjd, state%r, state%v, dtmp3)
 
+  else if(input_type == INPUT_CARTESIAN_MCRF .or. input_type == INPUT_OSCULATING_MCRF) then
+
+    ! Both MCRF input types need Moon's GCRF position and velocity
+    call tmp_ss%initSolarSystem(neptune%getDataPath(), 'DE-421', epoch(1))
+    if(hasFailed()) return
+
+    r_moon_gcrf = tmp_ss%getBodyPosition(epoch(1)%mjd, ID_MOON)
+    if(hasFailed()) return
+
+    ! Moon velocity by central finite difference over 60 s
+    dt_days     = 60.d0 / 86400.d0
+    v_moon_gcrf = (tmp_ss%getBodyPosition(epoch(1)%mjd + dt_days, ID_MOON) - &
+                   tmp_ss%getBodyPosition(epoch(1)%mjd - dt_days, ID_MOON)) / (2.d0 * 60.d0)
+    if(hasFailed()) return
+
+    if(input_type == INPUT_OSCULATING_MCRF) then
+      ! Convert selenocentric Kepler elements to Cartesian in MCRF (Moon's GM)
+      call moon_coe2rv(oscKep, r_mcrf_tmp, v_mcrf_tmp)
+    else
+      ! Cartesian MCRF: state%r/v were read from the Cartesian section of the input file
+      r_mcrf_tmp = state%r
+      v_mcrf_tmp = state%v
+    end if
+
+    ! Translate MCRF -> GCRF
+    state%r = r_mcrf_tmp + r_moon_gcrf
+    state%v = v_mcrf_tmp + v_moon_gcrf
+
   end if
 
   state%frame = getFrameId('GCRF')  ! set frame ID
@@ -969,7 +1044,7 @@ subroutine rdinp(                &
   if(input_type_cov == INPUT_COV_UVW) then
     !** convert to ECI frame
     call neptune%reduction%getJacobianEci2uvw(state%r, state%v, jac)
-    covar%elem = matmul(matmul(transpose(jac),covar%elem),jac)
+    covar%elem(1:6,1:6) = matmul(matmul(transpose(jac),covar%elem(1:6,1:6)),jac)
     covar%frame = getFrameId('GCRF')
   end if
 
@@ -978,6 +1053,10 @@ subroutine rdinp(                &
   state%epoch = epoch(1)
   if(input_type == INPUT_OSCULATING) then
     ierr =  neptune%setNeptuneVar("INITIAL_STATE", oscKep)
+  else if(input_type == INPUT_CARTESIAN_MCRF .or. input_type == INPUT_OSCULATING_MCRF) then
+    state%radius_unit   = UNIT_KM
+    state%velocity_unit = UNIT_KMPS
+    ierr =  neptune%setNeptuneVar("INITIAL_STATE", state)
   else
     state%radius_unit   = UNIT_KM
     state%velocity_unit = UNIT_KMPS

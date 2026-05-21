@@ -124,8 +124,10 @@ module neptuneParameters
   character(len=*), parameter :: C_PAR_INT_ABSEPS     = "PAR_INT_ABSEPS"
   character(len=*), parameter :: C_EPOCH_START_GD     = "EPOCH_START_GD"
   character(len=*), parameter :: C_EPOCH_END_GD       = "EPOCH_END_GD"
-  character(len=*), parameter :: C_INPUT_CARTESIAN    = "Cartesian (r,v)"
-  character(len=*), parameter :: C_INPUT_OSCULATING   = "Osculating Kepler Elements"
+  character(len=*), parameter :: C_INPUT_CARTESIAN       = "Cartesian (r,v)"
+  character(len=*), parameter :: C_INPUT_OSCULATING      = "Osculating Kepler Elements"
+  character(len=*), parameter :: C_INPUT_CARTESIAN_MCRF  = "Selenocentric Cartesian (MCRF)"
+  character(len=*), parameter :: C_INPUT_OSCULATING_MCRF = "Selenocentric Osculating Kepler Elements (MCRF)"
   character(len=*), parameter :: C_OUTPUT_FILES       = "OUTPUT_FILES"
   character(len=*), parameter :: C_OUTPUT_ACC         = "OUTPUT_ACC"
   character(len=*), parameter :: C_OUTPUT_ACG         = "OUTPUT_ACG"
@@ -152,6 +154,10 @@ module neptuneParameters
   character(len=*), parameter :: C_OUTPUT_VAR_UVW     = "OUTPUT_VAR_UVW"
   character(len=*), parameter :: C_OUTPUT_COV_ECI     = "OUTPUT_COV_ECI"
   character(len=*), parameter :: C_OUTPUT_COV_UVW     = "OUTPUT_COV_UVW"
+  character(len=*), parameter :: C_OUTPUT_CSV_MCRF    = "OUTPUT_CSV_MCRF"
+  character(len=*), parameter :: C_OUTPUT_OSC_MCRF    = "OUTPUT_OSC_MCRF"
+  character(len=*), parameter :: C_OUTPUT_VAR_MCRF    = "OUTPUT_VAR_MCRF"
+  character(len=*), parameter :: C_OUTPUT_COV_MCRF    = "OUTPUT_COV_MCRF"
   character(len=*), parameter :: C_OUTPUT_STEP        = "OUTPUT_STEP"
   character(len=*), parameter :: C_BOUNDARY_CHECK     = "BOUNDARY_CHECK"
 
@@ -177,11 +183,13 @@ module neptuneParameters
   !** input parameters
   !----------------------------------------------------------------
   integer, parameter    :: INPUT_UNDEFINED  = -1  ! index for undefined input
-  integer, parameter    :: INPUT_CARTESIAN  =  1  ! index for cartesian state vector input
-  integer, parameter    :: INPUT_OSCULATING =  2  ! index for osculating state vector input
-  integer, parameter    :: INPUT_TEME       =  3  ! index for TEME frame state vector input
-  integer, parameter    :: INPUT_ITRF       =  4  ! index for ITRF-2000 frame state vector input
-  integer, parameter    :: INPUT_ITRF_TEME  =  5  ! index for ITRF-2000 and TEME frame state vector input
+  integer, parameter    :: INPUT_CARTESIAN       =  1  ! index for cartesian state vector input
+  integer, parameter    :: INPUT_OSCULATING      =  2  ! index for osculating state vector input
+  integer, parameter    :: INPUT_TEME            =  3  ! index for TEME frame state vector input
+  integer, parameter    :: INPUT_ITRF            =  4  ! index for ITRF-2000 frame state vector input
+  integer, parameter    :: INPUT_ITRF_TEME       =  5  ! index for ITRF-2000 and TEME frame state vector input
+  integer, parameter    :: INPUT_CARTESIAN_MCRF  =  6  ! index for selenocentric cartesian state vector (MCRF)
+  integer, parameter    :: INPUT_OSCULATING_MCRF =  7  ! index for selenocentric osculating Kepler elements (MCRF)
   integer, parameter    :: INPUT_COV_GCRF   =  1  ! index for GCRF covariance matrix input
   integer, parameter    :: INPUT_COV_UVW    =  2  ! index for UVW covariance matrix input
 
