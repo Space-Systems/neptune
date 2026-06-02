@@ -6,77 +6,126 @@ on:
   pull_request:
     branches: [ master ]
 
+# Cancel any in-progress run on the same branch so stale builds don't queue up
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
 
 jobs:
-  build:
-    # The CMake configure and build commands are platform agnostic and should work equally
-    # well on Windows or Mac.  You can convert this to a matrix build if you need
-    # cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+  build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
-        submodules: true
+        submodules: recursive
 
-    - name: Configure CMake OPI
-      # Configure OPI
-      run: cmake -S OPI -B ${{github.workspace}}/OPI/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/OPI/ -DENABLE_CXX11=ON -DENABLE_CL_SUPPORT=OFF -DENABLE_CUDA_SUPPORT=OFF -DENABLE_PYTHON=OFF
-    
+    # -----------------------------------------------------------------------
+    # Dependencies — each is cached by its source tree hash so the build is
+    # skipped on re-runs where those files haven't changed.
+    # -----------------------------------------------------------------------
+
+    - name: Cache OPI build
+      id: cache-opi
+      uses: actions/cache@v4
+      with:
+        path: |
+          OPI/build
+          OPI/lib
+          OPI/include
+        key: opi-${{ runner.os }}-${{ hashFiles('OPI/**') }}
+
     - name: Build OPI
-      # Build OPI
-      run: cmake --build ${{github.workspace}}/OPI/build --config ${{env.BUILD_TYPE}}
+      if: steps.cache-opi.outputs.cache-hit != 'true'
+      run: |
+        cmake -S OPI -B OPI/build \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/OPI \
+          -DENABLE_CXX11=ON \
+          -DENABLE_CL_SUPPORT=OFF \
+          -DENABLE_CUDA_SUPPORT=OFF \
+          -DENABLE_PYTHON=OFF
+        cmake --build OPI/build --config ${{ env.BUILD_TYPE }} --parallel $(nproc)
+        cmake --install OPI/build --config ${{ env.BUILD_TYPE }}
 
-    - name: Install OPI
-      # Build OPI
-      run: cmake --install ${{github.workspace}}/OPI/build --config ${{env.BUILD_TYPE}}
-
-    - name: Configure CMake libslam
-      # Configure libslam
-      run: cmake -S libslam -B ${{github.workspace}}/libslam/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DENABLE_OpenMP_SUPPORT=OFF -DENABLE_POSTGRESQL_SUPPORT=OFF
+    - name: Cache libslam build
+      id: cache-libslam
+      uses: actions/cache@v4
+      with:
+        path: libslam/build
+        key: libslam-${{ runner.os }}-${{ hashFiles('libslam/**') }}
 
     - name: Build libslam
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/libslam/build --config ${{env.BUILD_TYPE}}
+      if: steps.cache-libslam.outputs.cache-hit != 'true'
+      run: |
+        cmake -S libslam -B libslam/build \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DENABLE_OpenMP_SUPPORT=OFF \
+          -DENABLE_POSTGRESQL_SUPPORT=OFF
+        cmake --build libslam/build --config ${{ env.BUILD_TYPE }} --parallel $(nproc)
+        cmake --install libslam/build --config ${{ env.BUILD_TYPE }}
 
-    - name: Install libslam
-      # install libs and includes in libslam/build/
-      run: cmake --install ${{github.workspace}}/libslam/build --config ${{env.BUILD_TYPE}}
-
-    - name: Configure CMake pFUnit
-      # Configure pFUnit
-      run: cmake -S pFUnit -B ${{github.workspace}}/pFUnit/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DENABLE_OpenMP_SUPPORT=OFF -DENABLE_POSTGRESQL_SUPPORT=OFF
+    - name: Cache pFUnit build
+      id: cache-pfunit
+      uses: actions/cache@v4
+      with:
+        path: pFUnit/build
+        key: pfunit-${{ runner.os }}-${{ hashFiles('pFUnit/**') }}
 
     - name: Build pFUnit
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/pFUnit/build --config ${{env.BUILD_TYPE}}
+      if: steps.cache-pfunit.outputs.cache-hit != 'true'
+      run: |
+        cmake -S pFUnit -B pFUnit/build \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DENABLE_OpenMP_SUPPORT=OFF \
+          -DENABLE_POSTGRESQL_SUPPORT=OFF
+        cmake --build pFUnit/build --config ${{ env.BUILD_TYPE }} --parallel $(nproc)
+        cmake --install pFUnit/build --config ${{ env.BUILD_TYPE }}
 
-    - name: Install pFUnit
-      # install libs and includes in libslam/build/
-      run: cmake --install ${{github.workspace}}/pFUnit/build --config ${{env.BUILD_TYPE}}
+    - name: Link dependencies
+      run: bash link-dependencies.sh
 
-    - name: Link include and libs
-      # Link all libs needed from libslam and OPI for neptune
-      run: bash link-dependencies.sh 
+    # -----------------------------------------------------------------------
+    # NEPTUNE
+    # -----------------------------------------------------------------------
 
-    - name: Configure CMake neptune
-      # Configure neptune
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DENABLE_OPI_SUPPORT=ON -DENABLE_PFUNIT=ON -DCMAKE_PREFIX_PATH=${{github.workspace}}/pFUnit/build/installed/
+    - name: Configure NEPTUNE
+      run: |
+        cmake -S . -B build \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DENABLE_OPI_SUPPORT=ON \
+          -DENABLE_PFUNIT=ON \
+          -DCMAKE_PREFIX_PATH=${{ github.workspace }}/pFUnit/build/installed
 
-    - name: Build neptune
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+    - name: Build NEPTUNE
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel $(nproc)
 
-    - name: Install neptune
-      # Build your program with the given configuration
-      run: cmake --install ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+    - name: Install NEPTUNE
+      run: cmake --install build --config ${{ env.BUILD_TYPE }}
+
+    # -----------------------------------------------------------------------
+    # Test
+    # -----------------------------------------------------------------------
 
     - name: Test
-      working-directory: ${{github.workspace}}/build
-      # Execute tests defined by the CMake configuration.  
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: LD_LIBRARY_PATH=${{github.workspace}}/lib ctest -C ${{env.BUILD_TYPE}} --verbose --output-junit ../test_report.xml
+      working-directory: ${{ github.workspace }}/build
+      run: |
+        LD_LIBRARY_PATH=${{ github.workspace }}/lib \
+        ctest -C ${{ env.BUILD_TYPE }} \
+          --output-on-failure \
+          --output-junit ../test_report.xml
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: test_report.xml
+        retention-days: 30
