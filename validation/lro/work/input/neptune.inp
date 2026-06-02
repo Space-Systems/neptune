@@ -77,7 +77,7 @@
   -0.390584306               velocity z-component (km/s)
 #
 #   Osculating kepler elements (if input type == 2)
-# 1779.549, 0.040124,   90.737,    2.161,  269.115,   86.286,
+#
    1779.549    semi-major axis (km)
    0.040124     eccentricity
    90.737    inclination (deg)
@@ -107,11 +107,14 @@
 #     1 = on
 #     0 = off (special case Gravity potential:  0  = central body force
 #                                              >0  = degree of gravity potential
+#             special case Moon gravity:        0  = off
+#                                               1  = point-mass only
+#                                              >1  = degree of lunar harmonics (AIUB-GRL350A)
 #
   6   Geopotential
   1   Atmospheric drag    ! (0 = off, 1 = on, 2 = on+wind (HMW07))
   1   Sun gravity
-  1   Moon gravity
+  72  Moon gravity       ! (0 = off, 1 = point-mass, >1 = degree of lunar harmonics AIUB-GRL350A)
   1   Solar radiation pressure
   1   Earth albedo
   0   Solid Earth tides
@@ -184,8 +187,8 @@
 #
 #   c) Satellite characteristics
 #
-  1.200d0         Mass (kg)
-  7.02d0        Cross-section (m**2)
+  1850.0d0      Mass (kg)
+  15.3d0        Cross-section (m**2)
   2.2d0         Drag coefficient
   1.3d0         Reflectivity coefficient
 #

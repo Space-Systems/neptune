@@ -54,7 +54,8 @@ module neptuneClass
                                     C_OUTPUT_AME, C_OUTPUT_ACC, C_OUTPUT_FILES, C_OPT_HARMONICS, C_OPT_SRP_CORRECT, C_OPT_INT_LOG, &
                                     C_OPT_PN_LOOKUP, C_OPT_EOP, C_CORRELATION, C_COV_MOON, C_COV_SUN, C_COV_SRP, C_COV_DRAG, C_COV_PROP, &
                                     C_MANEUVERS, C_OCEAN_TIDES, C_ALBEDO, C_RUN_ID, INPUT_UNDEFINED, &
-                                    C_FILE_DE_EPHEM, C_FILE_LEAP_SPICE, C_FILE_TXYS, C_FILE_PROGRESS, C_OPT_PROGRESS, C_BOUNDARY_CHECK
+                                    C_FILE_DE_EPHEM, C_FILE_LEAP_SPICE, C_FILE_TXYS, C_FILE_PROGRESS, C_OPT_PROGRESS, C_BOUNDARY_CHECK, &
+                                    C_OPT_LUNAR_GRAV_DEGREE
     use numint,                 only: Numint_class
     use neptuneOutput,          only: Output_class, neptune_out_t
     use slam_orbit_types,       only: covariance_t, state_t, kepler_t, convertToRadians, toString, parse_state_from_string, parse_covariance_from_string, assignment(=)
@@ -1734,9 +1735,9 @@ contains
           ! CASE for INTEGER parameters
           !
           !------------------------
-          case(C_GEOPOTENTIAL, C_OPT_SAT_PROPERTIES, C_PAR_INT_COV_METHOD, & 
+          case(C_GEOPOTENTIAL, C_OPT_SAT_PROPERTIES, C_PAR_INT_COV_METHOD, &
                C_OPT_GEO_MODEL, C_OPT_AP_FORECAST, C_COV_GEOPOTENTIAL,   &
-               C_PAR_INT_METHOD, C_OPT_ATMOSPHERE_MODEL)
+               C_PAR_INT_METHOD, C_OPT_ATMOSPHERE_MODEL, C_OPT_LUNAR_GRAV_DEGREE)
 
             read(val,*,iostat=ios) itemp
 
@@ -1792,6 +1793,11 @@ contains
                 case(C_COV_GEOPOTENTIAL)
                   call this%set_input(parName=C_COV_GEOPOTENTIAL, val=val, set=.true.)
                   call this%gravity_model%setGeoCovDegree(itemp)
+
+                !** Lunar gravity harmonics degree
+                case(C_OPT_LUNAR_GRAV_DEGREE)
+                  call this%set_input(parName=C_OPT_LUNAR_GRAV_DEGREE, val=val, set=.true.)
+                  call this%thirdbody_model%setLunarGravityDegree(itemp)
 
               end select
 

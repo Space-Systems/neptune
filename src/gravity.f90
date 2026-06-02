@@ -32,7 +32,9 @@
 module gravity
 
   use slam_astro,             only: EGM96, EGM08, EIGEN_GL04C, setEarthGravity, setEarthGeopotentialRadius, &
-                                    getEarthGeopotentialRadius, getEarthGravity
+                                    getEarthGeopotentialRadius, getEarthGravity, &
+                                    setLunarGravity, setLunarGeopotentialRadius, &
+                                    getLunarGravity, getLunarGeopotentialRadius
   use slam_astro_conversions, only: getRadiusLatLon
   use neptune_error_handling, only: E_GRAVITY_COEFFICIENTS, E_GEO_MAX_DEGREE, setNeptuneError
   use slam_error_handling,    only: isControlled, hasToReturn, hasFailed, FATAL, WARNING, &
@@ -40,6 +42,7 @@ module gravity
   use slam_io,                only: openFile, closeFile, SEQUENTIAL, IN_FORMATTED, LOG_AND_STDOUT, cdelimit, message
   use slam_strings,           only: toString
   use slam_math,              only: UNDEFINED, identity_matrix, rad2deg, redang, eps9, mag, outerproduct, uvec1, uvec2, uvec3
+  use slam_moon_reduction,    only: Reduction_moon_type
   use slam_reduction_class,   only: Reduction_type
   use slam_time,              only: time_t, gd2jd
   use slam_types,             only: dp
@@ -58,25 +61,30 @@ module gravity
   integer, parameter, public :: MODEL_EGM96       = 1
   integer, parameter, public :: MODEL_EGM2008     = 2
   integer, parameter, public :: MODEL_EIGEN_GL04C = 3
+  integer, parameter, public :: MODEL_AIUB_GRL350A = 4  !< AIUB lunar gravity model (Moon)
   integer, parameter         :: DEFAULT_MODEL     = 3 !< the EIGEN-GL04C model is used as default (according to ECSS)
 
-  integer, parameter :: n_supported_models = 3    !< number of supported geopotential models
+  integer, parameter :: n_supported_models = 4    !< number of supported geopotential models
 
   ! model names according to the integer numbers associated through astro module
-  character(len=*), dimension(n_supported_models), parameter :: modelName = (/"EGM96      ", &
-                                                                              "EGM2008    ", &
-                                                                              "EIGEN-GL04C"/)
+  character(len=*), dimension(n_supported_models), parameter :: modelName = (/"EGM96        ", &
+                                                                              "EGM2008      ", &
+                                                                              "EIGEN-GL04C  ", &
+                                                                              "AIUB-GRL350A "/)
   ! model names according to the integer numbers associated through astro module
-  character(len=*), dimension(n_supported_models), parameter :: dataFileName = (/"egm96.dat      ", &
-                                                                                 "egm2008.dat    ", &
-                                                                                 "eigen_gl04c.dat"/)
-  ! data file formats for each supported model
+  character(len=*), dimension(n_supported_models), parameter :: dataFileName = (/"egm96.dat        ", &
+                                                                                 "egm2008.dat      ", &
+                                                                                 "eigen_gl04c.dat  ", &
+                                                                                 "AIUB-GRL350A.gfc "/)
+  ! data file formats for each supported model (col 1 = time-varying line, col 2 = static line)
   character(len=36), dimension(n_supported_models,2), parameter :: cDataFormat = reshape((/"(a1,2(i4),2(e20.12e2),2(e16.8e2),a9)", &
                                                                                            "  (a1,2(i5),2(e25.15e2),2(e20.10e2))", &
                                                                                            "(a4,2(i5),2(e19.12e2),2(e11.4e2),a9)", &
+                                                                                           "                                    ", &
                                                                                            "   (a1,2(i4),2(e20.12e2),2(e16.8e2))", &
                                                                                            "  (a1,2(i5),2(e25.15e2),2(e20.10e2))", &
-                                                                                           "   (a3,2(i5),2(e19.12e2),2(e11.4e2))"/), (/3,2/))
+                                                                                           "   (a3,2(i5),2(e19.12e2),2(e11.4e2))", &
+                                                                                           "                                    "/), (/4,2/))
 
   integer, parameter :: maxdegree = 85                                          ! maximum degree of geopotential
   integer, parameter :: maxDistinctHarmonics = 80                               ! maximum number of individual harmonics to be analysed
@@ -147,6 +155,7 @@ module gravity
 
       !** getter
       procedure :: getGravityAcceleration
+      procedure :: getLunarGravityAcceleration
       procedure :: getGravityCovariance
       procedure :: getCoefficientSigma
       procedure :: getGeoCovDegree
@@ -159,6 +168,7 @@ module gravity
       procedure :: getDistinctHarmonicsString
       procedure :: getGeoModelFileName
       procedure,private :: getPotentialDerivatives
+      procedure,private :: computeBodyFixedAccel
 
       procedure :: usedDistinctHarmonics
       procedure :: isInitializedGeopotential
@@ -301,9 +311,10 @@ contains
 !!              </ol>
 !!
 !!------------------------------------------------------------------------------------------------
-  subroutine initGravityPotential( this,   &
-                                   cpath,  & ! <-- CHR directory path containing gravity potential data
-                                   imodel  & ! <-- INT geopotential model to be used
+  subroutine initGravityPotential( this,     &
+                                   cpath,    & ! <-- CHR directory path containing gravity potential data
+                                   imodel,   & ! <-- INT geopotential model to be used
+                                   is_earth  & ! <-- LOG .false. suppresses overwriting global Earth constants (for non-Earth bodies)
                                  )
 
     !** interface
@@ -311,6 +322,7 @@ contains
     class(Gravity_class)                    :: this
     character(len=*), optional, intent(in)  :: cpath
     integer,          optional, intent(in)  :: imodel
+    logical,          optional, intent(in)  :: is_earth
     !------------------------------------------
 
     character(len=255) :: cbuf      ! character buffer
@@ -332,6 +344,7 @@ contains
 
     logical :: flag_mu            ! flag for mu being found
     logical :: flag_rekm          ! flag for rekm being found
+    logical :: set_earth_consts   ! whether to update global Earth constants from file
 
     real(dp)  :: fac                ! multiplication factor
     real(dp), dimension(:), allocatable :: factorial    ! factorials of n (n!)
@@ -345,6 +358,13 @@ contains
     if(isControlled()) then
       if(hasToReturn()) return
       call checkIn(csubid)
+    end if
+
+    ! safe extraction of optional is_earth to avoid undefined evaluation in logical expressions
+    if(present(is_earth)) then
+      set_earth_consts = is_earth
+    else
+      set_earth_consts = .true.
     end if
 
     if(this%degree < 0) then   ! has not been set yet probably?!
@@ -385,7 +405,8 @@ contains
 
     !** check imodel validity
     if(present(imodel)) then
-      if(imodel == EGM96 .or. imodel == EGM08 .or. imodel == EIGEN_GL04C) then
+      if(imodel == EGM96 .or. imodel == EGM08 .or. imodel == EIGEN_GL04C .or. &
+         imodel == MODEL_AIUB_GRL350A) then
         this%nmodel = imodel
       else
         this%nmodel = DEFAULT_MODEL
@@ -419,16 +440,23 @@ contains
 
       read(ich,'(a)',iostat=ios) cbuf
 
-      !** earth gravity constant
       if(index(cbuf, "earth_gravity_constant") /= 0) then
         read(cbuf,*) ctemp, this%mu
-        this%mu      = this%mu*1.d-9
-        call setEarthGravity(this%mu)
+        this%mu = this%mu*1.d-9
+        if(set_earth_consts) then
+          call setEarthGravity(this%mu)
+        else
+          call setLunarGravity(this%mu)
+        end if
         flag_mu = .true.
       else if(index(cbuf, "radius") /= 0) then
         read(cbuf,*) ctemp, this%rekm
-        this%rekm      = this%rekm*1.d-3
-        call setEarthGeopotentialRadius(this%rekm)
+        this%rekm = this%rekm*1.d-3
+        if(set_earth_consts) then
+          call setEarthGeopotentialRadius(this%rekm)
+        else
+          call setLunarGeopotentialRadius(this%rekm)
+        end if
         flag_rekm = .true.
       else if(index(cbuf, "end_of_head") /= 0) then
         exit
@@ -444,13 +472,13 @@ contains
     end do
 
     if(.not. flag_mu) then
-      cmess ="Earth gravity constant not found for "//trim(modelName(this%nmodel))//" model. This may lead to inconsistencies when using the"// &
+      cmess ="Gravity constant not found for "//trim(modelName(this%nmodel))//" model. This may lead to inconsistencies when using the"// &
              " geopotential coefficients."
       call setNeptuneError(E_SPECIAL, WARNING, (/cmess/))
     end if
 
     if(.not. flag_rekm) then
-      cmess ="Earth radius not found for "//trim(modelName(this%nmodel))//" model. This may lead to inconsistencies when using the"// &
+      cmess ="Reference radius not found for "//trim(modelName(this%nmodel))//" model. This may lead to inconsistencies when using the"// &
             " geopotential coefficients."
       call setNeptuneError(E_SPECIAL, WARNING, (/cmess/))
     end if
@@ -482,7 +510,7 @@ contains
     allocate(this%sigmaSdenorm(0:this%degree, 0:this%degree))
 
 
-    if(this%degree >= 2) then  !** allocate time derivative of coefficients C and S
+    if(this%degree >= 2 .and. this%nmodel /= MODEL_AIUB_GRL350A) then  !** allocate time derivative of coefficients C and S (not needed for AIUB lunar model)
       if (allocated(this%dCdt)) deallocate(this%dCdt)
       allocate(this%dCdt(2:min(this%degree,4)))
       if (allocated(this%dSdt)) deallocate(this%dSdt)
@@ -530,6 +558,17 @@ contains
         this%cepoch(l)%second = 0.d0
 
         call gd2jd(this%cepoch(l))
+
+      else if(this%nmodel == MODEL_AIUB_GRL350A .and. index(cbuf,'gfc') /= 0) then
+        read(cbuf,*) ctemp4, l, m, tempC, tempS, tempSigmaC, tempSigmaS
+
+        if(l > this%degree) cycle
+        if(m > this%degree) exit
+
+        this%coeffC(l,m) = tempC
+        this%coeffS(l,m) = tempS
+        this%sigmaC(l,m) = tempSigmaC
+        this%sigmaS(l,m) = tempSigmaS
 
       else if( (this%nmodel == EIGEN_GL04C .and. index(cbuf,'gfc') /= 0) .or. &
                (this%nmodel == EGM08                                   ) .or. &
@@ -628,7 +667,7 @@ contains
         this%sigmaSdenorm(l,m) = this%sigmaS(l,m)*fac
       end do
 
-      if(l < size(this%dCdt) .and. l >= 2) then
+      if(allocated(this%dCdt) .and. l >= lbound(this%dCdt,1) .and. l <= ubound(this%dCdt,1)) then
         this%dCdt(l) = this%dCdt(l)*fac
         this%dSdt(l) = this%dSdt(l)*fac
       end if
@@ -723,63 +762,159 @@ contains
   !!              </ol>
   !!
   !!------------------------------------------------------------------------------------------------
-  subroutine getGravityAcceleration(  this,     &
-                                      reduction,&  ! <-- type responsible for coordinate transformations
-                                      r_itrf,   &  ! <-- DBL(3) radius vector in ITRF / km
-                                      v_itrf,   &  ! <-- DBL(3) velocity vector in ITRF / km/s
-                                      time_mjd, &  ! <-- DBL    current time in MJD
-                                      accel     &  ! --> DBL(3) acceleration vector in GCRF / km/s**2
+  subroutine getGravityAcceleration( this,      &
+                                     reduction, &  ! <-- type responsible for coordinate transformations
+                                     r_itrf,    &  ! <-- DBL(3) radius vector in ITRF / km
+                                     v_itrf,    &  ! <-- DBL(3) velocity vector in ITRF / km/s
+                                     time_mjd,  &  ! <-- DBL    current time in MJD
+                                     accel      &  ! --> DBL(3) acceleration vector in GCRF / km/s**2
                                    )
 
     implicit none
 
-    !** interface
-    !----------------------------------------------
-    class(Gravity_class)                :: this
-    type(Reduction_type)                :: reduction
-    real(dp), dimension(3), intent(in)  :: r_itrf
-    real(dp), dimension(3), intent(in)  :: v_itrf
-    real(dp),               intent(in)  :: time_mjd
+    class(Gravity_class),                intent(inout) :: this
+    type(Reduction_type),                intent(inout) :: reduction
+    real(dp), dimension(3),              intent(in)    :: r_itrf
+    real(dp), dimension(3),              intent(in)    :: v_itrf
+    real(dp),                            intent(in)    :: time_mjd
+    real(dp), dimension(3),              intent(out)   :: accel
 
-    real(dp), dimension(3), intent(out) :: accel
-    !----------------------------------------------
-
-    character(len=*), parameter :: csubid = "getGravityAcceleration" ! subroutine id
-
-    integer :: l    ! loop counter
-    integer :: m    ! loop counter
-
-    real(dp), dimension(3) :: accel_temp    ! temporary
-    real(dp) :: oosqrt_r1r2         ! 1/sqrt(r1r2)
-    real(dp) :: temp, temp2         ! temporary
-    real(dp) :: temp_t1             ! temporary
-    real(dp) :: temp_t3             ! temporary
-    real(dp) :: temp_t4             ! temporary
-    real(dp) :: temp_t5             ! temporary
+    character(len=*), parameter :: csubid = "getGravityAcceleration"
+    real(dp), dimension(3) :: accel_temp
 
     if(isControlled()) then
       if(hasToReturn()) return
       call checkIn(csubid)
     end if
 
-    !** check whether coefficients are already available
     if((this%degree > 1) .and. (.not. this%coeffInitialized)) then
-      ! try to initialise
       call this%initGravityPotential()
       if(hasFailed()) return
     end if
 
-    !** get radius, geocentric longitude and latitude
-    call getRadiusLatLon(r_itrf, v_itrf, this%rabs, this%phi_gc, this%lambda)
-
-    !** orbital radius
-    this%rabs2        = this%rabs*this%rabs
-    this%oorabs2      = 1.d0/this%rabs2
-    this%rabs3        = this%rabs2*this%rabs
-    this%oorabs       = this%rabs**(-1.d0) !1.d0/rabs
-    this%oorabs3      = this%oorabs*this%oorabs2
     this%rekm = getEarthGeopotentialRadius()
     this%mu   = getEarthGravity()
+
+    call this%computeBodyFixedAccel(r_itrf, v_itrf, accel_temp)
+
+    call reduction%earthFixed2inertial(accel_temp, time_mjd, accel)
+    this%current_radius = r_itrf
+
+    if(isControlled()) call checkOut(csubid)
+
+  end subroutine getGravityAcceleration
+
+  !--------------------------------------------------------------------------------------------------
+  !
+  !> @anchor      getLunarGravityAcceleration
+  !!
+  !> @brief       Acceleration due to the lunar non-spherical gravity field (AIUB-GRL350A or similar)
+  !> @author      Christopher Kebschull
+  !!
+  !> @param[in]   moon_red      Moon frame-rotation handler
+  !> @param[in]   r_gcrf        Satellite position in GCRF (km)
+  !> @param[in]   r_moon_gcrf   Moon centre position in GCRF (km)
+  !> @param[in]   time_mjd      Epoch in MJD
+  !> @param[out]  accel         Perturbative acceleration in GCRF (km/s²)
+  !!
+  !> @details     Mirrors getGravityAcceleration but uses the Moon body-fixed frame.
+  !!              The satellite position relative to the Moon centre is rotated to Moon
+  !!              body-fixed, the spherical-harmonic potential derivatives are computed
+  !!              with the stored lunar coefficients, and the resulting acceleration is
+  !!              rotated back to GCRF.
+  !!
+  !!------------------------------------------------------------------------------------------------
+  subroutine getLunarGravityAcceleration( this,        &
+                                          moon_red,    &  ! <-> TYPE moon frame handler
+                                          r_gcrf,      &  ! <-- DBL(3) satellite pos GCRF (km)
+                                          r_moon_gcrf, &  ! <-- DBL(3) Moon centre GCRF (km)
+                                          time_mjd,    &  ! <-- DBL    MJD
+                                          accel        &  ! --> DBL(3) GCRF acceleration (km/s²)
+                                        )
+
+    implicit none
+
+    class(Gravity_class),          intent(inout) :: this
+    type(Reduction_moon_type),     intent(inout) :: moon_red
+    real(dp), dimension(3),        intent(in)    :: r_gcrf
+    real(dp), dimension(3),        intent(in)    :: r_moon_gcrf
+    real(dp),                      intent(in)    :: time_mjd
+    real(dp), dimension(3),        intent(out)   :: accel
+
+    character(len=*), parameter :: csubid = "getLunarGravityAcceleration"
+    real(dp), dimension(3) :: r_moon_fixed, accel_mf, zero_vec
+
+    if(isControlled()) then
+      if(hasToReturn()) return
+      call checkIn(csubid)
+    end if
+
+    accel    = 0.d0
+    zero_vec = 0.d0
+
+    if(.not. this%coeffInitialized .or. this%degree < 2) then
+      if(isControlled()) call checkOut(csubid)
+      return
+    end if
+
+    this%rekm = getLunarGeopotentialRadius()
+    this%mu   = getLunarGravity()
+
+    call moon_red%inertial2moonFixed_r(r_gcrf, r_moon_gcrf, time_mjd, r_moon_fixed)
+    if(hasFailed()) return
+
+    call this%computeBodyFixedAccel(r_moon_fixed, zero_vec, accel_mf)
+
+    ! computeBodyFixedAccel includes the central-body term (-mu/r^2).
+    ! That term is already handled by getThirdBodyAcceleration (point-mass tidal
+    ! formula) in the caller.  Strip it here so only the l>=2 harmonic
+    ! perturbation is returned, avoiding double-counting.
+    accel_mf = accel_mf + this%mu * this%oorabs3 * r_moon_fixed
+
+    call moon_red%moonFixed2inertial_r(accel_mf, zero_vec, time_mjd, accel)
+    if(hasFailed()) return
+
+    if(isControlled()) call checkOut(csubid)
+
+  end subroutine getLunarGravityAcceleration
+
+  !--------------------------------------------------------------------------------------------------
+  !
+  !> @anchor      computeBodyFixedAccel
+  !!
+  !> @brief       Shared spherical-harmonic acceleration kernel in body-fixed frame
+  !> @author      Christopher Kebschull
+  !!
+  !> @param[in]   r_bf      Satellite position in body-fixed frame (km)
+  !> @param[in]   v_bf      Velocity in body-fixed frame (km/s); only used as longitude
+  !!                        fallback at the pole singularity via getRadiusLatLon
+  !> @param[out]  accel_bf  Acceleration in body-fixed frame (km/s²)
+  !!
+  !> @details     Preconditions: this%mu, this%rekm, this%coeffInitialized and this%degree
+  !!              must be set by the caller before invoking this routine.
+  !!              Handles both the full spherical-harmonic case (degree >= 2) and the
+  !!              two-body (Keplerian) case (degree < 2).
+  !!
+  !!------------------------------------------------------------------------------------------------
+  subroutine computeBodyFixedAccel(this, r_bf, v_bf, accel_bf)
+
+    implicit none
+
+    class(Gravity_class),   intent(inout) :: this
+    real(dp), dimension(3), intent(in)    :: r_bf
+    real(dp), dimension(3), intent(in)    :: v_bf
+    real(dp), dimension(3), intent(out)   :: accel_bf
+
+    integer  :: l, m
+    real(dp) :: oosqrt_r1r2, temp, temp2, temp_t1, temp_t3, temp_t4, temp_t5
+
+    call getRadiusLatLon(r_bf, v_bf, this%rabs, this%phi_gc, this%lambda)
+
+    this%rabs2   = this%rabs * this%rabs
+    this%oorabs2 = 1.d0 / this%rabs2
+    this%rabs3   = this%rabs2 * this%rabs
+    this%oorabs  = 1.d0 / this%rabs
+    this%oorabs3 = this%oorabs * this%oorabs2
 
     if(this%degree >= 2) then
 
@@ -788,14 +923,8 @@ contains
       this%lp(1,0) = sin(this%phi_gc)
       this%lp(1,1) = cos(this%phi_gc)
 
-      !** determine legendre polynomials recursively
-      !if(.true.) then
-
-      ! STABLE
       do m = 0, this%degree
-
         do l = max(2,m), this%degree
-
           if(l == m) then
             this%lp(m,m) = (2*m-1)*this%lp(1,1)*this%lp(m-1,m-1)
           else if(l == m + 1) then
@@ -803,130 +932,44 @@ contains
           else
             this%lp(l,m) = ((2*l-1)*this%lp(1,0)*this%lp(l-1,m) - (l+m-1)*this%lp(l-2,m))/(l-m)
           end if
-
         end do
-
       end do
-      ! DEBUG: dump legendre polynomials
-!      do l = 2, degree
-!        do m = 0, l
-!          write(34,*) l, m, lp(l,m)
-!        end do
-!      end do
-
-!      else
-      ! UNSTABLE??
-      !--------------------------------------------------------------------
-!      do l = 2,degree
-!
-!         lp(0,l-1) = 0.d0
-!
-!         do m = 0,l
-!
-!           if (m == 0) then
-!
-!             lp(l,0) = ((2*l-1)*lp(1,0) * lp(l-1,0) - (l-1)*lp(l-2,0) )/l
-!
-!           else
-!
-!             if(m == l .or. m == (l - 1)) then
-!
-!               lp(l,m) = (2*l-1) * lp(1,1) * lp(l-1,m-1)
-!
-!             else
-!
-!               lp(l,m) = lp(l-2,m) + (2*l-1) * lp(1,1) * lp(l-1,m-1)
-!
-!             end if
-!
-!           end if
-!
-!         end do ! DO m
-!
-!       end do ! DO L
-!
-!       ! DEBUG: dump legendre polynomials
-!       do l = 2, degree
-!         do m = 0, l
-!           write(33,*) l, m, lp(l,m)
-!         end do
-!       end do
-!
-!       end if
-
-!       stop
-      !----------------------------------------------------------------------
-
-      ! determine partial derivatives of the disturbing potential
 
       this%costerm(0) = 1.d0
       this%costerm(1) = cos(this%lambda)
-
       this%sinterm(0) = 0.d0
       this%sinterm(1) = sin(this%lambda)
+      this%tanphi     = tan(this%phi_gc)
 
-      this%tanphi = tan(this%phi_gc)
-
-      !** compute derivatives of potential
       call this%getPotentialDerivatives(this%oorabs, this%oorabs2, this%dudr, this%dudphi, this%dudlambda)
 
-      ! pre-compute terms which are used for the acceleration components
-      this%r1r2        = r_itrf(1)*r_itrf(1) + r_itrf(2)*r_itrf(2)
-      temp_t3     = 1.d0/this%r1r2
-      this%sqrt_r1r2   = sqrt(this%r1r2)
-      oosqrt_r1r2 = 1.d0/this%sqrt_r1r2
-      temp_t4     = r_itrf(3)*this%oorabs2*oosqrt_r1r2
-      temp_t5     = this%oorabs2*this%sqrt_r1r2
+      this%r1r2      = r_bf(1)*r_bf(1) + r_bf(2)*r_bf(2)
+      this%sqrt_r1r2 = sqrt(this%r1r2)
+      oosqrt_r1r2    = 1.d0 / this%sqrt_r1r2
+      temp_t3        = 1.d0 / this%r1r2
+      temp_t4        = r_bf(3) * this%oorabs2 * oosqrt_r1r2
+      temp_t5        = this%oorabs2 * this%sqrt_r1r2
 
-    else    ! two body problem only
+    else
 
       this%dudlambda = 0.d0
       this%dudphi    = 0.d0
       this%dudr      = 0.d0
-
-      temp_t3   = 0.d0
-      temp_t4   = 0.d0
+      temp_t3        = 0.d0
+      temp_t4        = 0.d0
+      temp_t5        = 0.d0
 
     end if
 
-    !** add central body term to dU/dr
-    temp_t1     = -this%mu*this%oorabs2 + this%dudr
-    temp2       = this%dudlambda*temp_t3
-    temp        = this%oorabs*temp_t1 - temp_t4*this%dudphi
+    temp_t1    = -this%mu * this%oorabs2 + this%dudr
+    temp2      = this%dudlambda * temp_t3
+    temp       = this%oorabs * temp_t1 - temp_t4 * this%dudphi
 
-    !=========================================================================
-    !
-    ! Compute the non-spherical perturbative accelerations in ITRF and convert
-    !
-    !-------------------------------------------------------------------------
+    accel_bf(1) = temp * r_bf(1) - temp2 * r_bf(2)
+    accel_bf(2) = temp * r_bf(2) + temp2 * r_bf(1)
+    accel_bf(3) = this%oorabs * temp_t1 * r_bf(3) + temp_t5 * this%dudphi
 
-    ! i-direction [km/s^2]
-    accel_temp(1) = temp * r_itrf(1) - temp2 * r_itrf(2)
-    ! j-direction [km/s^2]
-    accel_temp(2) = temp * r_itrf(2) + temp2 * r_itrf(1)
-    ! k-direction [km/s^2]
-    accel_temp(3) = this%oorabs*temp_t1*r_itrf(3) + temp_t5 * this%dudphi
-
-    call reduction%earthFixed2inertial(accel_temp, time_mjd, accel)
-
-    !-------------------------------------------------------------------------
-
-!if((time_mjd - 55276.75001d0) < 1.d-15) then
-!    write(*,*) "acc_temp = ", accel_temp
-!    write(*,*) "temp = ", temp, temp2
-!    write(*,*) "r_itrf = ", r_itrf
-!endif
-    !write(*,*) "geop, accel = ", accel
-
-    !** save state vector
-    this%current_radius = r_itrf
-
-    !** done!
-    if(isControlled()) then
-      call checkOut(csubid)
-    end if
-
-  end subroutine getGravityAcceleration
+  end subroutine computeBodyFixedAccel
 
   !--------------------------------------------------------------------------------------------------
   !

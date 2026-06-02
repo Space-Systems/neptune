@@ -63,7 +63,7 @@ subroutine rdinp(                &
   !use neptuneInput,        only:  setNeptuneVar
   use neptuneClass,        only: Neptune_class
   use neptuneParameters,   only: INPUT_TEME, INPUT_ITRF, INPUT_ITRF_TEME, INPUT_OSCULATING, INPUT_COV_UVW, INPUT_COV_GCRF, &
-                                  INPUT_CARTESIAN_MCRF, INPUT_OSCULATING_MCRF
+                                  INPUT_CARTESIAN_MCRF, INPUT_OSCULATING_MCRF, C_OPT_LUNAR_GRAV_DEGREE
   use slam_math,           only: deg2rad
   use slam_orbit_types,    only: state_t, covariance_t, kepler_t, idimcov
   use slam_rframes,        only: getFrameId, REF_FRAME_UVW, REF_FRAME_GCRF
@@ -393,16 +393,31 @@ subroutine rdinp(                &
 
   ! ** third bodies (only Sun and Moon so far)
   ! -----------------------------------------
-  do i = 1, 2 !n_supported_bodies
-    call nxtbuf('#', 0, ich_inp, cbuf)
-    read(cbuf,*) itemp
-    if(itemp == 0) then
-      ctemp = "OFF"
+  ! Sun: 0 = off, 1 = on
+  call nxtbuf('#', 0, ich_inp, cbuf)
+  read(cbuf,*) itemp
+  if(itemp == 0) then
+    ctemp = "OFF"
+  else
+    ctemp = "ON"
+  end if
+  ierr = neptune%setNeptuneVar(trim(bodyNames(1)), ctemp)
+
+  ! Moon: 0 = off, 1 = point-mass, >1 = lunar harmonics to that degree (AIUB-GRL350A)
+  call nxtbuf('#', 0, ich_inp, cbuf)
+  read(cbuf,*) itemp
+  if(itemp == 0) then
+    ierr = neptune%setNeptuneVar(trim(bodyNames(2)), "OFF")
+    ierr = neptune%setNeptuneVar(C_OPT_LUNAR_GRAV_DEGREE, "0")
+  else
+    ierr = neptune%setNeptuneVar(trim(bodyNames(2)), "ON")
+    if(itemp == 1) then
+      ierr = neptune%setNeptuneVar(C_OPT_LUNAR_GRAV_DEGREE, "0")  ! point-mass only
     else
-      ctemp = "ON"
+      write(ctemp,'(i4)') itemp
+      ierr = neptune%setNeptuneVar(C_OPT_LUNAR_GRAV_DEGREE, trim(adjustl(ctemp)))
     end if
-    ierr =  neptune%setNeptuneVar(trim(bodyNames(i)), ctemp)
-  end do
+  end if
   ! -----------------------------------------
 
   !** solar radiation pressure
@@ -454,6 +469,8 @@ subroutine rdinp(                &
     ctemp = "ON"
   end if
   ierr =  neptune%setNeptuneVar("MANEUVERS", ctemp)
+
+  ! lunar gravity harmonics degree is now encoded in the Moon gravity value above
 
   !** geopotential model to be used
   call nxtbuf('#', 0, ich_inp, cbuf)
@@ -1057,6 +1074,12 @@ subroutine rdinp(                &
     state%radius_unit   = UNIT_KM
     state%velocity_unit = UNIT_KMPS
     ierr =  neptune%setNeptuneVar("INITIAL_STATE", state)
+    ! Store the original MCRF state so MCRF output file headers show Moon-centered coordinates
+    neptune%output%initial_orbit_mcrf%r              = r_mcrf_tmp
+    neptune%output%initial_orbit_mcrf%v              = v_mcrf_tmp
+    neptune%output%initial_orbit_mcrf%radius_unit    = UNIT_KM
+    neptune%output%initial_orbit_mcrf%velocity_unit  = UNIT_KMPS
+    neptune%output%isSetInitialStateMCRF             = .true.
   else
     state%radius_unit   = UNIT_KM
     state%velocity_unit = UNIT_KMPS

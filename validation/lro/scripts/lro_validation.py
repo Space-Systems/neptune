@@ -346,7 +346,38 @@ def read_neptune_osm(path):
 
 
 # ---------------------------------------------------------------------------
-# Step 4 — compare Cartesian
+# RSW (Radial / Along-track / Cross-track) frame transform
+# ---------------------------------------------------------------------------
+def cart_to_rsw(r_ref, v_ref, dr, dv):
+    """
+    Project position and velocity differences into the RSW satellite frame.
+
+    The frame is defined using the SPICE truth orbit as reference:
+      R : radial (outward along r_ref)
+      S : along-track (W x R, in-plane, roughly in velocity direction)
+      W : cross-track / orbit normal (r_ref x v_ref)
+
+    Parameters
+    ----------
+    r_ref, v_ref : (3,)  reference position and velocity  [km, km/s]
+    dr, dv       : (3,)  difference vectors  (NEPTUNE - SPICE)
+
+    Returns
+    -------
+    dr_rsw, dv_rsw : (3,)  components in R, S, W order
+    """
+    r_hat = r_ref / np.linalg.norm(r_ref)
+    w_hat = np.cross(r_ref, v_ref)
+    w_hat /= np.linalg.norm(w_hat)
+    s_hat = np.cross(w_hat, r_hat)
+
+    dr_rsw = np.array([np.dot(dr, r_hat), np.dot(dr, s_hat), np.dot(dr, w_hat)])
+    dv_rsw = np.array([np.dot(dv, r_hat), np.dot(dv, s_hat), np.dot(dv, w_hat)])
+    return dr_rsw, dv_rsw
+
+
+# ---------------------------------------------------------------------------
+# Step 4 — compare Cartesian (reported in RSW frame)
 # ---------------------------------------------------------------------------
 def compare_mcs(mcs_path):
     df = read_neptune_mcs(mcs_path)
@@ -366,20 +397,26 @@ def compare_mcs(mcs_path):
         dr    = nep_r - sp[:3]
         dv    = nep_v - sp[3:]
 
+        dr_rsw, dv_rsw = cart_to_rsw(sp[:3], sp[3:], dr, dv)
+
         records.append(dict(
             mjd=row["mjd"],
-            dr_x=dr[0], dr_y=dr[1], dr_z=dr[2],
-            dv_x=dv[0], dv_y=dv[1], dv_z=dv[2],
+            dr_r=dr_rsw[0], dr_s=dr_rsw[1], dr_w=dr_rsw[2],
+            dv_r=dv_rsw[0], dv_s=dv_rsw[1], dv_w=dv_rsw[2],
             dr_m=np.linalg.norm(dr) * 1e3,     # m
             dv_mps=np.linalg.norm(dv) * 1e3,   # mm/s
         ))
 
     res = pd.DataFrame(records)
-    print("\n--- Cartesian residuals  (NEPTUNE - SPICE/LRO) ---")
-    print(f"  Position RMS : {_rms(res['dr_m']):.3f} m")
-    print(f"  Position max : {res['dr_m'].max():.3f} m")
-    print(f"  Velocity RMS : {_rms(res['dv_mps']):.3f} mm/s")
-    print(f"  Velocity max : {res['dv_mps'].max():.3f} mm/s")
+    print("\n--- RSW residuals  (NEPTUNE - SPICE/LRO) ---")
+    for col, unit, scale in [
+        ("dr_r", "m",    1e3), ("dr_s", "m",    1e3), ("dr_w", "m",    1e3),
+        ("dv_r", "mm/s", 1e3), ("dv_s", "mm/s", 1e3), ("dv_w", "mm/s", 1e3),
+    ]:
+        print(f"  {col}  RMS={_rms(res[col] * scale):10.3f} {unit:<5s} "
+              f" max={res[col].abs().max() * scale:10.3f} {unit}")
+    print(f"  |dr| RMS : {_rms(res['dr_m']):.3f} m    max : {res['dr_m'].max():.3f} m")
+    print(f"  |dv| RMS : {_rms(res['dv_mps']):.3f} mm/s  max : {res['dv_mps'].max():.3f} mm/s")
     return res
 
 
@@ -431,22 +468,24 @@ def plot_mcs(res, save_path=None):
     t = res["mjd"] - res["mjd"].iloc[0]
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 7), sharex=True)
 
-    for col, lbl in [("dr_x", r"$\Delta r_x$"), ("dr_y", r"$\Delta r_y$"),
-                     ("dr_z", r"$\Delta r_z$")]:
-        ax1.plot(t, res[col] * 1e3, label=lbl)
-    ax1.plot(t, res["dr_m"], color="k", lw=1.5, label=r"$|\Delta r|$")
+    for col, lbl, color in [("dr_r", "R (radial)",      "C0"),
+                             ("dr_s", "S (along-track)", "C1"),
+                             ("dr_w", "W (cross-track)", "C2")]:
+        ax1.plot(t, res[col] * 1e3, label=lbl, color=color)
+    ax1.plot(t, res["dr_m"], color="k", lw=1.5, ls="--", label=r"$|\Delta r|$")
     ax1.set_ylabel("Position residual  [m]")
     ax1.legend(ncol=4, fontsize=8); ax1.grid(True)
 
-    for col, lbl in [("dv_x", r"$\Delta v_x$"), ("dv_y", r"$\Delta v_y$"),
-                     ("dv_z", r"$\Delta v_z$")]:
-        ax2.plot(t, res[col] * 1e3, label=lbl)
-    ax2.plot(t, res["dv_mps"], color="k", lw=1.5, label=r"$|\Delta v|$")
+    for col, lbl, color in [("dv_r", "R (radial)",      "C0"),
+                             ("dv_s", "S (along-track)", "C1"),
+                             ("dv_w", "W (cross-track)", "C2")]:
+        ax2.plot(t, res[col] * 1e3, label=lbl, color=color)
+    ax2.plot(t, res["dv_mps"], color="k", lw=1.5, ls="--", label=r"$|\Delta v|$")
     ax2.set_ylabel("Velocity residual  [mm/s]")
     ax2.set_xlabel(f"Days since MJD {res['mjd'].iloc[0]:.3f}")
     ax2.legend(ncol=4, fontsize=8); ax2.grid(True)
 
-    fig.suptitle("NEPTUNE MCRF Cartesian vs. LRO SPICE (J2000, Moon centre)")
+    fig.suptitle("NEPTUNE vs. LRO SPICE — RSW residuals (Moon-centred)")
     fig.tight_layout()
     _save_or_show(fig, save_path)
 

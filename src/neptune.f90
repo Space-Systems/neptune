@@ -327,6 +327,12 @@ contains
       if(hasFailed()) return
     end if
 
+    ! 4-4a) Lunar gravity harmonics
+    if(neptune%thirdbody_model%lunar_degree > 0) then
+      call neptune%thirdbody_model%initLunarGravity(neptune%getDataPath(), neptune%thirdbody_model%lunar_degree)
+      if(hasFailed()) return
+    end if
+
     ! 4-5) Albedo
     if(neptune%derivatives_model%getPertSwitch(PERT_ALBEDO)) then
       call neptune%radiation_model%initAlbedo()

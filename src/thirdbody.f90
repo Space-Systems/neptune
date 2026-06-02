@@ -31,8 +31,10 @@ module thirdBody
   use neptune_error_handling, only: E_WRONG_THIRD_BODY, setNeptuneError
   use slam_error_handling,    only: isControlled, hasToReturn, hasFailed, FATAL, WARNING, checkIn, checkOut
   use slam_math,              only: mag, identity_matrix, outerproduct
+  use slam_moon_reduction,    only: Reduction_moon_type
   use solarsystem,            only: Solarsystem_class, ID_SUN, ID_MOON
   use slam_types,             only: dp
+  use gravity,                only: Gravity_class, MODEL_AIUB_GRL350A
 
   implicit none
 
@@ -46,15 +48,26 @@ module thirdBody
         logical, dimension(2)   :: cov3b                                        ! switches for Sun (ID_SUN) and Moon (ID_MOON), which can be considered for the covariance matrix computation individually
         real(dp)                :: last_time_mjd                                ! the MJD for which the getThirdBodyCovariance routine has been called in the previous call
 
+        !** lunar gravity field
+        type(Gravity_class)       :: lunar_gravity_model                        ! AIUB-GRL350A instance
+        type(Reduction_moon_type) :: moon_red                                   ! Moon frame-rotation cache
+        integer                   :: lunar_degree = 0                           ! configured max degree (0 = disabled)
+
     contains
 
         !** getter
         procedure :: getThirdBodyAcceleration
         procedure :: getThirdBodyCovariance
         procedure :: getThirdBodyCovFlag
+        procedure :: getLunarGravityAcceleration
+        procedure :: getLunarGravityDegree
 
         !** setter
         procedure :: setThirdBodyCovFlag
+        procedure :: setLunarGravityDegree
+
+        !** init
+        procedure :: initLunarGravity
 
     end type ThirdBody_class
 
@@ -413,6 +426,119 @@ contains
     return
 
   end function getThirdBodyCovariance
+
+
+!!------------------------------------------------------------------------------------------------
+!> @anchor      initLunarGravity
+!!
+!> @brief       Load the lunar gravity field coefficients (AIUB-GRL350A or similar)
+!> @author      Christopher Kebschull
+!!
+!> @param[in]   cpath   Data directory path
+!> @param[in]   degree  Maximum degree of spherical harmonics to use
+!!
+!!------------------------------------------------------------------------------------------------
+  subroutine initLunarGravity(this, cpath, degree)
+
+    class(ThirdBody_class),     intent(inout) :: this
+    character(len=*),           intent(in)    :: cpath
+    integer,                    intent(in)    :: degree
+
+    character(len=*), parameter :: csubid = "initLunarGravity"
+
+    if(isControlled()) then
+      if(hasToReturn()) return
+      call checkIn(csubid)
+    end if
+
+    this%lunar_degree = degree
+    call this%lunar_gravity_model%setGeoDegree(degree)
+    call this%lunar_gravity_model%initGravityPotential(cpath, MODEL_AIUB_GRL350A, is_earth=.false.)
+    if(hasFailed()) return
+
+    if(isControlled()) call checkOut(csubid)
+
+  end subroutine initLunarGravity
+
+!!------------------------------------------------------------------------------------------------
+!> @anchor      setLunarGravityDegree
+!!
+!> @brief       Set the maximum degree for the lunar gravity field
+!> @author      Christopher Kebschull
+!!
+!> @param[in]   deg   Maximum harmonic degree (0 disables the model)
+!!
+!!------------------------------------------------------------------------------------------------
+  subroutine setLunarGravityDegree(this, deg)
+
+    class(ThirdBody_class), intent(inout) :: this
+    integer,                intent(in)    :: deg
+
+    this%lunar_degree = deg
+
+  end subroutine setLunarGravityDegree
+
+!!------------------------------------------------------------------------------------------------
+!> @anchor      getLunarGravityDegree
+!!
+!> @brief       Return the configured maximum degree for the lunar gravity field
+!> @author      Christopher Kebschull
+!!
+!> @return      deg   Maximum harmonic degree (0 = point-mass / disabled)
+!!
+!!------------------------------------------------------------------------------------------------
+  integer function getLunarGravityDegree(this)
+
+    class(ThirdBody_class), intent(in) :: this
+
+    getLunarGravityDegree = this%lunar_degree
+
+  end function getLunarGravityDegree
+
+!!------------------------------------------------------------------------------------------------
+!> @anchor      getLunarGravityAcceleration (ThirdBody wrapper)
+!!
+!> @brief       Compute the perturbative acceleration from the Moon's non-spherical gravity field
+!> @author      Christopher Kebschull
+!!
+!> @param[in]   solarsystem_model  Solar system model (provides Moon position)
+!> @param[in]   r_gcrf             Satellite position in GCRF (km)
+!> @param[in]   time_mjd           Epoch (MJD)
+!> @param[out]  accel              Acceleration in GCRF (km/s²)
+!!
+!!------------------------------------------------------------------------------------------------
+  subroutine getLunarGravityAcceleration(this, solarsystem_model, r_gcrf, time_mjd, accel)
+
+    class(ThirdBody_class),                intent(inout) :: this
+    type(Solarsystem_class),               intent(inout) :: solarsystem_model
+    real(dp), dimension(3),                intent(in)    :: r_gcrf
+    real(dp),                              intent(in)    :: time_mjd
+    real(dp), dimension(3),                intent(out)   :: accel
+
+    character(len=*), parameter :: csubid = "getLunarGravityAcceleration_3b"
+    real(dp), dimension(3) :: r_moon_gcrf
+
+    if(isControlled()) then
+      if(hasToReturn()) return
+      call checkIn(csubid)
+    end if
+
+    accel = 0.d0
+
+    r_moon_gcrf = solarsystem_model%getBodyPosition(time_mjd, ID_MOON)
+    if(hasFailed()) return
+
+    call this%lunar_gravity_model%getLunarGravityAcceleration( &
+                                    this%moon_red,             &
+                                    r_gcrf,                    &
+                                    r_moon_gcrf,               &
+                                    time_mjd,                  &
+                                    accel                      )
+    if(hasFailed()) return
+
+    if(isControlled()) call checkOut(csubid)
+
+  end subroutine getLunarGravityAcceleration
 
 
 end module thirdBody
