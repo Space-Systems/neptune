@@ -32,29 +32,6 @@ jobs:
     # skipped on re-runs where those files haven't changed.
     # -----------------------------------------------------------------------
 
-    - name: Cache OPI build
-      id: cache-opi
-      uses: actions/cache@v4
-      with:
-        path: |
-          OPI/build
-          OPI/lib
-          OPI/include
-        key: opi-${{ runner.os }}-${{ hashFiles('OPI/**') }}
-
-    - name: Build OPI
-      if: steps.cache-opi.outputs.cache-hit != 'true'
-      run: |
-        cmake -S OPI -B OPI/build \
-          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
-          -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/OPI \
-          -DENABLE_CXX11=ON \
-          -DENABLE_CL_SUPPORT=OFF \
-          -DENABLE_CUDA_SUPPORT=OFF \
-          -DENABLE_PYTHON=OFF
-        cmake --build OPI/build --config ${{ env.BUILD_TYPE }} --parallel $(nproc)
-        cmake --install OPI/build --config ${{ env.BUILD_TYPE }}
-
     - name: Cache libslam build
       id: cache-libslam
       uses: actions/cache@v4
@@ -100,7 +77,6 @@ jobs:
       run: |
         cmake -S . -B build \
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
-          -DENABLE_OPI_SUPPORT=ON \
           -DENABLE_PFUNIT=ON \
           -DCMAKE_PREFIX_PATH=${{ github.workspace }}/pFUnit/build/installed
 
