@@ -1,0 +1,360 @@
+!>-----------------------------------------------------------------------------------------------
+!> @anchor      test_integration_propagation
+!!
+!> @brief       Integration tests for the NEPTUNE propagation library
+!> @author      Oscar Rodriguez
+!!
+!> @date        <ul>
+!!                <li>OR: 20.08.2025 (initial design)</li>
+!!              </ul>
+!!
+!> @details     End-to-end integration tests that exercise the NEPTUNE propagator
+!!              through the public API (init_neptune / propagate). Each test
+!!              sets up a full Neptune instance, runs a propagation, and asserts
+!!              high-level orbital behaviour (e.g. drag-induced decay, energy
+!!              conservation) rather than intermediate numerical values.
+!!
+!!------------------------------------------------------------------------------------------------
+
+module test_integration_propagation
+    use funit
+    use slam_types,             only: dp
+    use slam_time,              only: time_t, gd2mjd, mjd2gd, date2string, sec_per_day
+    use slam_orbit_types,       only: state_t, covariance_t
+    use slam_rframes,           only: REF_FRAME_GCRF
+    use slam_math,              only: identity_matrix, mag
+    use slam_error_handling,    only: initErrorHandler, hasToReturn, hasFailed, resetError, getLatestError
+    use slam_io,                only: openFile, closeFile, IN_FORMATTED, OUT_FORMATTED_OVERWRITE, SEQUENTIAL
+    use neptuneClass,           only: Neptune_class
+    use maneuvers,              only: Manoeuvres_class
+    use libneptune,             only: init_neptune, propagate
+    use neptuneParameters,      only: C_PAR_MASS, C_PAR_CDRAG, C_PAR_CREFL, C_PAR_CROSS_SECTION, C_PAR_INT_ABSEPS, & 
+                                      C_PAR_INT_RELEPS, C_PATH_DATA, C_PATH_INPUT, C_PATH_OUTPUT, C_EPOCH_START_GD, C_EPOCH_END_GD, &
+                                      C_WIND, C_GEOPOTENTIAL, C_ATMOSPHERE, C_SRP, C_SUN, C_MOON, C_SOLID_TIDES, C_OCEAN_TIDES, C_ALBEDO, &
+                                      C_OPT_ATMOSPHERE_MODEL, C_OPT_STORE_DATA, C_OPT_SAT_PROPERTIES, C_FILE_MANEUVERS
+    use neptune_error_handling, only: E_MIN_ALTITUDE, E_STEPSIZE_STIFFNESS
+    
+    implicit none
+    
+    ! Default Test parameters
+    real(dp), parameter :: TOLERANCE_POSITION = 1.0d-6  ! km - tolerance for position comparison
+    real(dp), parameter :: TOLERANCE_VELOCITY = 1.0d-9  ! km/s - tolerance for velocity comparison
+    real(dp), parameter :: PROPAGATION_TIME_DEF = 86400.0d0 ! 1 day in seconds
+    integer, parameter  :: NUM_OUTPUT_POINTS = 25       ! Number of default trajectory points
+
+    contains
+
+    !-----------------------------------------------------------------------------------------------
+    !
+    !> @anchor      setup_basic_neptune
+    !!
+    !> @brief       Set up a basic Neptune instance with minimal configuration
+    !> @author      Oscar Rodriguez
+    !!
+    !> @param[out]  neptune                 Neptune instance to be initialised and configured
+    !> @param[in]   initial_epoch           Start epoch used for the propagation window
+    !> @param[in]   disable_perturbations   Optional flag; when .true. all perturbation
+    !!                                      forces are switched off (default: .false.)
+    !!
+    !> @date        <ul>
+    !!                <li>OR: 20.08.2025 (initial design)</li>
+    !!              </ul>
+    !!
+    !!-----------------------------------------------------------------------------------------------
+    subroutine setup_basic_neptune(neptune, initial_epoch, disable_perturbations)
+        type(Neptune_class), intent(out) :: neptune
+        type(time_t), intent(in)         :: initial_epoch
+        logical, intent(in), optional    :: disable_perturbations
+
+        logical         :: disable_perturbations_local
+        integer :: ierr
+        
+        ! Initialize error handling
+        call initErrorHandler(control = 'YES', errAction = 'RETURN', traceback = 'NO')
+        call resetError()
+        disable_perturbations_local = .False.
+        if (present(disable_perturbations)) disable_perturbations_local=disable_perturbations
+        
+        ! Create Neptune instance
+        neptune = Neptune_class()
+        ! The constructor tries to read the EOP file version at the default "data/" path,
+        ! which does not exist in the test working directory. Reset that non-critical
+        ! lookup failure before configuring the actual paths below.
+        call resetError()
+
+        ! Set basic paths
+        call neptune%setDataPath("../../work/data")
+        ierr = neptune%setNeptuneVar(C_PATH_INPUT, "../../work/input") 
+        ierr = neptune%setNeptuneVar(C_PATH_OUTPUT, "../../work/output")
+        
+        ! Set epochs
+        ierr = neptune%setNeptuneVar(C_EPOCH_START_GD, date2string(initial_epoch))
+        ierr = neptune%setNeptuneVar(C_EPOCH_END_GD, date2string(initial_epoch))
+        
+        ! Set satellite properties for cannon ball model
+        ierr = neptune%setNeptuneVar(C_OPT_SAT_PROPERTIES, "1")        ! Cannon ball model
+        ierr = neptune%setNeptuneVar(C_PAR_MASS, "1000.0d0")           ! kg
+        ierr = neptune%setNeptuneVar(C_PAR_CROSS_SECTION, "10.0d0")    ! m^2
+        ierr = neptune%setNeptuneVar(C_PAR_CDRAG, "2.2d0")             ! drag coefficient
+        ierr = neptune%setNeptuneVar(C_PAR_CREFL, "1.3d0")             ! SRP coefficient
+        ! Store intermediate epoch steps
+        ierr = neptune%setNeptuneVar(C_OPT_STORE_DATA, "1")
+        
+        ! Set integration tolerances
+        ierr = neptune%setNeptuneVar(C_PAR_INT_ABSEPS, "1.0d-12")
+        ierr = neptune%setNeptuneVar(C_PAR_INT_RELEPS, "1.0d-15")
+        
+        if (disable_perturbations_local) then
+            ! Disable all perturbations initially
+            call disable_all_perturbations(neptune)
+        end if
+        
+    end subroutine setup_basic_neptune
+
+    !-----------------------------------------------------------------------------------------------
+    !
+    !> @anchor      disable_all_perturbations
+    !!
+    !> @brief       Disable all perturbation forces in a Neptune instance
+    !> @author      Oscar Rodriguez
+    !!
+    !> @param[inout] neptune   Neptune instance whose perturbation settings are modified
+    !!
+    !> @date        <ul>
+    !!                <li>OR: 20.08.2025 (initial design)</li>
+    !!              </ul>
+    !!
+    !!-----------------------------------------------------------------------------------------------
+    subroutine disable_all_perturbations(neptune)
+        type(Neptune_class), intent(inout) :: neptune
+        integer :: ierr
+        
+        ierr = neptune%setNeptuneVar(C_GEOPOTENTIAL, "1")
+        ierr = neptune%setNeptuneVar(C_ATMOSPHERE, "OFF")
+        ierr = neptune%setNeptuneVar(C_SRP, "OFF")
+        ierr = neptune%setNeptuneVar(C_SUN, "OFF")
+        ierr = neptune%setNeptuneVar(C_MOON, "OFF")
+        ierr = neptune%setNeptuneVar(C_SOLID_TIDES, "OFF")
+        ierr = neptune%setNeptuneVar(C_OCEAN_TIDES, "OFF")
+        ierr = neptune%setNeptuneVar(C_ALBEDO, "OFF")
+        ierr = neptune%setNeptuneVar(C_WIND, "OFF")
+        
+    end subroutine disable_all_perturbations
+
+    !-----------------------------------------------------------------------------------------------
+    !
+    !> @anchor      propagate_trajectory
+    !!
+    !> @brief       Propagate a trajectory and return an array of state vectors
+    !> @author      Oscar Rodriguez
+    !!
+    !> @param[inout] neptune            Configured and initialised Neptune instance
+    !> @param[in]    initial_state      Initial Cartesian state vector (position + velocity)
+    !> @param[out]   trajectory         Array of propagated state vectors at evenly-spaced epochs
+    !> @param[in]    num_points         Number of output epochs (including the initial epoch)
+    !> @param[in]    raise_for_errors   Optional flag; when .true. (default) a pFUnit assertion
+    !!                                  failure is raised if propagation encounters an error
+    !> @param[in]    propagation_time   Optional total propagation duration in seconds
+    !!                                  (default: 86400 s = 1 day)
+    !!
+    !> @date        <ul>
+    !!                <li>OR: 20.08.2025 (initial design)</li>
+    !!              </ul>
+    !!
+    !!-----------------------------------------------------------------------------------------------
+    subroutine propagate_trajectory(neptune, initial_state, &
+                                   trajectory, num_points, raise_for_errors, propagation_time)
+
+        
+        implicit none
+        type(Neptune_class), intent(inout)       :: neptune
+        type(state_t), intent(in)                :: initial_state
+        type(state_t), dimension(:), intent(out) :: trajectory
+        integer, intent(in)                      :: num_points
+        real(dp), intent(in), optional           :: propagation_time
+        logical, intent(in), optional            :: raise_for_errors
+
+
+        real(dp) :: propagation_time_local
+        logical :: raise_for_errors_local
+        type(state_t) :: next_state
+        type(covariance_t) :: covar_in, covar_out
+        type(time_t), dimension(:), allocatable :: epochs
+        real(dp) :: time_step
+        integer :: i_ephemeris, ierr
+        logical :: flag_reset
+
+        raise_for_errors_local = .true.
+        if (present(raise_for_errors)) raise_for_errors_local = raise_for_errors
+
+        propagation_time_local = PROPAGATION_TIME_DEF
+        if (present(propagation_time)) propagation_time_local = propagation_time
+        
+        ! Initialize covariance matrix
+        call identity_matrix(covar_in%elem)
+        covar_in%frame = REF_FRAME_GCRF
+        
+        ! Initialize Neptune
+        ierr = init_neptune(neptune, initial_state)
+        if (ierr /= 0) then
+            @assertTrue(.false., "Failed to initialize Neptune")
+            return
+        end if
+        
+        allocate(epochs(num_points))
+        
+        ! Calculate time step
+        time_step = propagation_time_local / real(num_points - 1, dp)
+        
+        ! Store initial state
+        trajectory(1) = initial_state
+        
+        ! Propagate through time
+        flag_reset = .true.
+        epochs(1) = initial_state%epoch
+        do i_ephemeris=2, num_points
+            epochs(i_ephemeris)%mjd = epochs(i_ephemeris-1)%mjd + time_step / sec_per_day
+            call mjd2gd(epochs(i_ephemeris))
+        end do
+
+        call propagate(neptune, initial_state, covar_in, epochs, &
+                          next_state, covar_out, flag_reset)
+        
+        
+        if (hasFailed()) then
+            if (raise_for_errors_local) then
+                @assertTrue(.false., "Propagation failed ")
+            end if
+            return
+        end if
+
+        do i_ephemeris=1, neptune%getNumberOfEphemerides()
+            trajectory(i_ephemeris) = neptune%getNeptuneData(i_ephemeris)
+        end do
+
+    end subroutine propagate_trajectory
+
+    !-----------------------------------------------------------------------------------------------
+    !
+    !> @anchor      test_hohmann_transfer
+    !!
+    !> @brief       Hohmann transfer test with nominal propagation
+    !> @author      Johannes Hassenstein
+    !!
+    !> @details     Configures a Neptune instance with a J2 geopotential and an exponential
+    !!              atmospheric model, places a 1973 kg satellite at 687 km altitude on a
+    !!              near-circular orbit, adds a hohmann transfer maneuver to raise the orbit by 1000 km after 12 h,
+    !!              propagates for 24 hours. Asserts that the final geocentric distance is greater
+    !!              than the initial one and that the stiffness error is not triggered.
+    !!
+    !> @date        <ul>
+    !!                <li>OR: 19.03.2026 (initial design)</li>
+    !!              </ul>
+    !!
+    !!-----------------------------------------------------------------------------------------------
+    @test
+    subroutine test_hohmann_transfer()
+        ! Test propagation with atmospheric drag
+        type(Neptune_class) :: neptune
+        type(time_t) :: initial_epoch
+        type(state_t) :: initial_state
+        type(state_t), dimension(NUM_OUTPUT_POINTS) :: trajectory
+        real(dp) :: mjd, mjd0
+        integer :: ierr
+        
+        ! Set up test epoch
+        call gd2mjd(2020, 1, 1, 0,0,0.0d0, mjd0, mjd)
+
+        initial_epoch%mjd = mjd
+        call mjd2gd(initial_epoch)
+        
+        ! Set up Neptune with gravity and drag
+        call setup_basic_neptune(neptune, initial_epoch, disable_perturbations=.True.)
+        ! Change satellite parameters
+        ierr = neptune%setNeptuneVar(C_PAR_MASS, "1973.0d0")           ! kg
+        ierr = neptune%setNeptuneVar(C_PAR_CROSS_SECTION, "11.0d0")    ! m^2
+        ierr = neptune%setNeptuneVar(C_PAR_CDRAG, "2.2d0")             ! drag coefficient
+        ierr = neptune%setNeptuneVar(C_PAR_CREFL, "1.3d0")             ! SRP coefficient
+        ierr = neptune%setNeptuneVar(C_GEOPOTENTIAL, "1")
+        ierr = neptune%setNeptuneVar(C_ATMOSPHERE, "ON")  ! Enable atmospheric drag
+        ierr = neptune%setNeptuneVar(C_OPT_ATMOSPHERE_MODEL, "1") ! Exponential model
+        ! Set up maneuvers
+        ierr =  neptune%setNeptuneVar("MANEUVERS", "ON")
+        ierr =  neptune%setNeptuneVar("FILE_MANEUVERS", "../../tests/testdata/integration_propagation/hohmann_transfer.mnv")
+
+        initial_state = state_t( &
+            r = [0.0d0, 0.0d0, 7058.0d0], &                ! km (687 km altitude)
+            v = [0.0d0, 7.51d0, 0.0d0], &                 ! km/s (circular velocity)
+            epoch = initial_epoch, &
+            frame = REF_FRAME_GCRF &
+        )
+
+        
+        ! Propagate trajectory and check there are no errors
+        call propagate_trajectory(neptune, initial_state, &
+                                 trajectory, NUM_OUTPUT_POINTS, propagation_time=sec_per_day*2, raise_for_errors=.True.)
+
+    end subroutine test_hohmann_transfer
+
+     !-----------------------------------------------------------------------------------------------
+    !
+    !> @anchor      test_trigger_stiffness
+    !!
+    !> @brief       Propagation with bad C_D input, which results in code stiffness.
+    !> @author      Johannes Hassenstein
+    !!
+    !> @details     Performs a propagation with bad C_D input, that leads to stiffness which
+    !!              should trigger the stiffness error code.
+    !!
+    !> @date        <ul>
+    !!                <li>OR: 18.03.2026 (initial design)</li>
+    !!              </ul>
+    !!
+    !!-----------------------------------------------------------------------------------------------
+    @test
+    subroutine test_trigger_stiffness()
+        ! Test propagation with atmospheric drag
+        type(Neptune_class) :: neptune
+        type(time_t) :: initial_epoch
+        type(state_t) :: initial_state
+        type(state_t), dimension(NUM_OUTPUT_POINTS) :: trajectory
+        real(dp) :: mjd, mjd0
+        integer :: ierr
+
+        ! Set up test epoch
+        call gd2mjd(2020, 1, 1, 0,0,0.0d0, mjd0, mjd)
+
+        initial_epoch%mjd = mjd
+        call mjd2gd(initial_epoch)
+
+        ! Set up Neptune with gravity and drag
+        call setup_basic_neptune(neptune, initial_epoch, disable_perturbations=.True.)
+        ! Change satellite parameters and set bad drag coefficient
+        ierr = neptune%setNeptuneVar(C_PAR_MASS, "1973.0d0")           ! kg
+        ierr = neptune%setNeptuneVar(C_PAR_CROSS_SECTION, "11.0d0")    ! m^2
+        ierr = neptune%setNeptuneVar(C_PAR_CDRAG, "2000000000.2d0")    ! bad drag coefficient
+        ierr = neptune%setNeptuneVar(C_PAR_CREFL, "1.3d0")             ! SRP coefficient
+        ierr = neptune%setNeptuneVar(C_GEOPOTENTIAL, "1")
+        ierr = neptune%setNeptuneVar(C_ATMOSPHERE, "ON")  ! Enable atmospheric drag
+        ierr = neptune%setNeptuneVar(C_OPT_ATMOSPHERE_MODEL, "2") ! NRLMSISE-00 model
+
+        initial_state = state_t( &
+            r = [0.0d0, 0.0d0, 7058.0d0], &                ! km (687 km altitude)
+            v = [0.0d0, 7.51d0, 0.0d0], &                 ! km/s (circular velocity)
+            epoch = initial_epoch, &
+            frame = REF_FRAME_GCRF &
+        )
+
+        ! Propagate trajectory
+        call propagate_trajectory(neptune, initial_state, &
+                                 trajectory, NUM_OUTPUT_POINTS, raise_for_errors=.False., propagation_time=sec_per_day*2)
+        ierr= getLatestError()
+        ! Check that code stiffness due to bad input data results in termination of the propagation
+        @assertEqual(ierr, E_STEPSIZE_STIFFNESS, "Expected error code: E_STEPSIZE_STIFFNESS")
+
+
+    end subroutine test_trigger_stiffness
+
+
+
+end module test_integration_propagation

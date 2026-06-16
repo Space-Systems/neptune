@@ -40,7 +40,7 @@ module libneptune
                                     PERT_MERCURY, PERT_MOON, PERT_NEPTUNE, PERT_OCEAN_TIDES, PERT_SATURN, PERT_SOLID_TIDES, PERT_SRP, PERT_SUN, &
                                     PERT_URANUS, PERT_VENUS, PERT_WIND
     use neptune_error_handling, only: E_INTEGRATION_ABORT, E_MIN_ALTITUDE, E_NEPTUNE_INIT, E_UNSUPPORTED_FRAME, &
-                                    E_INVALID_SATELLITE, setNeptuneError
+                                    E_INVALID_SATELLITE, E_CONTRADICTORY_EPOCH_PARAMETERS, setNeptuneError
     use slam_error_handling,    only: hasToReturn, isControlled, hasFailed, isSetErrorHandling, E_FILE_NOT_FOUND, WARNING, FATAL, &
                                     E_MISSING_PARAMETER, ERRORS, initErrorHandler, ALL_MSG, getLogfileChannel, &
                                     setLogFileName, getLogFileName, setLogFileChannel, setLogVerbosity, setCliVerbosity, checkIn, checkOut, & 
@@ -528,10 +528,11 @@ contains
   !!
   !! @details     This routine is called for the propagation of the state
   !!              vector and the covariance matrix, after NEPTUNE has been
-  !!              initialized by calling init_neptune.
+  !!              initialized by calling init_neptune. The state_in shall
+  !!              be at the point of the first epoch. Otherwise, an error will occur.
   !!
   !> @param[in]   neptune     the neptune class
-  !> @param[in]   state_in    input state vector (GCRF expected, but checked)
+  !> @param[in]   state_in    input state vector (GCRF expected, but checked; shall be at the point of the first epoch)
   !> @param[in]   covar_in    input covariance matrix (GCRF expected, but checked)
   !> @param[in]   epochs      propagation start(1) and end(last) epoch
   !> @param[out]  state_out   output state vector (GCRF)
@@ -633,6 +634,13 @@ contains
     !   Input check
     !
     !--------------------------------------------------
+    
+    ! check if the input state vector is defined at the initial state
+    if (abs(epochs(1)%mjd - state_in%epoch%mjd) .gt. eps15) then
+      ! Generate error and return
+      call setNeptuneError(E_CONTRADICTORY_EPOCH_PARAMETERS, FATAL)
+      return
+    end if
 
     ! check state vector reference frame (should be GCRF, if not: add conversions here...)
     if(state_in%frame /= REF_FRAME_GCRF) then

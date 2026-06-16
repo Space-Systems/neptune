@@ -1920,7 +1920,7 @@ contains
               setNeptuneVar_char = E_DATA_PATH
               return
             else
-              read(val(1:min(len(val),len(this%cdatapath))),*) this%cdatapath
+              this%cdatapath = val(1:min(len_trim(val),len(this%cdatapath)))
               call this%set_input(parName=C_PATH_DATA, val=val, set=.true.)
             end if
 
@@ -1936,7 +1936,7 @@ contains
               setNeptuneVar_char = E_INPUT_PATH
               return
             else
-              read(val(1:min(len(val),len(this%cinpath))),*) this%cinpath
+              this%cinpath = val(1:min(len_trim(val),len(this%cinpath)))
               call this%set_input(parName=C_PATH_INPUT, val=val, set=.true.)
             end if
 
@@ -1952,7 +1952,7 @@ contains
               setNeptuneVar_char = E_OUTPUT_PATH
               return
             else
-              read(val(1:min(len(val),len(this%coutpath))),*) this%coutpath
+              this%coutpath = val(1:min(len_trim(val),len(this%coutpath)))
               call this%set_input(parName=C_PATH_OUTPUT, val=val, set=.true.)
             end if
 
