@@ -37,12 +37,10 @@ source "$VENV_DIR/bin/activate"
 echo "Upgrading pip ..."
 pip install --quiet --upgrade pip
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 echo "Installing packages ..."
-pip install \
-    "numpy>=1.24" \
-    "pandas>=2.0" \
-    "matplotlib>=3.7" \
-    "spiceypy>=6.0"
+pip install --quiet -r "$SCRIPT_DIR/requirements.txt"
 
 echo ""
 echo "Done.  Activate the environment with:"
