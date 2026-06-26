@@ -76,6 +76,12 @@ module gravity
                                                                                  "egm2008.dat      ", &
                                                                                  "eigen_gl04c.dat  ", &
                                                                                  "AIUB-GRL350A.gfc "/)
+  ! gravity constant keyword in each model's file header
+  character(len=22), dimension(n_supported_models), parameter :: gravConstKeyword = &
+                                                                    (/"earth_gravity_constant", &
+                                                                      "earth_gravity_constant", &
+                                                                      "earth_gravity_constant", &
+                                                                      "gravity_constant      "/)
   ! data file formats for each supported model (col 1 = time-varying line, col 2 = static line)
   character(len=36), dimension(n_supported_models,2), parameter :: cDataFormat = reshape((/"(a1,2(i4),2(e20.12e2),2(e16.8e2),a9)", &
                                                                                            "  (a1,2(i5),2(e25.15e2),2(e20.10e2))", &
@@ -440,7 +446,7 @@ contains
 
       read(ich,'(a)',iostat=ios) cbuf
 
-      if(index(cbuf, "earth_gravity_constant") /= 0) then
+      if(index(cbuf, trim(gravConstKeyword(this%nmodel))) /= 0) then
         read(cbuf,*) ctemp, this%mu
         this%mu = this%mu*1.d-9
         if(set_earth_consts) then
