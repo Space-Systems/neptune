@@ -666,9 +666,8 @@ contains
       return
     end if
 
-    !** for Moon-centered inputs: check altitude above Moon's surface too
-    if(neptune%output%input_type == INPUT_CARTESIAN_MCRF .or. &
-       neptune%output%input_type == INPUT_OSCULATING_MCRF) then
+    !** check altitude above Moon's surface when Moon gravity model is active
+    if(neptune%thirdbody_model%lunar_degree > 0) then
       r_moon_chk = neptune%solarsystem_model%getBodyPosition(epochs(1)%mjd, ID_MOON)
       if(hasFailed()) return
       if(mag(state_in%r - r_moon_chk) < getMoonRadius()) then
