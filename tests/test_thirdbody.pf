@@ -16,10 +16,12 @@
 module test_thirdbody
 use funit
 use thirdbody
-use slam_reduction_class, only: Reduction_type
+use gravity
+use slam_reduction_class,  only: Reduction_type
+use slam_moon_reduction,   only: Reduction_moon_type
 use slam_math
 use slam_error_handling
-use solarsystem,    only: Solarsystem_class, initSolarSystem
+use solarsystem,    only: Solarsystem_class, initSolarSystem, ID_MOON
 use neptuneClass,   only: time_t
 implicit none
 
@@ -29,7 +31,7 @@ contains
    subroutine test_getThirdBodyAccelaration()
         ! Reference Values : OREKIT 
         type(ThirdBody_class)                  :: third_body
-        type(Solarsystem_class)                 :: solarsystem_model
+        type(Solarsystem_class)                :: solarsystem_model
         real(dp), dimension(3)                 :: r_gcrf
         real(dp)                               :: time_mjd, tolerance
         integer                                :: body_id
@@ -49,7 +51,7 @@ contains
         ! Test 1:
         ! Set Up inputs 
         body_id = 1    
-        time_mjd = 	59868.16721065d0
+        time_mjd = 59868.16721065d0
         r_gcrf = (/-3485.799126707284d0, -5898.652976745232d0, 835.9701786284777d0/)
         ! Call the subroutine to be tested
         call third_body%getThirdBodyAcceleration(solarsystem_model, r_gcrf, time_mjd, body_id, acc_thirdbody)
@@ -76,7 +78,7 @@ contains
         third_body = ThirdBody_class()
        ! Set Up inputs 
         body_id = 1    
-        time_mjd = 	58600d0
+        time_mjd = 58600d0
         r_gcrf = (/31986.08889084533d0, 3886.249797563777d0, -17606.478382491812d0/)
         ! Call the subroutine to be tested
         call third_body%getThirdBodyAcceleration(solarsystem_model, r_gcrf, time_mjd, body_id, acc_thirdbody)
@@ -102,7 +104,7 @@ contains
         third_body = ThirdBody_class()
        ! Set Up inputs 
         body_id = 1    
-        time_mjd = 	58600d0
+        time_mjd = 58600d0
         r_gcrf = (/31986.08889084533d0, 3886.249797563777d0, -17606.478382491812d0/)
         ! Call the subroutine to be tested
         call third_body%getThirdBodyAcceleration(solarsystem_model, r_gcrf, time_mjd, body_id, acc_thirdbody)
@@ -119,6 +121,68 @@ contains
     end subroutine test_getThirdBodyAccelaration
 
 
-    
+    @test
+    subroutine test_getLunarGravityAcceleration()
+        ! Tests the perturbative acceleration from the AIUB-GRL350A lunar
+        ! gravity model (degree 72).  Moon position at MJD 60957 is taken
+        ! from the DE-421 ephemeris (same value used in test_moon_reduction.pf).
+        !
+        ! TODO: replace range assertions with @assertRelativelyEqual once
+        !       reference values from Tudat / OREKIT are available.
+
+        type(Gravity_class)       :: gravity_model, lunar_gravity_model
+        type(Reduction_moon_type) :: moon_red
+        type(Solarsystem_class)   :: solarsystem_model
+        real(dp), dimension(3)    :: r_gcrf, r_moon_gcrf
+        real(dp)                  :: tolerance
+
+        real(dp), dimension(3)    :: acc_moon, expected_acc
+        type(time_t)              :: epoch 
+
+        epoch%mjd = 60957.d0
+        call initErrorHandler(control = "YES", errAction = "RETURN", traceback = "YES")
+
+        solarsystem_model = Solarsystem_class()
+        call solarsystem_model%initSolarSystem(   &
+                                "../../work/data",  &
+                                'DE-421',               &
+                                 epoch &
+                                )
+
+        gravity_model = Gravity_class()
+        call gravity_model%setGeoDegree(6)
+        call gravity_model%initGravityPotential('../../work/data', MODEL_EIGEN_GL04C, is_earth=.true.)
+
+        lunar_gravity_model = Gravity_class()
+        call lunar_gravity_model%setGeoDegree(72)
+        call lunar_gravity_model%initGravityPotential('../../work/data', MODEL_AIUB_GRL350A, is_earth=.false.)
+
+        @assertFalse(hasFailed())
+
+        r_gcrf = (/269077.15301753d0,  206860.98747172d0,  120385.60235181d0/)
+
+        r_moon_gcrf = solarsystem_model%getBodyPosition(epoch%mjd, ID_MOON)
+
+        call lunar_gravity_model%getLunarGravityAcceleration(moon_red, r_gcrf, r_moon_gcrf, epoch%mjd, acc_moon)
+
+        @assertFalse(hasFailed())
+
+        ! Set up expected outputs
+        expected_acc = (/-0.561059393E-06, -0.510513230E-06, 0.490944981E-06/)
+            
+        ! Set up tolerances
+        tolerance = 1e-6_dp
+        
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(expected_acc, acc_moon, tolerance)
+
+        ! Test 2: repeated call with identical input returns identical result
+        call lunar_gravity_model%getLunarGravityAcceleration(moon_red, r_gcrf, r_moon_gcrf, epoch%mjd, acc_moon)
+
+        ! Check if outputs match expected values
+        @assertRelativelyEqual(expected_acc, acc_moon, tolerance)
+
+    end subroutine test_getLunarGravityAcceleration
+
 
 end module test_thirdbody
