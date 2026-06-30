@@ -456,6 +456,7 @@ contains
     call this%lunar_gravity_model%setGeoDegree(degree)
     ! no distinct harmonics are used
     call this%lunar_gravity_model%setDistinctHarmonicsArray(arr)
+    this%lunar_gravity_model%coeffInitialized = .false.
     call this%lunar_gravity_model%initGravityPotential(cpath, MODEL_AIUB_GRL350A, is_earth=.false.)
     if(hasFailed()) return
 
