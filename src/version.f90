@@ -22,6 +22,16 @@
 !!              new, but backward-compatible, API features, the major version is incremented for
 !!              API changes, which are not backward-compatible (http://semver.org/spec/v2.0.0.html).
 !!
+!!              Version 1.2.0-release (30-JUN-2026)
+!!              <ul>
+!!                <li> Fix: backpropagation</li>
+!!                <li> Fix: STM equations</li>
+!!                <li> Feature: reentry checks</li>
+!!                <li> Feature: unit tests</li>
+!!                <li> Fix: stiffness issue</li>
+!!                <li> Fix: Gregorian dates in output show seconds</li>
+!!                <li> Various fixes and improvements</li>
+!!              </ul>
 !!              Version 1.1.2-release (17-SEP-2021)
 !!              <ul>
 !!                <li> Feature: Support of ITRF input state</li>
@@ -240,7 +250,7 @@ contains
     !!
     ! --------------------------------------------------------------------
     type(Version_class) function constructor()
-        constructor%current_version = version_t(1,1,2,'release')
+        constructor%current_version = version_t(1,2,0,'release')
         constructor%logoLineCounter = 0                                         ! number of lines in NEPTUNE logo data file
         constructor%loadedLogo      = .false.
     end function constructor
@@ -468,6 +478,8 @@ contains
     character(len=*), intent(in)    :: version
 
     select case(version)
+      case('1.2.0-release')
+        getVersionDate = '30-Jun-2026'
       case('1.1.2-release')
         getVersionDate = '17-Sep-2021'
       case('1.1.1-release')
