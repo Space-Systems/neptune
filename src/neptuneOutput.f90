@@ -1491,13 +1491,22 @@ contains
 
             if(derivatives_model%getPertSwitch(PERT_MOON)) then !** accelerations due to moon perturbations
 
-              call thirdbody_model%getThirdBodyAcceleration(    &
-                                              solarsystem_model,&   ! <-> TYPE   solarsystem model
-                                              state_out%r,      &   ! <-- DBL(3) radius vector in GCRF
-                                              epoch%mjd,        &   ! <-- DBL    current time MJD
-                                              ID_MOON,          &   ! <-- CHR()  third body identifier (e.g. 'SUN' or 'MOON')
-                                              acc_out           &   ! --> DBL(3) acceleration vector in inertial frame
+              if (thirdbody_model%lunar_degree > 0) then
+                call thirdbody_model%getLunarGravityAcceleration( & 
+                                            solarsystem_model,    & ! <-> TYPE   solarsystem model
+                                            state_out%r,          & ! <-- DBL(3) radius vector in GCRF
+                                            epoch%mjd,            & ! <-- DBL    current time MJD
+                                            acc_out               & ! --> DBL(3) acceleration vector in inertial frame
+                                          )
+              else
+                call thirdbody_model%getThirdBodyAcceleration(    &
+                                              solarsystem_model,  &   ! <-> TYPE   solarsystem model
+                                              state_out%r,        &   ! <-- DBL(3) radius vector in GCRF
+                                              epoch%mjd,          &   ! <-- DBL    current time MJD
+                                              ID_MOON,            &   ! <-- CHR()  third body identifier (e.g. 'SUN' or 'MOON')
+                                              acc_out             &   ! --> DBL(3) acceleration vector in inertial frame
                                            )
+              end if
               if(hasFailed()) return
 
               !** convert acceleration to UVW coordinates
