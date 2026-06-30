@@ -338,14 +338,12 @@ subroutine rdinp(                &
   ! covariance matrix
   !
   !-----------------------------------------
-  ! Read the 6-state orbital covariance only; the 7th row/col of elem
-  ! is an internal extension not present in input files.
-  do i = 1, idimcov-1
+  do i = 1, idimcov
     call nxtbuf('#', 0, ich_inp, cbuf)
     read(cbuf,*) covar%elem(i,i)
   end do
 
-  do i = 1, idimcov-2
+  do i = 1, idimcov-1
     call nxtbuf('#', 0, ich_inp, cbuf)
     read(cbuf,*) (covar%elem(i+1,j), j=1,i)
   end do
