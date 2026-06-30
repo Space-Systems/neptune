@@ -444,6 +444,7 @@ contains
     character(len=*),           intent(in)    :: cpath
     integer,                    intent(in)    :: degree
 
+    integer,dimension(0)                      :: arr
     character(len=*), parameter :: csubid = "initLunarGravity"
 
     if(isControlled()) then
@@ -453,6 +454,8 @@ contains
 
     this%lunar_degree = degree
     call this%lunar_gravity_model%setGeoDegree(degree)
+    ! no distinct harmonics are used
+    call this%lunar_gravity_model%setDistinctHarmonicsArray(arr)
     call this%lunar_gravity_model%initGravityPotential(cpath, MODEL_AIUB_GRL350A, is_earth=.false.)
     if(hasFailed()) return
 
