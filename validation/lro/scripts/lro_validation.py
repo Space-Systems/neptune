@@ -26,9 +26,11 @@ Usage examples
 """
 
 import argparse
+import os
 import re
 import subprocess
 import sys
+import urllib.request
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -49,6 +51,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # CONFIG — adjust to your local layout
 # ---------------------------------------------------------------------------
+NEPTUNE_WORK_DIR    = Path(__file__).parent.parent.parent.parent / "work"
 WORK_DIR    = Path(__file__).parent.parent / "work"
 KERNEL_DIR  = WORK_DIR / "data"
 INP_FILE    = WORK_DIR / "input"  / "neptune.inp"
@@ -58,10 +61,15 @@ NEPTUNE_CMD = [str(WORK_DIR / "start_neptune.sh")]  # launched from WORK_DIR
 # https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/aareadme.htm
 KERNELS = [
     KERNEL_DIR / "naif0012.tls",
-    KERNEL_DIR / "de421.bsp",
+    KERNEL_DIR / "de430.bsp",
     # Add LRO SPK files that cover your window, e.g.:
     KERNEL_DIR / "lrorg_2025258_2025349_v01.bsp",
 ]
+
+KERNEL_PATHS = {
+    "naif0012.tls": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/naif0012.tls",
+    "de430.bsp":    "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de430.bsp",
+}
 
 LRO_NAIF_ID  = "-85"   # LRO
 MOON_NAIF_ID = "301"   # Moon
@@ -141,9 +149,80 @@ def moon_rv2coe(r, v):
 
 
 # ---------------------------------------------------------------------------
+# Setup helpers
+# ---------------------------------------------------------------------------
+def setup_lro_work(system_dir: Path = NEPTUNE_WORK_DIR):
+    """
+    Create symlinks in the local work tree pointing at the system NEPTUNE work.
+
+    Links created:
+      KERNEL_DIR/<name>         -> system_dir/data/<name>  for every file in data/
+      WORK_DIR/neptune-sa       -> system_dir/neptune-sa
+      WORK_DIR/start_neptune.sh -> system_dir/start_neptune.sh
+    """
+    src_data = system_dir / "data"
+    if not system_dir.exists():
+        sys.exit(f"System work directory not found: {system_dir}\n"
+                 "Pass --system-work-dir to specify an alternative path.")
+
+    KERNEL_DIR.mkdir(parents=True, exist_ok=True)
+
+    def _link(src: Path, dst: Path) -> None:
+        """Create a symlink
+
+        :param Path src: source  path
+        :param Path dst: destination path
+        """
+        real = Path(os.path.realpath(src))
+        if dst.is_symlink():
+            if Path(os.path.realpath(dst)) == real:
+                return
+            dst.unlink()
+        elif dst.exists():
+            return
+        dst.symlink_to(str(real))
+        print(f"  Linked {dst} -> {real}")
+
+    # Data files
+    for src in src_data.iterdir():
+        _link(src, KERNEL_DIR / src.name)
+
+    # NEPTUNE binary and launch script
+    for name in ("neptune-sa", "start_neptune.sh"):
+        src = system_dir / name
+        if not src.exists():
+            print(f"  WARNING: {src} not found — skipping {name}")
+            continue
+        print(f"Linking {src} to {WORK_DIR / name}")
+        _link(src, WORK_DIR / name)
+    
+    with open(WORK_DIR/"start_neptune.sh", "r") as out_file:
+        text=out_file.read()
+    # Make it compatible with new relative location
+    text=text.replace("ln -sf ../bin/neptune-sa .", "").replace("ln -sf ../bin/neptune-sa .", "")
+    with open(WORK_DIR/"start_neptune.sh", "w") as out_file:
+        out_file.write(text)
+
+def download_missing_kernels():
+    """Download kernels listed in KERNEL_PATHS that are not yet present."""
+    KERNEL_DIR.mkdir(parents=True, exist_ok=True)
+    for name, url in KERNEL_PATHS.items():
+        dest = KERNEL_DIR / name
+        if dest.exists():
+            continue
+        print(f"Downloading {name} from {url} ...")
+        try:
+            urllib.request.urlretrieve(url, dest)
+            print(f"  Saved to {dest}")
+        except Exception as exc:
+            sys.exit(f"Failed to download {name}: {exc}\nPlace it manually in {KERNEL_DIR}")
+
+
+# ---------------------------------------------------------------------------
 # SPICE helpers
 # ---------------------------------------------------------------------------
 def load_kernels():
+    download_missing_kernels()
     missing = [str(k) for k in KERNELS if not Path(k).exists()]
     if missing:
         sys.exit(
@@ -298,6 +377,7 @@ def run_neptune():
             NEPTUNE_CMD,
             cwd=str(WORK_DIR),
             capture_output=False,
+            env={"LD_LIBRARY_PATH": str(NEPTUNE_WORK_DIR.parent/"lib")},
             check=True,
         )
         print("NEPTUNE finished successfully.")
@@ -545,6 +625,10 @@ def main():
     p.add_argument("--save-plots", action="store_true",
                    help="Save comparison plots as PNG files")
     args = p.parse_args()
+
+
+    setup_lro_work()
+
 
     load_kernels()
 
