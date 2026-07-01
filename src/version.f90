@@ -22,6 +22,13 @@
 !!              new, but backward-compatible, API features, the major version is incremented for
 !!              API changes, which are not backward-compatible (http://semver.org/spec/v2.0.0.html).
 !!
+!!              Version 1.2.0-release (02-Jun-2026)
+!!              <ul>
+!!                <li> Feature: Moon-centered reference frame (MCRF) input types 6 (Cartesian) and 7 (Keplerian)</li>
+!!                <li> Feature: MCRF output files - cartesian (mcs), osculating Keplerian (osm), variances and covariances</li>
+!!                <li> Feature: Lunar gravity harmonics via AIUB-GRL350A model (degree 2-350), encoded in Moon gravity parameter</li>
+!!                <li> Change: Moon gravity parameter in neptune.inp now encodes harmonics degree (0=off, 1=point-mass, >1=degree); separate lunar harmonics line removed</li>
+!!              </ul>
 !!              Version 1.1.2-release (17-SEP-2021)
 !!              <ul>
 !!                <li> Feature: Support of ITRF input state</li>
@@ -240,7 +247,7 @@ contains
     !!
     ! --------------------------------------------------------------------
     type(Version_class) function constructor()
-        constructor%current_version = version_t(1,1,2,'release')
+        constructor%current_version = version_t(1,2,0,'release')
         constructor%logoLineCounter = 0                                         ! number of lines in NEPTUNE logo data file
         constructor%loadedLogo      = .false.
     end function constructor
@@ -468,6 +475,8 @@ contains
     character(len=*), intent(in)    :: version
 
     select case(version)
+      case('1.2.0-release')
+        getVersionDate = '02-Jun-2026'
       case('1.1.2-release')
         getVersionDate = '17-Sep-2021'
       case('1.1.1-release')

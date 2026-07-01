@@ -69,14 +69,14 @@ module solarsystem
     type, public :: Solarsystem_class
 
         integer                                     :: selectedModel
-        logical, dimension(n_supported_bodies)      :: isAvailableState         ! indicating that position available for the supported body for given epoch
+        logical, dimension(n_supported_bodies)      :: isAvailableState = .false.  ! indicating that position available for the supported body for given epoch
         real(dp)                                    :: last_time_mjd            ! saving the MJD of last call of a time conversion computation
                                                                                 ! in order to prevent the same time conversions for the same point in time
 
         real(dp), dimension(n_supported_bodies)     :: mu                       ! mass parameter GM for all supported bodies (km**3/s**2)
         real(dp), dimension(n_supported_bodies,3)   :: state_gcrf               ! position of the body in the GCRF
 
-        logical                                     :: solarSystemInitialized
+        logical                                     :: solarSystemInitialized = .false.
 
     contains
 

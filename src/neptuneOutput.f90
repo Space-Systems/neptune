@@ -43,24 +43,26 @@ module neptuneOutput
   use slam_math,              only: rad2deg, mag
   use neptuneParameters,      only: PROP_CONSTANT, &
                                     INPUT_UNDEFINED, INPUT_CARTESIAN, INPUT_TEME, INPUT_ITRF, INPUT_ITRF_TEME, INPUT_COV_GCRF, INPUT_OSCULATING, &
+                                    INPUT_CARTESIAN_MCRF, INPUT_OSCULATING_MCRF, &
                                     INPUT_COV_UVW, C_VENUS, C_URANUS, C_SUN, C_SRP, C_SATURN, C_NEPTUNE, C_RUN_ID, &
                                     C_OUTPUT_VAR_ECI, C_OUTPUT_VAR_UVW, C_OUTPUT_COV_ECI, C_OUTPUT_COV_UVW, C_OUTPUT_ACC, &
                                     C_OUTPUT_ACG, C_OUTPUT_ACD, C_OUTPUT_ACM, C_OUTPUT_ACS, C_OUTPUT_ACR, C_OUTPUT_ACA, C_OUTPUT_ACT, &
                                     C_OUTPUT_ACO, C_OUTPUT_AMN, C_OUTPUT_ATM, C_OUTPUT_GLL, C_OUTPUT_AME, C_OUTPUT_ACV, &
                                     C_OUTPUT_AMA, C_OUTPUT_ACJ, C_OUTPUT_ASA, C_OUTPUT_ACU, C_OUTPUT_ACN, C_OUTPUT_OSC, &
-                                    C_OUTPUT_CSV, C_OUTPUT_STEP, &
+                                    C_OUTPUT_CSV, C_OUTPUT_CSV_MCRF, C_OUTPUT_OSC_MCRF, C_OUTPUT_VAR_MCRF, C_OUTPUT_COV_MCRF, C_OUTPUT_STEP, &
                                     C_PAR_MASS, C_PAR_CREFL, C_PAR_CDRAG, C_PAR_CROSS_SECTION, &
                                     C_OPT_SAT_PROPERTIES, C_EPOCH_START_GD, C_EPOCH_END_GD, &
                                     C_ALBEDO, C_ATMOSPHERE, C_GEOPOTENTIAL, &
-                                    C_INPUT_CARTESIAN, C_INPUT_OSCULATING, C_JUPITER, C_MANEUVERS, C_MARS, C_MERCURY, C_MOON, &
+                                    C_INPUT_CARTESIAN, C_INPUT_OSCULATING, C_INPUT_CARTESIAN_MCRF, C_INPUT_OSCULATING_MCRF, C_JUPITER, C_MANEUVERS, C_MARS, C_MERCURY, C_MOON, &
                                     C_SOLID_TIDES, C_OCEAN_TIDES
   use numint,                only: Numint_class
   use slam_orbit_types,       only: state_t, covariance_t, kepler_t, C_RZ, C_RY, C_RX, C_RU, C_RV, C_RW, C_VX, C_VY, C_VZ, C_VW, C_VU, C_VV, C_TAN, &
                                     C_RAN_LONG, C_SMA, C_AOP_LONG, C_ECC, C_INC
   use radiation,              only: Radiation_class
   use slam_reduction_class,   only: Reduction_type
-  use slam_rframes,           only: REF_FRAME_GCRF, REF_FRAME_UVW, C_REF_FRAME_UVW, C_REF_FRAME_GCRF
+  use slam_rframes,           only: REF_FRAME_GCRF, REF_FRAME_UVW, C_REF_FRAME_UVW, C_REF_FRAME_GCRF, C_REF_FRAME_MCRF
   use satellite,              only: Satellite_class
+  use slam_moon_astro,        only: moon_rv2coe
   use solarsystem,            only: Solarsystem_class, ID_SUN, ID_MOON
   use slam_strings,           only: toLowercase
   use thirdbody,              only: ThirdBody_class
@@ -78,7 +80,7 @@ module neptuneOutput
     ! ------------------------------------------------------------------------
     integer, parameter :: LEN_PAR_NAME  = 1000                                  !< maximum length of a parameter's name
     integer, parameter :: LEN_FILE_NAME = 1000                                  !< maximum length of output file name
-    integer, parameter :: NUM_OUTPUT_FILES = 17                                 !< number of perturbations
+    integer, parameter :: NUM_OUTPUT_FILES = 29                                 !< number of output file types
 
     type, public :: neptune_out_t
         character(len=LEN_PAR_NAME)     :: par_name                             !< parameter name
@@ -118,6 +120,10 @@ module neptuneOutput
     integer, parameter    :: OUTPUT_AMN     = 16                                ! index for accelerations due to orbital maneuvers
     integer, parameter    :: OUTPUT_ACA     = 17                                ! index for accelerations due to Earth radiation pressure (albedo)
     integer, parameter    :: OUTPUT_ATM     = 18                                ! index for total atmospheric density
+    integer, parameter    :: OUTPUT_CSV_MCRF = 26                               ! index for Moon-centered cartesian state vector output file
+    integer, parameter    :: OUTPUT_OSC_MCRF = 27                               ! index for Moon-centered osculating Keplerian elements output file
+    integer, parameter    :: OUTPUT_VAR_MCRF = 28                               ! index for variances in MCRF output file
+    integer, parameter    :: OUTPUT_COV_MCRF = 29                               ! index for covariances in MCRF output file
 
   ! ------------------------------------------------------------------------
 
@@ -137,7 +143,9 @@ module neptuneOutput
         real(dp) :: mass                                                        !< mass
         real(dp) :: cross_section                                               !< cross-section
 
-        type(state_t)      :: initial_orbit_csv                                 !< initial orbit written to output
+        type(state_t)      :: initial_orbit_csv                                 !< initial orbit written to output (GCRF)
+        type(state_t)      :: initial_orbit_mcrf                                !< initial orbit in MCRF for Moon-centered output file headers
+        logical            :: isSetInitialStateMCRF                             !< true when MCRF initial state is available
         type(kepler_t)     :: initial_orbit_osc                                 !< initial kepler elements written to output
         type(covariance_t) :: initial_covariance                                !< initial covariance matrix written to output
 
@@ -207,9 +215,10 @@ contains
         constructor%output_path = 'output'                                      !< output path where all output files go to
         constructor%run_id      = 'neptune'                                     !< run ID
 
-        constructor%flag_output       = .false.                                 !< indicating that output is requested, no output as default
-        constructor%isInitialised     = .false.                                 !< initialisation flag for output module
-        constructor%isSetInitialState = .false.
+        constructor%flag_output           = .false.                              !< indicating that output is requested, no output as default
+        constructor%isInitialised         = .false.                              !< initialisation flag for output module
+        constructor%isSetInitialState     = .false.
+        constructor%isSetInitialStateMCRF = .false.
 
         allocate(constructor%output_arr(OUTPUT_ARR_DEFAULT_SIZE))
         constructor%output_arr%par_name         = 'None'
@@ -298,6 +307,10 @@ contains
         this%output_arr(OUTPUT_VAR_UVW)%par_name = C_OUTPUT_VAR_UVW
         this%output_arr(OUTPUT_COV_ECI)%par_name = C_OUTPUT_COV_ECI
         this%output_arr(OUTPUT_COV_UVW)%par_name = C_OUTPUT_COV_UVW
+        this%output_arr(OUTPUT_CSV_MCRF)%par_name = C_OUTPUT_CSV_MCRF
+        this%output_arr(OUTPUT_OSC_MCRF)%par_name = C_OUTPUT_OSC_MCRF
+        this%output_arr(OUTPUT_VAR_MCRF)%par_name = C_OUTPUT_VAR_MCRF
+        this%output_arr(OUTPUT_COV_MCRF)%par_name = C_OUTPUT_COV_MCRF
 
         this%isInitialised = .true.
         if(isControlled()) then
@@ -442,7 +455,7 @@ contains
                 idx       = i
                 idx_found = .true.
                 new_entry = .true.
-            else if(index(par_name, trim(this%output_arr(i)%par_name)) > 0) then
+            else if(trim(par_name) == trim(this%output_arr(i)%par_name)) then
                 ! here we have found the parameter
                 idx       = i
                 idx_found = .true.
@@ -527,7 +540,8 @@ contains
                  C_OUTPUT_AME, C_OUTPUT_ACV, C_OUTPUT_AMA, C_OUTPUT_ACJ, C_OUTPUT_ASA, &
                  C_OUTPUT_ACU, C_OUTPUT_ACN, C_OUTPUT_ACR, C_OUTPUT_ACA, C_OUTPUT_ACT, &
                  C_OUTPUT_ACO, C_OUTPUT_AMN, C_OUTPUT_ATM, C_OUTPUT_OSC, C_OUTPUT_CSV, &
-                 C_OUTPUT_GLL, C_OUTPUT_VAR_ECI, C_OUTPUT_VAR_UVW, C_OUTPUT_COV_ECI, C_OUTPUT_COV_UVW)
+                 C_OUTPUT_GLL, C_OUTPUT_VAR_ECI, C_OUTPUT_VAR_UVW, C_OUTPUT_COV_ECI, C_OUTPUT_COV_UVW, &
+                 C_OUTPUT_CSV_MCRF, C_OUTPUT_OSC_MCRF, C_OUTPUT_VAR_MCRF, C_OUTPUT_COV_MCRF)
                 res = .true.
             case default
                 res = .false.
@@ -611,6 +625,14 @@ contains
                 res = OUTPUT_COV_ECI
             case(C_OUTPUT_COV_UVW)
                 res = OUTPUT_COV_UVW
+            case(C_OUTPUT_CSV_MCRF)
+                res = OUTPUT_CSV_MCRF
+            case(C_OUTPUT_OSC_MCRF)
+                res = OUTPUT_OSC_MCRF
+            case(C_OUTPUT_VAR_MCRF)
+                res = OUTPUT_VAR_MCRF
+            case(C_OUTPUT_COV_MCRF)
+                res = OUTPUT_COV_MCRF
             case default
                 res = 0
         end select
@@ -694,6 +716,14 @@ contains
                 suffix = '.cve'
             case(C_OUTPUT_COV_UVW)
                 suffix = '.cvu'
+            case(C_OUTPUT_CSV_MCRF)
+                suffix = '.mcs'
+            case(C_OUTPUT_OSC_MCRF)
+                suffix = '.osm'
+            case(C_OUTPUT_VAR_MCRF)
+                suffix = '.vrm'
+            case(C_OUTPUT_COV_MCRF)
+                suffix = '.cvm'
             case default
                 suffix = ''
         end select
@@ -810,6 +840,7 @@ contains
     get_output_switch = this%flag_output
     return
   end function
+
 
   !------------------------------------------------------------------------------------
   !> @brief       Writing an integer value to the output
@@ -1147,9 +1178,12 @@ contains
     logical                 :: flag_cov_uvw                                     ! indicating that covariance matrix already transformed to UVW frame
     logical                 :: flag_deriv                                       ! flag indicating that force model has been already called
     logical                 :: flag_itrf                                        ! GCRF->ITRF transformation already performed
+    logical                 :: flag_moon                                        ! Moon position/velocity already computed for this epoch
 
     real(dp), dimension(3)   :: acc_out                                         ! acceleration output vector in ECI system (km/s**2)
     real(dp), dimension(3)   :: acc_out_uvw                                     ! acceleration output vector in UVW system (km/s**2)
+    real(dp), dimension(3)   :: r_moon_gcrf                                     ! Moon position in GCRF (km)
+    real(dp), dimension(3)   :: v_moon_gcrf                                     ! Moon velocity in GCRF (km/s)
     real(dp)                 :: alt                                             ! current altitude (km)
     real(dp)                 :: crossSection                                    ! cross-section / m**2
     real(dp)                 :: fracday                                         ! fraction of day (0<=fracday<1)
@@ -1163,6 +1197,7 @@ contains
 
     type(covariance_t)   :: covar_out_uvw                                       ! covariance matrix in UVW frame
     type(kepler_t)       :: kepler                                              ! kepler elements
+    type(kepler_t)       :: kepler_mcrf                                         ! kepler elements in MCRF (Moon-centred)
     type(time_t)         :: epoch                                               ! output epoch
     character(LEN_TIME_STRING_LONG) :: epoch_string
 
@@ -1174,6 +1209,7 @@ contains
     flag_cov_uvw = .false.
     flag_deriv   = .false.
     flag_itrf    = .false.
+    flag_moon    = .false.
 
     epoch%mjd = this%start_epoch%mjd + time_offset/86400.d0
     call mjd2gd(epoch%mjd,epoch%year,epoch%month,epoch%day,fracday)
@@ -1246,7 +1282,7 @@ contains
                 !** convert covariance matrix from ECI to UVW using current state vector
                 call reduction%getJacobianEci2uvw(state_out%r, state_out%v, jacobi)
 
-                covar_out_uvw%elem = matmul(matmul(jacobi,covar_out%elem), transpose(jacobi))
+                covar_out_uvw%elem(1:6,1:6) = matmul(matmul(jacobi,covar_out%elem(1:6,1:6)), transpose(jacobi))
                 flag_cov_uvw       = .true.
 
               end if
@@ -1275,13 +1311,76 @@ contains
                 !** convert covariance matrix from ECI to UVW using current state vector (if not done before..)
                 call reduction%getJacobianEci2uvw(state_out%r, state_out%v, jacobi)
 
-                covar_out_uvw%elem = matmul(matmul(jacobi,covar_out%elem), transpose(jacobi))
+                covar_out_uvw%elem(1:6,1:6) = matmul(matmul(jacobi,covar_out%elem(1:6,1:6)), transpose(jacobi))
                 flag_cov_uvw       = .true.
 
               end if
 
               write(this%output_arr(i)%file_unit,160)   epoch_string, epoch%mjd,   &
                                     ((covar_out_uvw%elem(j,k), k=1,j-1), j=2,6)
+
+            end if
+
+          case(OUTPUT_CSV_MCRF)  !** Moon-centered cartesian state vs. time
+
+            if(.not. flag_moon) then
+              r_moon_gcrf = solarsystem_model%getBodyPosition(epoch%mjd, ID_MOON)
+              v_moon_gcrf = (solarsystem_model%getBodyPosition(epoch%mjd + 60.d0/86400.d0, ID_MOON) - &
+                             solarsystem_model%getBodyPosition(epoch%mjd - 60.d0/86400.d0, ID_MOON)) / (2.d0 * 60.d0)
+              flag_moon = .true.
+            end if
+
+            write(this%output_arr(i)%file_unit,120) epoch_string, epoch%mjd, &
+                              state_out%r - r_moon_gcrf, state_out%v - v_moon_gcrf
+
+          case(OUTPUT_OSC_MCRF)  !** Moon-centered osculating Keplerian elements vs. time
+
+            if(.not. flag_moon) then
+              r_moon_gcrf = solarsystem_model%getBodyPosition(epoch%mjd, ID_MOON)
+              v_moon_gcrf = (solarsystem_model%getBodyPosition(epoch%mjd + 60.d0/86400.d0, ID_MOON) - &
+                             solarsystem_model%getBodyPosition(epoch%mjd - 60.d0/86400.d0, ID_MOON)) / (2.d0 * 60.d0)
+              flag_moon = .true.
+            end if
+
+            call moon_rv2coe(state_out%r - r_moon_gcrf, state_out%v - v_moon_gcrf, kepler_mcrf, orbit_type)
+
+            select case(orbit_type)
+              case(ELLIPTICAL_INCLINED)
+                write(this%output_arr(i)%file_unit,110) epoch_string, epoch%mjd,                         &
+                                    kepler_mcrf%sma, kepler_mcrf%ecc, kepler_mcrf%inc*rad2deg,           &
+                                    kepler_mcrf%raan*rad2deg, kepler_mcrf%aop*rad2deg,                   &
+                                    kepler_mcrf%tran*rad2deg, kepler_mcrf%man*rad2deg
+              case(CIRCULAR_INCLINED)
+                write(this%output_arr(i)%file_unit,110) epoch_string, epoch%mjd,                         &
+                                    kepler_mcrf%sma, kepler_mcrf%ecc, kepler_mcrf%inc*rad2deg,           &
+                                    kepler_mcrf%raan*rad2deg, 0.d0,                                      &
+                                    kepler_mcrf%arglat*rad2deg, kepler_mcrf%man*rad2deg
+              case(ELLIPTICAL_EQUATORIAL)
+                write(this%output_arr(i)%file_unit,110) epoch_string, epoch%mjd,                         &
+                                    kepler_mcrf%sma, kepler_mcrf%ecc, kepler_mcrf%inc*rad2deg,           &
+                                    0.d0, kepler_mcrf%lonper*rad2deg,                                    &
+                                    kepler_mcrf%tran*rad2deg, kepler_mcrf%man*rad2deg
+              case(CIRCULAR_EQUATORIAL)
+                write(this%output_arr(i)%file_unit,110) epoch_string, epoch%mjd,                         &
+                                    kepler_mcrf%sma, kepler_mcrf%ecc, kepler_mcrf%inc*rad2deg,           &
+                                    0.d0, 0.d0, kepler_mcrf%truelon*rad2deg, kepler_mcrf%man*rad2deg
+            end select
+
+          case(OUTPUT_VAR_MCRF)  !** variances in MCRF (= ECI covariances; MCRF is a pure translation of GCRF)
+
+            if(numint%getCovariancePropagationFlag()) then
+
+              write(this%output_arr(i)%file_unit,150) epoch_string, epoch%mjd, &
+                                    (covar_out%elem(j,j), j=1,6)
+
+            end if
+
+          case(OUTPUT_COV_MCRF)  !** covariances in MCRF (= ECI covariances; MCRF is a pure translation of GCRF)
+
+            if(numint%getCovariancePropagationFlag()) then
+
+              write(this%output_arr(i)%file_unit,160) epoch_string, epoch%mjd, &
+                                    ((covar_out%elem(j,k), k=1,j-1), j=2,6)
 
             end if
 
@@ -1392,13 +1491,22 @@ contains
 
             if(derivatives_model%getPertSwitch(PERT_MOON)) then !** accelerations due to moon perturbations
 
-              call thirdbody_model%getThirdBodyAcceleration(    &
-                                              solarsystem_model,&   ! <-> TYPE   solarsystem model
-                                              state_out%r,      &   ! <-- DBL(3) radius vector in GCRF
-                                              epoch%mjd,        &   ! <-- DBL    current time MJD
-                                              ID_MOON,          &   ! <-- CHR()  third body identifier (e.g. 'SUN' or 'MOON')
-                                              acc_out           &   ! --> DBL(3) acceleration vector in inertial frame
+              if (thirdbody_model%lunar_degree > 0) then
+                call thirdbody_model%getLunarGravityAcceleration( & 
+                                            solarsystem_model,    & ! <-> TYPE   solarsystem model
+                                            state_out%r,          & ! <-- DBL(3) radius vector in GCRF
+                                            epoch%mjd,            & ! <-- DBL    current time MJD
+                                            acc_out               & ! --> DBL(3) acceleration vector in inertial frame
+                                          )
+              else
+                call thirdbody_model%getThirdBodyAcceleration(    &
+                                              solarsystem_model,  &   ! <-> TYPE   solarsystem model
+                                              state_out%r,        &   ! <-- DBL(3) radius vector in GCRF
+                                              epoch%mjd,          &   ! <-- DBL    current time MJD
+                                              ID_MOON,            &   ! <-- CHR()  third body identifier (e.g. 'SUN' or 'MOON')
+                                              acc_out             &   ! --> DBL(3) acceleration vector in inertial frame
                                            )
+              end if
               if(hasFailed()) return
 
               !** convert acceleration to UVW coordinates
@@ -1686,7 +1794,8 @@ contains
                                 derivatives_model,  &
                                 reduction,          &
                                 correlation_model,  &
-                                ich)
+                                ich,                &
+                                is_mcrf_output)
 
     implicit none
 
@@ -1702,11 +1811,19 @@ contains
     type(Reduction_type),intent(inout)              :: reduction                ! Reduction
     type(Correlation_class),intent(inout)           :: correlation_model        ! Correlation model
     integer, intent(in)                             :: ich                      ! output channel
+    logical, intent(in), optional                   :: is_mcrf_output           ! true when writing header for a Moon-centered output file
 
     character(len=30)   :: ctemp    ! temporary storage
     character(len=90)   :: ctemp2   ! temporary storage
     integer  :: i,j                 ! loop counter
     real(dp) :: conv                ! temporary used for conversion purposes
+    logical  :: l_is_mcrf           ! local copy of is_mcrf_output
+
+    if (present(is_mcrf_output)) then
+      l_is_mcrf = is_mcrf_output
+    else
+      l_is_mcrf = .false.
+    end if
 
     write(ich,'(A)')         '#  Input Data (Run ID: '//trim(this%run_id)//'): '
     write(ich,'(A)')         '#'
@@ -1719,12 +1836,20 @@ contains
       ctemp = C_INPUT_CARTESIAN
     else if(this%input_type == INPUT_OSCULATING) then
       ctemp = C_INPUT_OSCULATING
+    else if(this%input_type == INPUT_CARTESIAN_MCRF) then
+      ctemp = C_INPUT_CARTESIAN_MCRF
+    else if(this%input_type == INPUT_OSCULATING_MCRF) then
+      ctemp = C_INPUT_OSCULATING_MCRF
     else
       ctemp = '*ERROR*'
     end if
 
     write(ich,'(A)')         '#  Input type:               '//trim(ctemp)
-    write(ich,'(A)')         '#  Reference Frame:          '//C_REF_FRAME_GCRF
+    if (l_is_mcrf) then
+      write(ich,'(A)')       '#  Reference Frame:          '//C_REF_FRAME_MCRF
+    else
+      write(ich,'(A)')       '#  Reference Frame:          '//C_REF_FRAME_GCRF
+    end if
     write(ich,'(A)')         '#'
     write(ich,'(a16,a20)')   '#  Begin epoch: ', trim(adjustl(date2longstring(this%start_epoch)))
     write(ich,'(a16,a20)')   '#  End epoch:   ', trim(adjustl(date2longstring(this%end_epoch)))
@@ -1733,23 +1858,33 @@ contains
     if(this%isSetInitialState) then
 
       write(ich,'(A)')         '#  Initial state vector:'
-      if(this%input_type == INPUT_CARTESIAN     &
-        .or. this%input_type == INPUT_TEME      &
-        .or. this%input_type == INPUT_ITRF      &
-        .or. this%input_type == INPUT_ITRF_TEME &
+      if(this%input_type == INPUT_CARTESIAN        &
+        .or. this%input_type == INPUT_TEME         &
+        .or. this%input_type == INPUT_ITRF         &
+        .or. this%input_type == INPUT_ITRF_TEME    &
+        .or. this%input_type == INPUT_CARTESIAN_MCRF  &
+        .or. this%input_type == INPUT_OSCULATING_MCRF &
         .or. this%input_type == INPUT_UNDEFINED) then
 
-          ctemp = getUnitString(this%initial_orbit_csv%radius_unit)
-
-          write(ich,'(A,f16.8)')         '#    '//trim(C_RX)//' / '//trim(ctemp)//' :   ',   this%initial_orbit_csv%r(1)
-          write(ich,'(A,f16.8)')         '#    '//trim(C_RY)//' / '//trim(ctemp)//' :   ',   this%initial_orbit_csv%r(2)
-          write(ich,'(A,f16.8)')         '#    '//trim(C_RZ)//' / '//trim(ctemp)//' :   ',   this%initial_orbit_csv%r(3)
-
-          ctemp = getUnitString(this%initial_orbit_csv%velocity_unit)
-
-          write(ich,'(A,f16.8)')         '#    '//trim(C_VX)//' / '//trim(ctemp)//' : ',   this%initial_orbit_csv%v(1)
-          write(ich,'(A,f16.8)')         '#    '//trim(C_VY)//' / '//trim(ctemp)//' : ',   this%initial_orbit_csv%v(2)
-          write(ich,'(A,f16.8)')         '#    '//trim(C_VZ)//' / '//trim(ctemp)//' : ',   this%initial_orbit_csv%v(3)
+          if (l_is_mcrf .and. this%isSetInitialStateMCRF) then
+            ctemp = getUnitString(this%initial_orbit_mcrf%radius_unit)
+            write(ich,'(A,f16.8)') '#    '//trim(C_RX)//' / '//trim(ctemp)//' :   ', this%initial_orbit_mcrf%r(1)
+            write(ich,'(A,f16.8)') '#    '//trim(C_RY)//' / '//trim(ctemp)//' :   ', this%initial_orbit_mcrf%r(2)
+            write(ich,'(A,f16.8)') '#    '//trim(C_RZ)//' / '//trim(ctemp)//' :   ', this%initial_orbit_mcrf%r(3)
+            ctemp = getUnitString(this%initial_orbit_mcrf%velocity_unit)
+            write(ich,'(A,f16.8)') '#    '//trim(C_VX)//' / '//trim(ctemp)//' : ', this%initial_orbit_mcrf%v(1)
+            write(ich,'(A,f16.8)') '#    '//trim(C_VY)//' / '//trim(ctemp)//' : ', this%initial_orbit_mcrf%v(2)
+            write(ich,'(A,f16.8)') '#    '//trim(C_VZ)//' / '//trim(ctemp)//' : ', this%initial_orbit_mcrf%v(3)
+          else
+            ctemp = getUnitString(this%initial_orbit_csv%radius_unit)
+            write(ich,'(A,f16.8)') '#    '//trim(C_RX)//' / '//trim(ctemp)//' :   ', this%initial_orbit_csv%r(1)
+            write(ich,'(A,f16.8)') '#    '//trim(C_RY)//' / '//trim(ctemp)//' :   ', this%initial_orbit_csv%r(2)
+            write(ich,'(A,f16.8)') '#    '//trim(C_RZ)//' / '//trim(ctemp)//' :   ', this%initial_orbit_csv%r(3)
+            ctemp = getUnitString(this%initial_orbit_csv%velocity_unit)
+            write(ich,'(A,f16.8)') '#    '//trim(C_VX)//' / '//trim(ctemp)//' : ', this%initial_orbit_csv%v(1)
+            write(ich,'(A,f16.8)') '#    '//trim(C_VY)//' / '//trim(ctemp)//' : ', this%initial_orbit_csv%v(2)
+            write(ich,'(A,f16.8)') '#    '//trim(C_VZ)//' / '//trim(ctemp)//' : ', this%initial_orbit_csv%v(3)
+          end if
 
       else if(this%input_type == INPUT_OSCULATING) then
 
@@ -1872,7 +2007,13 @@ contains
     end if
 
     if(derivatives_model%getPertSwitch(PERT_MOON)) then
-      write(ich,'(A)') '#    - '//toLowercase(C_MOON,1)
+      if(thirdbody_model%getLunarGravityDegree() > 0) then
+        write(ctemp,'(i3)') thirdbody_model%getLunarGravityDegree()
+        write(ich,'(A)') '#    - '//toLowercase(C_MOON,1)//' (AIUB-GRL350A, '// &
+                         trim(adjustl(ctemp))//'x'//trim(adjustl(ctemp))//')'
+      else
+        write(ich,'(A)') '#    - '//toLowercase(C_MOON,1)
+      end if
     end if
 
     if(derivatives_model%getPertSwitch(PERT_MERCURY)) then
@@ -2218,6 +2359,109 @@ contains
 
           write(ich,'(A,$)') "____[km/s]___"
 
+        end do
+
+        write(ich,'(A)') "_"
+        write(ich,'(A)') "#"
+
+      else if(suffix == 'mcs') then   ! Moon-centered cartesian state vector output file
+
+        write(ich,'(A)')'#'
+
+        !** write title
+        write(ich,'(A)') '#  Title  : Moon-Centered Cartesian State Vector Output File (MCRF)'
+        write(ich,'(A)') '#           MCRF axes are aligned with GCRF; origin at Moon centre of mass'
+        write(ich,'(A)') '#'
+        write(ich,'(A)') csep
+        write(ich,'(A)') '#'
+
+        !** write input parameters
+        call this%writeInput2Header(gravity_model,         &
+                                    atmosphere_model,      &
+                                    manoeuvres_model,      &
+                                    radiation_model,       &
+                                    satellite_model,       &
+                                    thirdbody_model,       &
+                                    numint,                &
+                                    derivatives_model,     &
+                                    reduction,             &
+                                    correlation_model,     &
+                                    ich,                   &
+                                    is_mcrf_output = .true.)
+
+        !** write long separation line
+        write(ich,'(A)') "#"//repeat("-",131)
+
+        write(ich,'(A,$)') "#          Date         "
+        write(ich,'(A,$)') "  Modified Julian Day "
+        write(ich,'(A,$)') "  Position-X   "
+        write(ich,'(A,$)') "  Position-Y   "
+        write(ich,'(A,$)') "  Position-Z   "
+        write(ich,'(A,$)') " Velocity-X  "
+        write(ich,'(A,$)') " Velocity-Y  "
+        write(ich,'(A)')   " Velocity-Z "
+
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
+        write(ich,'(A,$)') "___[JD - 2400000.5]___"
+
+        do i2 = 1,3
+          write(ich,'(A,$)') "_____[km]______"
+        end do
+
+        do i2 = 1,3
+          write(ich,'(A,$)') "____[km/s]___"
+        end do
+
+        write(ich,'(A)') "_"
+        write(ich,'(A)') "#"
+
+      else if(suffix == 'osm') then   ! Moon-centered osculating Keplerian elements output file
+
+        write(ich,'(A)')'#'
+
+        !** write title
+        write(ich,'(A)') '#  Title  : Moon-Centered Osculating Keplerian Elements Output File (MCRF)'
+        write(ich,'(A)') '#           MCRF axes are aligned with GCRF; origin at Moon centre of mass'
+        write(ich,'(A)') '#           GM used: Moon (DE-430)'
+        write(ich,'(A)') '#'
+        write(ich,'(A)') csep
+        write(ich,'(A)') '#'
+
+        !** write input parameters
+        call this%writeInput2Header(gravity_model,         &
+                                    atmosphere_model,      &
+                                    manoeuvres_model,      &
+                                    radiation_model,       &
+                                    satellite_model,       &
+                                    thirdbody_model,       &
+                                    numint,                &
+                                    derivatives_model,     &
+                                    reduction,             &
+                                    correlation_model,     &
+                                    ich,                   &
+                                    is_mcrf_output = .true.)
+
+        !** write long separation line
+        write(ich,'(A)') "#"//repeat('-',137)
+
+        write(ich,'(A,$)') "#          Date         "
+        write(ich,'(A,$)') "  Modified Julian Day "
+        write(ich,'(A,$)') "     SMA     "
+        write(ich,'(A,$)') "     ECC     "
+        write(ich,'(A,$)') "     INC     "
+        write(ich,'(A,$)') "    RAAN     "
+        write(ich,'(A,$)') "     AOP     "
+        write(ich,'(A,$)') "    TRAN     "
+        write(ich,'(A)')   "    MEAN     "
+
+        write(ich,'(A,$)') "#_ [YYYY-MM-DDThh:mm:ss.ssssssZ]"
+        write(ich,'(A,$)') "___[JD - 2400000.5]___"
+
+        write(ich,'(A,$)') "_____[km]____"
+        write(ich,'(A,$)') "_____[-]_____"
+
+        do i2 = 1,5
+          write(ich,'(A,$)') "____[deg]____"
         end do
 
         write(ich,'(A)') "_"

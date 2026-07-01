@@ -1,4 +1,10 @@
 
+NEPTUNE 1.2.0 Changelog (02-Jun-2026)
+* Feature: Moon-centered reference frame (MCRF) input types 6 (Cartesian) and 7 (Keplerian osculating elements)
+* Feature: MCRF output files - Moon-centered Cartesian (mcs), osculating Keplerian (osm), variances and covariances
+* Feature: Lunar gravity harmonics via AIUB-GRL350A model (configurable degree 2-350)
+* Change: Moon gravity parameter in neptune.inp now encodes harmonics degree (0=off, 1=point-mass, >1=degree); separate Lunar gravity harmonics degree line removed (breaking format change)
+
 NEPTUNE v2020-03 Changelog
 * Cleaned up for github release
 

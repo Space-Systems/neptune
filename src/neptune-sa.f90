@@ -38,7 +38,8 @@ program neptune_sa
   use slam_astro
   use derivatives,              only: PERT_SRP
   use neptune_error_handling,   only: getNeptuneErrorMessage, E_MIN_ALTITUDE, getLatestError, hasFailed, getLogfileChannel, & 
-                                      setLogfileName, getLogfileName, initErrorHandler, ERRORS, setLogVerbosity, setCliVerbosity, setLogfileChannel, printTrace
+                                      setLogfileName, getLogfileName, initErrorHandler, ERRORS, setLogVerbosity, setCliVerbosity, &
+                                      setLogfileChannel, printTrace, isControlled, hasToReturn, checkIn, checkOut
   use slam_io,                  only: LOG_AND_STDOUT, openFile, STREAM, SEQUENTIAL, SWITCHED_OFF, IN_UNFORMATTED, closeFile, message
   use libneptune,               only: init_neptune, propagate
   use neptuneClass,             only: Neptune_class
@@ -75,7 +76,6 @@ program neptune_sa
                                                                                 !   1 = begin date
                                                                                 !   2 = end date
 
-
   !========================================================================
   !
   ! Create NEPTUNE instance
@@ -105,7 +105,10 @@ program neptune_sa
   !-----------------------------------------
   call initErrorHandler(control = 'YES', errAction = 'RETURN', traceback = 'YES')
 
-
+  if(isControlled()) then
+    if(hasToReturn()) return
+    call checkIn(csubid)
+  end if
 
   !========================================================================
   !
@@ -222,6 +225,11 @@ program neptune_sa
   !call destroy_neptune(neptune)
 
   ierr = setLogfileChannel(closeFile(getLogfileChannel()))
+
+  !** done!
+  if(isControlled()) then
+    call checkOut(csubid)
+  end if
 
 contains
 

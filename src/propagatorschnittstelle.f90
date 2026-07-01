@@ -1058,7 +1058,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
             initial_covariance%elem(6,5) = object_covariance(iobject)%k6_k5
             initial_covariance%elem(5,6) = object_covariance(iobject)%k6_k5
             initial_covariance%elem(6,6) = object_covariance(iobject)%k6_k6
-            covariance_matrix_UVW = initial_covariance%elem
+            covariance_matrix_UVW = initial_covariance%elem(1:6,1:6)
 
             !write(*,*) "Initial Covariance (as delivered) in km and km/s"
             !write(*,'(6(F15.8,1X))') initial_covariance%elem(:,1)
@@ -1092,7 +1092,7 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
                 end if
 
                 covariance_matrix_ECI = matmul(matmul(invJacobi,covariance_matrix_UVW),transpose(invJacobi))
-                initial_covariance%elem = covariance_matrix_ECI
+                initial_covariance%elem(1:6,1:6) = covariance_matrix_ECI
                 !write(*,*) "Initial covariance (in RTN) in km and km/s"
             else
                 !write(*,*) "Initial covariance (in GCRF) in km and km/s"
@@ -1281,8 +1281,8 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
                 if (slam_error) then
                     call resetError()
                 end if
-                covariance_matrix_UVW = matmul(matmul(jacobi,propagated_covariance%elem),transpose(jacobi))
-                propagated_covariance%elem = covariance_matrix_UVW
+                covariance_matrix_UVW = matmul(matmul(jacobi,propagated_covariance%elem(1:6,1:6)),transpose(jacobi))
+                propagated_covariance%elem(1:6,1:6) = covariance_matrix_UVW
             end if
             object_covariance(iobject)%k1_k1 = propagated_covariance%elem(1,1)
             object_covariance(iobject)%k2_k1 = propagated_covariance%elem(2,1)
@@ -1425,8 +1425,8 @@ function OPI_Plugin_propagate(propagator, data, julian_day, dt) result(opi_error
                     if (slam_error) then
                         call resetError()
                     end if
-                    covariance_matrix_UVW = matmul(matmul(jacobi,temp_covariance%elem),transpose(jacobi))
-                    temp_covariance%elem = covariance_matrix_UVW
+                    covariance_matrix_UVW = matmul(matmul(jacobi,temp_covariance%elem(1:6,1:6)),transpose(jacobi))
+                    temp_covariance%elem(1:6,1:6) = covariance_matrix_UVW
                 end if
             else if(return_set_matrix .and. propagate_covariance) then
                 ! Return SET matrix instead of covariance if requested

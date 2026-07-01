@@ -34,6 +34,8 @@
 module libneptune
 
     use slam_astro,             only: initAstroConstants, isAstroInitialized, getEarthRadius, getEarthGeopotentialRadius
+    use slam_moon_astro,        only: getMoonRadius
+    use solarsystem,            only: ID_MOON
     use averaging,              only: setMeanElements
     use slam_astro_conversions, only: rv2coe
     use derivatives,            only: PERT_ALBEDO, PERT_DRAG, PERT_JUPITER, PERT_MANEUVERS, PERT_MARS, &
@@ -51,7 +53,8 @@ module libneptune
     use neptuneClock,           only: Clock_class
     use neptuneParameters,      only: OPTION_CORRELATION, OPTION_COV_METHOD, OPTION_GEO_MODEL, OPTION_INT_LOGFILE, &
                                     OPTION_OUTPUT, OPTION_PROPS, PAR_CDRAG, PAR_CREFL, PAR_CROSS_SECTION, PAR_INT_ABSEPS, PAR_INT_RELEPS, PAR_INT_COV_STEP, &
-                                    PAR_MASS, PROP_CONSTANT, PROP_FILE, C_INITIAL_STATE, C_PAR_EARTH_RADIUS
+                                    PAR_MASS, PROP_CONSTANT, PROP_FILE, C_INITIAL_STATE, C_PAR_EARTH_RADIUS, &
+                                    INPUT_CARTESIAN_MCRF, INPUT_OSCULATING_MCRF
     use numint,                 only: MAX_RESETS
     use satellite,              only: ORIENT_SPHERE
     use maneuvers,              only: neptune_maneuver_t => maneuver_t
@@ -330,13 +333,21 @@ contains
        neptune%derivatives_model%getPertSwitch(PERT_SRP)         .or. &
        neptune%derivatives_model%getPertSwitch(PERT_SOLID_TIDES) .or. &
        neptune%derivatives_model%getPertSwitch(PERT_OCEAN_TIDES) .or. &
-       neptune%iopt(OPTION_PROPS) == PROP_FILE ) then     ! also if surface definition is used, as Sun-oriented surfaces may be used
+       neptune%iopt(OPTION_PROPS) == PROP_FILE               .or. &
+       neptune%output%input_type == INPUT_CARTESIAN_MCRF     .or. &
+       neptune%output%input_type == INPUT_OSCULATING_MCRF ) then  ! Moon-centered inputs always need Moon's GCRF position
 
       call neptune%solarsystem_model%initSolarSystem(   &
                                 neptune%getDataPath(),  &
                                 'DE-421',               &
                                 endEpoch                &
                                 )
+      if(hasFailed()) return
+    end if
+
+    ! 4-4a) Lunar gravity harmonics
+    if(neptune%thirdbody_model%lunar_degree > 0) then
+      call neptune%thirdbody_model%initLunarGravity(neptune%getDataPath(), neptune%thirdbody_model%lunar_degree)
       if(hasFailed()) return
     end if
 
@@ -495,6 +506,13 @@ contains
       type(covariance_t)                          :: set_in
       type(covariance_t)                          :: set_out
 
+      character(len=*), parameter :: csubid = "propagate"                      ! subroutine id
+
+      if(isControlled()) then
+        if(hasToReturn()) return
+        call checkIn(csubid)
+      end if
+
       call identity_matrix(set_in%elem)
 
       call propagate_set(neptune,  &
@@ -507,6 +525,11 @@ contains
                         set_out,   &   ! --> TYP    output set matrix
                         flag_reset &   ! <-- LOG    reset flag)
                       )
+
+    !** done!
+    if(isControlled()) then
+      call checkOut(csubid)
+    end if
 
   end subroutine propagate
 
@@ -570,7 +593,7 @@ contains
     type(covariance_t),         intent(out)     :: set_out
     !------------------------------------------------------
 
-    character(len=*), parameter         :: csubid = "neptune"
+    character(len=*), parameter         :: csubid = "propagate_set"
     character(len=2)                    :: cresets                              ! number of resets in integration routine
     character(len=FRAME_NAME_LENGTH)    :: frameName                            ! reference frame name
     integer                 :: ierr                                             ! error flag
@@ -607,8 +630,9 @@ contains
     real(dp)                :: upcoming_maneuver_epoch_mjd
     character(len=255)      :: cmess
     real(dp)                :: diff
-    integer                 :: i_next_calls         ! counting runs through getNext while-loop 
+    integer                 :: i_next_calls         ! counting runs through getNext while-loop
     integer                 :: max_next_calls = 100
+    real(dp), dimension(3)  :: r_moon_chk
 
     restored_request_time = 0.d0
     prop_counter = 0.0d0
@@ -662,10 +686,20 @@ contains
         return
       end if
 
-    !** check for state vector being an orbit actually
+    !** check for state vector being an orbit actually (above Earth's surface)
     if(mag(state_in%r) < getEarthRadius()) then
       call setNeptuneError(E_MIN_ALTITUDE, FATAL)
       return
+    end if
+
+    !** check altitude above Moon's surface when Moon gravity model is active
+    if(neptune%thirdbody_model%lunar_degree > 0) then
+      r_moon_chk = neptune%solarsystem_model%getBodyPosition(epochs(1)%mjd, ID_MOON)
+      if(hasFailed()) return
+      if(mag(state_in%r - r_moon_chk) < getMoonRadius()) then
+        call setNeptuneError(E_MIN_ALTITUDE, FATAL)
+        return
+      end if
     end if
 
     ! now set eventually missing input parameters
@@ -753,7 +787,7 @@ contains
     !--------------------------------------------------
     if(neptune%numerical_integrator%getCovariancePropagationFlag()) then
 
-      cumSet = set_in%elem
+      cumSet = set_in%elem(1:6,1:6)
       !call identity_matrix(cumSet)  ! initial state error transition matrix is the unity matrix
       call neptune%numerical_integrator%resetCountSetMatrix()    ! the counter for the number of calls to the getStateTransitionMatrix routine is being reset
 
@@ -1066,10 +1100,10 @@ contains
 
           !** cumulate state transition matrix
           cumSet = matmul(set,cumSet)
-          set_out%elem = cumSet
+          set_out%elem(1:6,1:6) = cumSet
 
           !** compute new covariance matrix for given time
-          covar_out%elem = matmul(matmul(cumSet,covar_in%elem),transpose(cumSet))
+          covar_out%elem(1:6,1:6) = matmul(matmul(cumSet,covar_in%elem(1:6,1:6)),transpose(cumSet))
           if(neptune%correlation_model%getNoisePropagationFlag()) then
               corrMat                 = neptune%correlation_model%getCorrelationMatrix(request_time)
               covar_out%elem(1:6,1:6) = covar_out%elem(1:6,1:6) + corrMat

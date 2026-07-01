@@ -680,6 +680,12 @@ contains
                                        acc_3b_temp          &    ! --> DBL(3) acceleration vector in inertial frame
                                      )
         acc_3b(i,:) = acc_3b_temp
+        ! add non-spherical lunar gravity if a harmonic degree has been configured
+        if(bodiesIndex(i) == ID_MOON .and. thirdbody_model%lunar_degree > 0) then
+          call thirdbody_model%getLunarGravityAcceleration(solarsystem_model, r, time_mjd, acc_3b_temp)
+          if(hasFailed()) return
+          acc_3b(i,:) = acc_3b(i,:) + acc_3b_temp
+        end if
       else
         acc_3b(i,:) = 0.d0
       end if
