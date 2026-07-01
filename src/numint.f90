@@ -32,7 +32,7 @@ module numint
   use slam_types,             only: dp
   use slam_io,                only: openFile, SEQUENTIAL, OUT_FORMATTED_OVERWRITE, closeFile, LOG_AND_STDOUT, LOGFILE, message
   use slam_math,              only: identity_matrix
-  use neptune_error_handling, only: E_INTEGRATION_METHOD, E_INTEGRATION_STARTUP, E_ABS_TOLERANCE, E_REL_TOLERANCE, E_INTEGRATION_RESET, &
+  use neptune_error_handling, only: E_INTEGRATION_METHOD, E_INTEGRATION_STARTUP, E_STEPSIZE_STIFFNESS, E_ABS_TOLERANCE, E_REL_TOLERANCE, E_INTEGRATION_RESET, &
                                     E_SRP_CORRECTION, setNeptuneError
   use slam_error_handling,    only: isControlled, hasToReturn, hasFailed, FATAL, WARNING, &
                                     E_UNKNOWN_PARAMETER, E_SPECIAL, checkIn, checkOut
@@ -68,6 +68,8 @@ module numint
   integer, parameter, public    :: MAX_RESETS = 3                               !< maximum number of integrator resets for one single step, after which integration is cancelled.
   integer, parameter            :: setdim = 6                                   ! dimension of state error transition matrix
   integer, parameter            :: kmax   = 9                                   ! maximum value of k
+  integer, parameter            :: MAX_ITERATIONS_STIFFNESS = 100              !< threshold for for stiff iterations count to detect long-term stiffness
+  real(dp), parameter           :: MIN_STEP_SIZE_STIFFNESS = 1.0e-2_dp          !< threshold of stepsize for stiff iteration
 
   ! Numerical intergrator class (type defintion)
     type, public :: Numint_class
@@ -78,6 +80,7 @@ module numint
       integer :: countCallsVarstormcow                                          !< counts the number of calls to the routine varstormcow - needs a call to resetCountIntegrator(), to be again at zero, which is done by neptune.
       integer :: countCallsGaussJackson                                         !< counts the number of calls to the routine fixedGaussJackson - needs a call to resetCountIntegrator(), to be again at zero, which is done by neptune.
       integer :: countCallsSetMatrix                                            !< counts the number of calls to the routine getStateTransitionMatrix - needs a call to resetCountSetMatrix(), to be again at zero, which is done by neptune.
+      integer :: stiffiter = 0                                                  !< stiff iteration counter
 
       logical :: correctSRP                                                     !< flag for SRP Lundberg correction algorithm
       logical :: flog                                                           !< flag for logfile output
@@ -1714,6 +1717,7 @@ end function
     !------------------------------------------------------------------------
     initialization: if (reset == 1) then
       logInfo = 'INI'
+      this%stiffiter = 0   ! reset stiffness counter on integrator restart
 
       ! 1.1) set EPS, this%releps, this%abseps, initial state error transition matrix
       !
@@ -1948,7 +1952,7 @@ end function
 
       !** log this%stepsize, number of backpoints, local error
       if(this%flog) then
-        call mjd2gd(currtime/86400.d0,year,month,day,fracday)
+        call mjd2gd(currtime/86400.d0+this%start_epoch%mjd,year,month,day,fracday)
         call dayFraction2HMS(fracday,hour,minute,second)
         write(this%intlog,100) year, month, day, hour, minute,second, currtime/86400.d0, &
                           this%stepsize, this%k, this%errd, this%errs, this%countCallsVarstormcow, logInfo
@@ -1987,6 +1991,21 @@ end function
 
       ! change the step size
       this%stepsize  = this%stepsize * this%r
+
+      ! Detection of stiff iteration, small stepsize below threshold at highest iteration order
+      if ( (abs(this%stepsize) .lt. MIN_STEP_SIZE_STIFFNESS) .and. (this%k == kmax) ) then
+        this%stiffiter = this%stiffiter + 1
+        ! Wait for limit count of stiff iterations to ensure that short-term reductions
+        ! in the stepsize, e.g. due to maneuvers, do not result in a stiffness error
+        if (this%stiffiter .gt. MAX_ITERATIONS_STIFFNESS) then
+          ! Generate error and return
+          call setNeptuneError(E_STEPSIZE_STIFFNESS, FATAL)
+          return
+        end if
+      else
+        ! Set the counter to zero when the stepsize value normalizes
+        this%stiffiter = 0
+      end if
 
       ! Force a step size to meet e.g. changes in acceleration => maneuvers
       if (((this%intdir == 1 .and. (rqtime < (this%inttime + this%stepsize))) .or. &
@@ -2647,7 +2666,7 @@ end function
         write(*,*) this%inttime, rqtime, this%intdir
         stop
       end if
-      call mjd2gd(currtime/86400.d0,year,month,day,fracday)
+      call mjd2gd(currtime/86400.d0+this%start_epoch%mjd,year,month,day,fracday)
       call dayFraction2HMS(fracday,hour,minute,second)
       write(this%intlog,100) year, month, day, hour, minute, second, currtime/86400.d0, &
                         this%stepsize, this%k, this%errd, this%errs, this%countCallsVarstormcow, logInfo

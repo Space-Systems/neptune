@@ -53,3 +53,8 @@ add_pfunit_ctest (tides_tests
     TEST_SOURCES test_tides.pf
     LINK_LIBRARIES neptune ${LIBSLAM}
     )
+
+add_pfunit_ctest (integration_tests
+    TEST_SOURCES test_integration_propagation.pf
+    LINK_LIBRARIES neptune ${LIBSLAM}
+    )

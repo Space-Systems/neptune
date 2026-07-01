@@ -85,6 +85,7 @@ module neptune_error_handling
   integer, parameter, public :: E_OMM_DECODING_VERSION  = 1158  !< OMM decoding not possible due to version conflict
   integer, parameter, public :: E_OMM_DECODING_ID       = 1159  !< OMM decoding not possible due to wrong file format
   integer, parameter, public :: E_UNSUPPORTED_FRAME     = 1160  !< Unsupported reference frame
+  integer, parameter, public :: E_CONTRADICTORY_EPOCH_PARAMETERS    = 1161  !< Input state vector is not defined at the initial state
 
   !** perturbation methods errors (codes 200)
   integer, parameter, public :: E_GEO_INIT             = 1201  !< geopotential coefficients not initialized
@@ -116,6 +117,7 @@ module neptune_error_handling
   integer, parameter, public :: E_INTEGRATION_METHOD   = 1604  !< integration method undefined
   integer, parameter, public :: E_INTEGRATION_ABORT    = 1605  !< integrator not able to take next step after a number of tries
   integer, parameter, public :: E_INTEGRATION_RESET    = 1606  !< reset of integrator has to be performed first
+  integer, parameter, public :: E_STEPSIZE_STIFFNESS   = 1607  !< Stiffness issue due to repeated undershooting of the integrator stepsize threshold
 
   !** NEPTUNE specific
   integer, parameter, public :: E_NEPTUNE_INIT         = 1700  !< NEPTUNE has not been initialised prior to call
@@ -280,6 +282,12 @@ subroutine getNeptuneErrorMessage(code, message, par)
       select case(errorLanguage)
         case default  ! english as default
           write(message(1:len(message)),'(a)') "Unsupported reference frame: '"//trim(par(1))//"'."
+      end select
+
+    case(E_CONTRADICTORY_EPOCH_PARAMETERS)
+      select case(errorLanguage)
+        case default  ! english as default
+          write(message(1:len(message)),'(a)') "Input state vector epoch does not match the first propagation epoch."
       end select
 
     case(E_STATE)
@@ -688,6 +696,12 @@ subroutine getNeptuneErrorMessage(code, message, par)
       select case(errorLanguage)
         case default
           write(message(1:len(message)),'(a)') "Integrator reset is performed for first call, although reset flag was not set explicitly."
+      end select
+
+    case(E_STEPSIZE_STIFFNESS)
+      select case(errorLanguage)
+    	case default
+    	  write(message(1:len(message)),'(a)') "Stiffness issue due to repeated undershooting of the integrator stepsize threshold . Adjust satellite characteristic inputs. "
       end select
 
     case(E_FRAME_CENTER_MISSING)
