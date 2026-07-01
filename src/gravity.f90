@@ -866,7 +866,7 @@ contains
     this%rekm = getLunarGeopotentialRadius()
     this%mu   = getLunarGravity()
 
-    call moon_red%inertial2moonFixed_r(r_gcrf, r_moon_gcrf, time_mjd, r_moon_fixed)
+    call moon_red%gcrf2moonFixed_r(r_gcrf, r_moon_gcrf, time_mjd, r_moon_fixed)
     if(hasFailed()) return
 
     call this%computeBodyFixedAccel(r_moon_fixed, zero_vec, accel_mf)
@@ -877,7 +877,7 @@ contains
     ! perturbation is returned, avoiding double-counting.
     accel_mf = accel_mf + this%mu * this%oorabs3 * r_moon_fixed
 
-    call moon_red%moonFixed2inertial_r(accel_mf, zero_vec, time_mjd, accel)
+    call moon_red%moonFixed2gcrf_r(accel_mf, zero_vec, time_mjd, accel)
     if(hasFailed()) return
 
     if(isControlled()) call checkOut(csubid)
